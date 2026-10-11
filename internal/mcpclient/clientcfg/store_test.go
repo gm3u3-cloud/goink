@@ -103,7 +103,7 @@ func TestStoreFailedAtomicReplacePreservesDestination(t *testing.T) {
 }
 
 func TestStorePreservesJSONError(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "mcp_config.enc")
+	path := filepath.Join(t.TempDir(), "mcp_client_config.enc")
 	data, err := config.Encrypt([]byte("{"))
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(path, data, 0600))

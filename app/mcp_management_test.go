@@ -23,7 +23,7 @@ import (
 func TestMCPManagementAPIAndShutdown(t *testing.T) {
 	a := setupTestApp(t)
 	a.mcpServer = mcpserver.New(a.registry, a.db, a.currentNovel, a.logger, nil)
-	service, err := mcpmanagement.New(mcpconfig.NewStore(filepath.Join(t.TempDir(), "mcp_config.enc")), mcpclient.NewManager(), a.mcpServer)
+	service, err := mcpmanagement.New(mcpconfig.NewStore(filepath.Join(t.TempDir(), "mcp_server_config.enc")), mcpclient.NewManager(), a.mcpServer)
 	require.NoError(t, err)
 	a.mcpManagement.Store(service)
 	t.Cleanup(func() {
@@ -93,7 +93,7 @@ func TestMCPConfigFailureDoesNotBlockStartup(t *testing.T) {
 			home := t.TempDir()
 			t.Setenv("HOME", home)
 			t.Setenv("USERPROFILE", home)
-			path := config.MCPConfigPath()
+			path := config.MCPServerConfigPath()
 			require.NoError(t, os.MkdirAll(filepath.Dir(path), 0700))
 			var original []byte
 			switch mode {

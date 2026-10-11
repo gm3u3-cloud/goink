@@ -45,6 +45,7 @@ func TestMCPConfigPaths(t *testing.T) {
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	testsupport.Isolate(t)
-	require.Equal(t, filepath.Join(home, ".goink", "mcp_config.enc"), MCPConfigPath())
+	require.Equal(t, filepath.Join(home, ".goink", "mcp_server_config.enc"), MCPServerConfigPath())
+	require.Equal(t, filepath.Join(home, ".goink", "mcp_client_config.enc"), MCPClientConfigPath())
 	require.Equal(t, filepath.Join(home, ".goink", "llm_config.enc"), LLMConfigPath())
 }

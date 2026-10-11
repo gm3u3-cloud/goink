@@ -14,7 +14,7 @@ import (
 
 func TestStoreEncryptedRoundTripAndCorruption(t *testing.T) {
 	dir := t.TempDir()
-	path := filepath.Join(dir, ".goink", "mcp_config.enc")
+	path := filepath.Join(dir, ".goink", "mcp_server_config.enc")
 	store := NewStore(path)
 	empty, err := store.Load()
 	require.NoError(t, err)
@@ -68,7 +68,7 @@ func testState() State {
 
 func TestStoreFailedAtomicReplacePreservesDestination(t *testing.T) {
 	dir := t.TempDir()
-	path := filepath.Join(dir, "mcp_config.enc")
+	path := filepath.Join(dir, "mcp_server_config.enc")
 	require.NoError(t, os.Mkdir(path, 0700))
 	marker := filepath.Join(path, "existing")
 	require.NoError(t, os.WriteFile(marker, []byte("preserve"), 0600))
@@ -87,7 +87,7 @@ func TestStoreFailedAtomicReplacePreservesDestination(t *testing.T) {
 }
 
 func TestStorePreservesJSONError(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "mcp_config.enc")
+	path := filepath.Join(t.TempDir(), "mcp_server_config.enc")
 	data, err := config.Encrypt([]byte("{"))
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(path, data, 0600))
@@ -98,7 +98,7 @@ func TestStorePreservesJSONError(t *testing.T) {
 }
 
 func TestStoreNormalizesDefaultsWithoutRewritingOnLoad(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "mcp_config.enc")
+	path := filepath.Join(t.TempDir(), "mcp_server_config.enc")
 	data, err := config.Encrypt([]byte(`{}`))
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(path, data, 0600))
@@ -133,7 +133,7 @@ func TestStoreRejectsInvalidSnapshotsAndPreservesFiles(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			path := filepath.Join(t.TempDir(), "mcp_config.enc")
+			path := filepath.Join(t.TempDir(), "mcp_server_config.enc")
 			store := NewStore(path)
 			require.NoError(t, store.Save(testState()))
 			original, err := os.ReadFile(path)

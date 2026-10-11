@@ -50,9 +50,14 @@ func GlobalDBPath() string {
 	return filepath.Join(platform.DataDir(), "novel-agent.db")
 }
 
-func MCPConfigPath() string {
+func MCPClientConfigPath() string {
 	dir, _ := configDir()
-	return filepath.Join(dir, "mcp_config.enc")
+	return filepath.Join(dir, "mcp_client_config.enc")
+}
+
+func MCPServerConfigPath() string {
+	dir, _ := configDir()
+	return filepath.Join(dir, "mcp_server_config.enc")
 }
 
 // NovelDirPath 返回指定小说的 Git 仓库根目录。

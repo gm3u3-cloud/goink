@@ -71,7 +71,7 @@ func localClient(ctx context.Context, endpoint, token string) (*mcpclient.Client
 func TestLocalLifecyclePersistenceRotationAndRevocation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	store := servercfg.NewStore(filepath.Join(t.TempDir(), "mcp_config.enc"))
+	store := servercfg.NewStore(filepath.Join(t.TempDir(), "mcp_server_config.enc"))
 	service := newTestService(t, store)
 	require.NoError(t, service.Restore())
 	require.False(t, service.LocalSettings().Status.Running)
@@ -164,7 +164,7 @@ func (r *failingRepository) Save(state servercfg.State) error {
 func TestFailedSavePreservesRuntimeAndRejectsUnsafeConfig(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	store := &failingRepository{Repository: servercfg.NewStore(filepath.Join(t.TempDir(), "mcp_config.enc"))}
+	store := &failingRepository{Repository: servercfg.NewStore(filepath.Join(t.TempDir(), "mcp_server_config.enc"))}
 	service := newTestService(t, store)
 	local, err := service.SaveLocal(ctx, servercfg.Local{Enabled: true})
 	require.NoError(t, err)
@@ -196,7 +196,7 @@ func TestSavedTokenSurvivesListenFailure(t *testing.T) {
 		t.Run(fmt.Sprintf("rotate=%t", rotate), func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
-			store := servercfg.NewStore(filepath.Join(t.TempDir(), "mcp_config.enc"))
+			store := servercfg.NewStore(filepath.Join(t.TempDir(), "mcp_server_config.enc"))
 			service := newTestService(t, store)
 			port := service.LocalSettings().Config.Port
 			previousToken := ""
@@ -252,7 +252,7 @@ func TestSavedTokenSurvivesStopTimeout(t *testing.T) {
 		<-release
 		return CurrentNovel{}, ctx.Err()
 	}, logger, nil)
-	store := servercfg.NewStore(filepath.Join(t.TempDir(), "mcp_config.enc"))
+	store := servercfg.NewStore(filepath.Join(t.TempDir(), "mcp_server_config.enc"))
 	service, err := NewService(store, server)
 	require.NoError(t, err)
 	t.Cleanup(func() {
@@ -304,7 +304,7 @@ func TestSavedTokenSurvivesStopTimeout(t *testing.T) {
 }
 
 func TestLocalPortDefaultsAndValidation(t *testing.T) {
-	store := servercfg.NewStore(filepath.Join(t.TempDir(), "mcp_config.enc"))
+	store := servercfg.NewStore(filepath.Join(t.TempDir(), "mcp_server_config.enc"))
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	server := New(mcp_tools.NewRegistry(logger), nil, nil, logger, nil)
 	service, err := NewService(store, server)
@@ -328,7 +328,7 @@ func TestLocalPortDefaultsAndValidation(t *testing.T) {
 }
 
 func TestLoadFailurePreservesConfiguration(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "mcp_config.enc")
+	path := filepath.Join(t.TempDir(), "mcp_server_config.enc")
 	store := servercfg.NewStore(path)
 	plain, err := json.Marshal(servercfg.State{
 		Local: servercfg.Local{Enabled: true}, LocalToken: strings.Repeat("x", 64),
@@ -356,7 +356,7 @@ func TestLoadFailurePreservesConfiguration(t *testing.T) {
 }
 
 func TestRuntimePolicyValidationOnLoad(t *testing.T) {
-	store := servercfg.NewStore(filepath.Join(t.TempDir(), "mcp_config.enc"))
+	store := servercfg.NewStore(filepath.Join(t.TempDir(), "mcp_server_config.enc"))
 	require.NoError(t, store.Save(servercfg.State{Local: servercfg.Local{AllowedTools: []string{"edit"}}}), "Store 不负责工具开放策略")
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	server := New(mcp_tools.NewRegistry(logger), nil, nil, logger, nil)

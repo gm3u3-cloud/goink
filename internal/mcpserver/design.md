@@ -34,7 +34,7 @@ App 通过 Server 管理服务关闭 MCP Server；管理服务尚未创建时才
 
 ## 存储
 
-Server 配置保存在 `~/.goink/mcp_config.enc`，快照包含 local 和 local_token，即本地 Server 开关、端口、工具权限和 Token。Client 使用独立文件，两个 Store 不会覆盖对方配置。
+Server 配置保存在 `~/.goink/mcp_server_config.enc`，快照包含 local 和 local_token，即本地 Server 开关、端口、工具权限和 Token。Client 使用独立文件，两个 Store 不会覆盖对方配置。
 
 配置与 LLM 共用原有 AES-256-GCM 密钥。写入通过同目录临时文件、同步、关闭和重命名完成，配置文件权限为 `0600`。当前格式尚未发行，不提供旧 MCP 格式迁移。
 
