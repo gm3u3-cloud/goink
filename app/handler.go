@@ -11,6 +11,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"gorm.io/gorm"
 
+	"github.com/sigpanic/goink/internal/activity"
 	"github.com/sigpanic/goink/internal/agent"
 	"github.com/sigpanic/goink/internal/approval"
 	"github.com/sigpanic/goink/internal/chapter"
@@ -64,9 +65,10 @@ type App struct {
 	quitConfirmPending bool
 	quitConfirmed      bool
 
-	cfg      *config.AppConfig
-	settings *config.AppSettings
-	db       *gorm.DB
+	cfg        *config.AppConfig
+	settings   *config.AppSettings
+	settingsMu sync.Mutex // 串行化 settings 的并发读写，见 config.go 的 updateSettings / settingsSnapshot
+	db         *gorm.DB
 
 	llmClient        *llm.Client
 	agent            *agent.Agent
@@ -99,6 +101,7 @@ type App struct {
 	turnCommit *rollback.Store
 	writing    *writing.Store
 	volume     *volume.Store
+	activity   *activity.Store
 }
 
 // New 创建 App 实例。初始化在 OnStartup 中完成。
@@ -296,6 +299,9 @@ func (a *App) initWithConfig(cfg *config.AppConfig) error {
 		return fmt.Errorf("数据库迁移失败: %w", err)
 	}
 
+	a.activity = activity.NewStore(db, a.logger)
+	a.activity.InitTracking(a.ctx)
+
 	// 4. 加载运行时配置
 	settings, err := config.LoadSettings(db)
 	if err != nil {
@@ -432,7 +438,11 @@ func (a *App) initWithConfig(cfg *config.AppConfig) error {
 	a.mcpClientService.Store(clientService)
 	a.mcpServerService.Store(serverService)
 	a.cfg = cfg
-	a.logger.Info("应用初始化完成", "data_dir", config.DataDirPath())
+	a.logger.Info("应用初始化完成",
+		"data_dir", config.DataDirPath(),
+		"version", a.GetVersion(),
+		"commit_hash", a.GetBuildHash(),
+	)
 	initSucceeded = true
 	return nil
 }
