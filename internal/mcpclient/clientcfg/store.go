@@ -3,10 +3,12 @@ package clientcfg
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/sigpanic/goink/internal/config"
+	"github.com/sigpanic/goink/internal/utils"
 )
 
 // Store 将 MCP 配置与凭据作为一个加密快照提交，避免跨文件更新留下半份授权。
@@ -25,15 +27,15 @@ func (s *Store) Load() (State, error) {
 		return state, state.Validate()
 	}
 	if err != nil {
-		return State{}, errors.New("读取 MCP 配置失败")
+		return State{}, fmt.Errorf("读取 MCP 配置失败: %w", err)
 	}
 	plain, err := config.Decrypt(data)
 	if err != nil {
-		return State{}, errors.New("MCP 配置解密失败")
+		return State{}, fmt.Errorf("MCP 配置解密失败: %w", err)
 	}
 	var state State
 	if err := json.Unmarshal(plain, &state); err != nil {
-		return State{}, errors.New("解析 MCP 配置失败")
+		return State{}, fmt.Errorf("解析 MCP 配置失败: %w", err)
 	}
 	state.normalize()
 	if err := state.Validate(); err != nil {
@@ -48,38 +50,18 @@ func (s *Store) Save(state State) error {
 		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(s.path), 0700); err != nil {
-		return errors.New("创建 MCP 配置目录失败")
+		return fmt.Errorf("创建 MCP 配置目录失败: %w", err)
 	}
 	plain, err := json.Marshal(state)
 	if err != nil {
-		return errors.New("编码 MCP 配置失败")
+		return fmt.Errorf("编码 MCP 配置失败: %w", err)
 	}
 	data, err := config.Encrypt(plain)
 	if err != nil {
-		return errors.New("加密 MCP 配置失败")
+		return fmt.Errorf("加密 MCP 配置失败: %w", err)
 	}
-	if err := atomicWrite(s.path, data); err != nil {
-		return errors.New("保存 MCP 配置失败")
+	if err := utils.AtomicWrite(s.path, data); err != nil {
+		return fmt.Errorf("保存 MCP 配置失败: %w", err)
 	}
 	return nil
-}
-
-func atomicWrite(path string, data []byte) error {
-	f, err := os.CreateTemp(filepath.Dir(path), ".mcp-*")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(f.Name())
-	if _, err := f.Write(data); err != nil {
-		_ = f.Close()
-		return err
-	}
-	if err := f.Sync(); err != nil {
-		_ = f.Close()
-		return err
-	}
-	if err := f.Close(); err != nil {
-		return err
-	}
-	return os.Rename(f.Name(), path)
 }

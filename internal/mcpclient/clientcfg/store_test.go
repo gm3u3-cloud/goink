@@ -88,13 +88,29 @@ func TestStoreFailedAtomicReplacePreservesDestination(t *testing.T) {
 	require.NoError(t, os.Mkdir(path, 0700))
 	marker := filepath.Join(path, "existing")
 	require.NoError(t, os.WriteFile(marker, []byte("preserve"), 0600))
-	require.Error(t, NewStore(path).Save(testState()))
+	err := NewStore(path).Save(testState())
+	var renameErr *os.LinkError
+	require.ErrorAs(t, err, &renameErr)
+	_, err = NewStore(path).Load()
+	var readErr *os.PathError
+	require.ErrorAs(t, err, &readErr)
 	data, err := os.ReadFile(marker)
 	require.NoError(t, err)
 	require.Equal(t, "preserve", string(data))
 	entries, err := os.ReadDir(dir)
 	require.NoError(t, err)
 	require.Len(t, entries, 1, "替换失败也要清理临时文件")
+}
+
+func TestStorePreservesJSONError(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "mcp_config.enc")
+	data, err := config.Encrypt([]byte("{"))
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(path, data, 0600))
+	_, err = NewStore(path).Load()
+	var parseErr *json.SyntaxError
+	require.ErrorAs(t, err, &parseErr)
+	require.ErrorContains(t, err, "解析 MCP 配置失败")
 }
 
 func TestStoreNormalizesDefaultsWithoutRewritingOnLoad(t *testing.T) {
