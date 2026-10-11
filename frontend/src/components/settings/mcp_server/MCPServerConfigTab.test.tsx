@@ -16,6 +16,8 @@ import SettingsDialog from "../SettingsDialog";
 const api = vi.hoisted(() => ({
   GetMCPServerSettings: vi.fn(),
   SaveMCPServerSettings: vi.fn(),
+  RotateMCPServerCredential: vi.fn(),
+  RevokeMCPServerCredential: vi.fn(),
 }));
 vi.mock("@/lib/wailsjs/go/app/App", () => api);
 vi.mock("../GeneralConfigTab", () => ({ default: () => null }));
@@ -133,6 +135,114 @@ describe("local MCP server settings", () => {
       }),
     );
     expect(screen.getByText("settings.mcpServer.stopped")).toBeInTheDocument();
+  });
+
+  it("navigates within the content while keeping drafts and a shared save action", async () => {
+    const { user } = setup();
+    await loaded();
+    const navigation = within(
+      screen.getByRole("navigation", {
+        name: "settings.mcpServer.pageNavigation",
+      }),
+    );
+    const content = screen.getByRole("region", {
+      name: "settings.mcpServer.content",
+    });
+    const sectionOffsets = {
+      connection: 0,
+      credentials: 200,
+      guide: 450,
+      tools: 800,
+    };
+    vi.spyOn(content, "getBoundingClientRect").mockReturnValue({
+      top: 100,
+    } as DOMRect);
+    for (const [id, offset] of Object.entries(sectionOffsets)) {
+      const section = content.querySelector<HTMLElement>(
+        `#mcp-server-section-${id}`,
+      )!;
+      vi.spyOn(section, "getBoundingClientRect").mockImplementation(
+        () => ({ top: 100 + offset - content.scrollTop }) as DOMRect,
+      );
+    }
+    const scrollTo = vi.fn(({ top }: ScrollToOptions) => {
+      content.scrollTop = top ?? 0;
+      fireEvent.scroll(content);
+    });
+    Object.defineProperty(content, "scrollTo", { value: scrollTo });
+    expect(content).not.toContainElement(saveButton());
+    expect(content).not.toContainElement(
+      navigation.getByRole("button", {
+        name: "settings.mcpServer.navTools",
+      }),
+    );
+
+    const port = screen.getByRole("spinbutton", {
+      name: "settings.mcpServer.port",
+    });
+    fireEvent.change(port, { target: { value: "6208" } });
+    for (const [id, label] of [
+      ["credentials", "navCredentials"],
+      ["guide", "navGuide"],
+      ["tools", "navTools"],
+      ["connection", "navConnection"],
+    ]) {
+      const link = navigation.getByRole("button", {
+        name: `settings.mcpServer.${label}`,
+      });
+      await user.click(link);
+      expect(scrollTo).toHaveBeenLastCalledWith({
+        top: sectionOffsets[id as keyof typeof sectionOffsets],
+        behavior: "smooth",
+      });
+      expect(link).toHaveAttribute("aria-current", "location");
+      expect(content.querySelector(`#mcp-server-section-${id}`)).toHaveFocus();
+      expect(port).toHaveValue(6208);
+    }
+    expect(api.SaveMCPServerSettings).not.toHaveBeenCalled();
+    expect(api.GetMCPServerSettings).toHaveBeenCalledTimes(1);
+    await user.click(
+      screen.getByRole("checkbox", { name: "tools.names.read" }),
+    );
+    content.scrollTop = sectionOffsets.credentials;
+    fireEvent.scroll(content);
+    expect(
+      navigation.getByRole("button", {
+        name: "settings.mcpServer.navCredentials",
+      }),
+    ).toHaveAttribute("aria-current", "location");
+    expect(
+      screen.getByRole("checkbox", { name: "tools.names.read" }),
+    ).toBeChecked();
+    await user.click(saveButton());
+    await screen.findByText("settings.mcpServer.saved");
+    expect(api.SaveMCPServerSettings).toHaveBeenLastCalledWith(
+      expect.objectContaining({ port: 6208, allowed_tools: ["read"] }),
+    );
+  });
+
+  it("marks the tools section when the content reaches the bottom", async () => {
+    setup();
+    await loaded();
+    const content = screen.getByRole("region", {
+      name: "settings.mcpServer.content",
+    });
+    Object.defineProperties(content, {
+      scrollHeight: { value: 1200 },
+      clientHeight: { value: 500 },
+    });
+    content.scrollTop = 700;
+    fireEvent.scroll(content);
+    const navigation = within(
+      screen.getByRole("navigation", {
+        name: "settings.mcpServer.pageNavigation",
+      }),
+    );
+    expect(
+      navigation.getByRole("button", {
+        name: "settings.mcpServer.navTools",
+      }),
+    ).toHaveAttribute("aria-current", "location");
   });
 
   it.each(["", "0", "1023", "32768", "65536", "5108.5"])(
