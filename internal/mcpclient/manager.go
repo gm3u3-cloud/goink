@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/sigpanic/goink/internal/mcpconfig"
+	"github.com/sigpanic/goink/internal/mcpclient/clientcfg"
 )
 
 type ConnectionStatus struct {
@@ -22,8 +22,8 @@ type ConnectionStatus struct {
 }
 
 type managedConnection struct {
-	config mcpconfig.Connection
-	secret mcpconfig.Secrets
+	config clientcfg.Connection
+	secret clientcfg.Secrets
 	ctx    context.Context
 	cancel context.CancelFunc
 	op     chan struct{}
@@ -48,7 +48,7 @@ func NewManager() *Manager {
 }
 
 // Configure 接收后端私有快照，不接受前端直接传入的运行时连接对象。
-func (m *Manager) Configure(config mcpconfig.Connection, secret mcpconfig.Secrets) {
+func (m *Manager) Configure(config clientcfg.Connection, secret clientcfg.Secrets) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.closed {
@@ -66,7 +66,7 @@ func (m *Manager) Remove(id string) {
 }
 
 // SetAccess 保留管理员已发现的工具列表，但撤销旧连接及其在途请求。
-func (m *Manager) SetAccess(config mcpconfig.Connection) {
+func (m *Manager) SetAccess(config clientcfg.Connection) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	old := m.entries[config.ID]

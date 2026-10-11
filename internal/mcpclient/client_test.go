@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/sigpanic/goink/internal/mcpconfig"
+	"github.com/sigpanic/goink/internal/mcpclient/clientcfg"
 )
 
 func protocolTestServer(waitStarted chan<- struct{}, releaseWait <-chan struct{}) *mcp.Server {
@@ -68,8 +68,8 @@ func TestStdioClient(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client, err := Connect(ctx, Config{
-		TransportSettings: mcpconfig.TransportSettings{
-			Transport: mcpconfig.TransportStdio,
+		TransportSettings: clientcfg.TransportSettings{
+			Transport: clientcfg.TransportStdio,
 			Command:   os.Args[0],
 			Args:      []string{"-test.run=^TestMCPServerProcess$"},
 		},
@@ -97,7 +97,7 @@ func TestStreamableHTTPClient(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	client, err := Connect(ctx, Config{TransportSettings: mcpconfig.TransportSettings{Transport: mcpconfig.TransportStreamableHTTP, Endpoint: httpServer.URL}})
+	client, err := Connect(ctx, Config{TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStreamableHTTP, Endpoint: httpServer.URL}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +137,7 @@ func TestStreamableHTTPSessionlessClient(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	client, err := Connect(ctx, Config{TransportSettings: mcpconfig.TransportSettings{Transport: mcpconfig.TransportStreamableHTTP, Endpoint: httpServer.URL}})
+	client, err := Connect(ctx, Config{TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStreamableHTTP, Endpoint: httpServer.URL}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,14 +198,14 @@ func assertToolListAndCall(t *testing.T, ctx context.Context, client *Client) {
 
 func TestConnectRejectsInvalidConfig(t *testing.T) {
 	for _, config := range []Config{
-		{TransportSettings: mcpconfig.TransportSettings{Transport: mcpconfig.TransportStdio}},
-		{TransportSettings: mcpconfig.TransportSettings{Transport: mcpconfig.TransportStreamableHTTP, Endpoint: "file:///tmp/mcp"}},
-		{TransportSettings: mcpconfig.TransportSettings{Transport: mcpconfig.TransportStdio, Command: "test"}, Env: map[string]string{"BAD=KEY": "value"}},
-		{TransportSettings: mcpconfig.TransportSettings{Transport: mcpconfig.TransportStdio, Command: "bad\x00command"}},
-		{TransportSettings: mcpconfig.TransportSettings{Transport: mcpconfig.TransportStdio, Command: "test", Args: []string{"bad\x00arg"}}},
-		{TransportSettings: mcpconfig.TransportSettings{Transport: mcpconfig.TransportStdio, Command: "test", Endpoint: "http://localhost/mcp"}},
-		{TransportSettings: mcpconfig.TransportSettings{Transport: mcpconfig.TransportStreamableHTTP, Endpoint: "http://localhost/mcp", Command: "test"}},
-		{TransportSettings: mcpconfig.TransportSettings{Transport: mcpconfig.Transport("unknown")}},
+		{TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStdio}},
+		{TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStreamableHTTP, Endpoint: "file:///tmp/mcp"}},
+		{TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStdio, Command: "test"}, Env: map[string]string{"BAD=KEY": "value"}},
+		{TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStdio, Command: "bad\x00command"}},
+		{TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStdio, Command: "test", Args: []string{"bad\x00arg"}}},
+		{TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStdio, Command: "test", Endpoint: "http://localhost/mcp"}},
+		{TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStreamableHTTP, Endpoint: "http://localhost/mcp", Command: "test"}},
+		{TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.Transport("unknown")}},
 	} {
 		_, err := Connect(context.Background(), config)
 		if err == nil || !strings.Contains(err.Error(), "MCP") {
@@ -223,7 +223,7 @@ func TestNewTransportKeepsRuntimeURL(t *testing.T) {
 		t.Run(endpoint, func(t *testing.T) {
 			httpClient := &http.Client{}
 			transport, err := newTransport(Config{
-				TransportSettings: mcpconfig.TransportSettings{Transport: mcpconfig.TransportStreamableHTTP, Endpoint: endpoint},
+				TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStreamableHTTP, Endpoint: endpoint},
 				HTTPClient:        httpClient,
 			})
 			if err != nil {

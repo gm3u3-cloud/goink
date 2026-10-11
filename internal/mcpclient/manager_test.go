@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/sigpanic/goink/internal/mcpconfig"
+	"github.com/sigpanic/goink/internal/mcpclient/clientcfg"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,8 +34,8 @@ func TestManagerPermissionsAndCancellation(t *testing.T) {
 	defer cancel()
 	manager := NewManager()
 	defer manager.Close(ctx)
-	config := mcpconfig.Connection{ConnectionSettings: mcpconfig.ConnectionSettings{ID: "one", TransportSettings: mcpconfig.TransportSettings{Transport: mcpconfig.TransportStreamableHTTP, Endpoint: httpServer.URL}}}
-	manager.Configure(config, mcpconfig.Secrets{BearerToken: "http-secret"})
+	config := clientcfg.Connection{ConnectionSettings: clientcfg.ConnectionSettings{ID: "one", TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStreamableHTTP, Endpoint: httpServer.URL}}}
+	manager.Configure(config, clientcfg.Secrets{BearerToken: "http-secret"})
 	_, err := manager.CallTool(ctx, "one", "echo", nil)
 	require.Error(t, err)
 	require.Zero(t, requests.Load(), "禁用时不得隐式连接")
@@ -103,11 +103,11 @@ func TestManagerCloseCancelsAllConnections(t *testing.T) {
 		httpServer := httptest.NewServer(mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return server }, &mcp.StreamableHTTPOptions{JSONResponse: true}))
 		defer httpServer.Close()
 		defer close(release)
-		config := mcpconfig.Connection{
-			ConnectionSettings: mcpconfig.ConnectionSettings{ID: id, TransportSettings: mcpconfig.TransportSettings{Transport: mcpconfig.TransportStreamableHTTP, Endpoint: httpServer.URL}, Enabled: true},
+		config := clientcfg.Connection{
+			ConnectionSettings: clientcfg.ConnectionSettings{ID: id, TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStreamableHTTP, Endpoint: httpServer.URL}, Enabled: true},
 			AllowedTools:       map[string]bool{"wait": true},
 		}
-		manager.Configure(config, mcpconfig.Secrets{})
+		manager.Configure(config, clientcfg.Secrets{})
 		if id == "two" {
 			manager.SetAccess(config)
 		}
@@ -153,16 +153,16 @@ func TestManagerStdioAndRedactedErrors(t *testing.T) {
 	defer cancel()
 	manager := NewManager()
 	defer manager.Close(ctx)
-	manager.Configure(mcpconfig.Connection{
-		ConnectionSettings: mcpconfig.ConnectionSettings{
+	manager.Configure(clientcfg.Connection{
+		ConnectionSettings: clientcfg.ConnectionSettings{
 			ID: "stdio", Enabled: true,
-			TransportSettings: mcpconfig.TransportSettings{
-				Transport: mcpconfig.TransportStdio, Command: os.Args[0],
+			TransportSettings: clientcfg.TransportSettings{
+				Transport: clientcfg.TransportStdio, Command: os.Args[0],
 				Args: []string{"-test.run=^TestMCPServerProcess$"},
 			},
 		},
 		AllowedTools: map[string]bool{"echo": true},
-	}, mcpconfig.Secrets{Env: map[string]string{"GOINK_MCP_TEST_SERVER": "1"}})
+	}, clientcfg.Secrets{Env: map[string]string{"GOINK_MCP_TEST_SERVER": "1"}})
 	list, err := manager.Refresh(ctx, "stdio")
 	require.NoError(t, err)
 	require.Len(t, list, 3)
@@ -174,7 +174,7 @@ func TestManagerStdioAndRedactedErrors(t *testing.T) {
 		http.Error(w, "private-token private-env", http.StatusUnauthorized)
 	}))
 	defer httpServer.Close()
-	manager.Configure(mcpconfig.Connection{ConnectionSettings: mcpconfig.ConnectionSettings{ID: "bad", TransportSettings: mcpconfig.TransportSettings{Transport: mcpconfig.TransportStreamableHTTP, Endpoint: httpServer.URL}}}, mcpconfig.Secrets{BearerToken: "private-token"})
+	manager.Configure(clientcfg.Connection{ConnectionSettings: clientcfg.ConnectionSettings{ID: "bad", TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStreamableHTTP, Endpoint: httpServer.URL}}}, clientcfg.Secrets{BearerToken: "private-token"})
 	_, err = manager.Refresh(ctx, "bad")
 	require.Error(t, err)
 	require.NotContains(t, err.Error(), "private-token")
@@ -199,7 +199,7 @@ func TestManagerRejectsCredentialRedirect(t *testing.T) {
 	defer cancel()
 	manager := NewManager()
 	defer manager.Close(ctx)
-	manager.Configure(mcpconfig.Connection{ConnectionSettings: mcpconfig.ConnectionSettings{ID: "redirect", TransportSettings: mcpconfig.TransportSettings{Transport: mcpconfig.TransportStreamableHTTP, Endpoint: source.URL}}}, mcpconfig.Secrets{BearerToken: "secret"})
+	manager.Configure(clientcfg.Connection{ConnectionSettings: clientcfg.ConnectionSettings{ID: "redirect", TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStreamableHTTP, Endpoint: source.URL}}}, clientcfg.Secrets{BearerToken: "secret"})
 	_, err := manager.Refresh(ctx, "redirect")
 	require.Error(t, err)
 	require.False(t, leaked.Load())

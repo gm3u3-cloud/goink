@@ -8,14 +8,14 @@ import (
 	"os/exec"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/sigpanic/goink/internal/mcpconfig"
+	"github.com/sigpanic/goink/internal/mcpclient/clientcfg"
 	"github.com/sigpanic/goink/internal/version"
 )
 
 // Config 提供单个连接的运行时参数。调用方可通过 HTTPClient 注入认证能力；
 // 持久化配置和凭据管理不属于本包。
 type Config struct {
-	mcpconfig.TransportSettings
+	clientcfg.TransportSettings
 	Env        map[string]string
 	HTTPClient *http.Client
 }
@@ -47,7 +47,7 @@ func newTransport(config Config) (mcp.Transport, error) {
 		return nil, err
 	}
 	switch config.Transport {
-	case mcpconfig.TransportStdio:
+	case clientcfg.TransportStdio:
 		cmd := exec.Command(config.Command, config.Args...)
 		if len(config.Env) > 0 {
 			cmd.Env = os.Environ()
@@ -56,7 +56,7 @@ func newTransport(config Config) (mcp.Transport, error) {
 			}
 		}
 		return &mcp.CommandTransport{Command: cmd}, nil
-	case mcpconfig.TransportStreamableHTTP:
+	case clientcfg.TransportStreamableHTTP:
 		return &mcp.StreamableClientTransport{
 			Endpoint:   config.Endpoint,
 			HTTPClient: config.HTTPClient,
