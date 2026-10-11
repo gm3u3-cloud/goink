@@ -1,16 +1,18 @@
 import { useState } from "react";
-import { Settings, Cpu, Info } from "lucide-react";
+import { Settings, Cpu, Info, Plug } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import ModelConfigTab from "./ModelConfigTab";
 import GeneralConfigTab from "./GeneralConfigTab";
 import AboutTab from "./AboutTab";
+import MCPServerConfigTab from "./mcp_server/MCPServerConfigTab";
 
-type Tab = "general" | "model" | "about";
+type Tab = "general" | "model" | "mcp" | "about";
 
 // 内容区按 activeTab 映射渲染，避免嵌套三元。
 const TAB_CONTENT: Record<Tab, React.ReactNode> = {
   general: <GeneralConfigTab />,
   model: <ModelConfigTab />,
+  mcp: <MCPServerConfigTab />,
   about: <AboutTab />,
 };
 
@@ -40,6 +42,11 @@ export default function SettingsDialog({
       id: "model",
       label: t("settings.modelConfig"),
       icon: <Cpu className="w-4 h-4" />,
+    },
+    {
+      id: "mcp",
+      label: t("settings.mcpServer.tab"),
+      icon: <Plug className="w-4 h-4" />,
     },
     {
       id: "about",

@@ -1,0 +1,283 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { mcpserver, servercfg } from "@/lib/wailsjs/go/models";
+import { mcpServerKeys } from "@/lib/queryKeys";
+import MCPServerConfigTab from "./MCPServerConfigTab";
+import SettingsDialog from "../SettingsDialog";
+
+const api = vi.hoisted(() => ({
+  GetMCPServerSettings: vi.fn(),
+  SaveMCPServerSettings: vi.fn(),
+}));
+vi.mock("@/lib/wailsjs/go/app/App", () => api);
+vi.mock("../GeneralConfigTab", () => ({ default: () => null }));
+vi.mock("../ModelConfigTab", () => ({ default: () => null }));
+vi.mock("../AboutTab", () => ({ default: () => null }));
+
+function makeView(
+  config: Partial<servercfg.Local> = {},
+  status: Partial<mcpserver.Status> = {},
+  lastError = "",
+) {
+  return new mcpserver.LocalView({
+    config: { enabled: false, port: 5108, allowed_tools: [], ...config },
+    available_tools: ["edit", "get_chapter_list", "read", "delete_record"],
+    token: "private-server-token",
+    status: { running: false, stopping: false, url: "", ...status },
+    last_error: lastError,
+  });
+}
+
+let stored: mcpserver.LocalView;
+
+function setup(element = <MCPServerConfigTab />) {
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  render(<QueryClientProvider client={qc}>{element}</QueryClientProvider>);
+  return { qc, user: userEvent.setup() };
+}
+
+async function loaded() {
+  await screen.findByRole("switch", { name: "settings.mcpServer.enabled" });
+}
+
+function saveButton() {
+  return screen.getByRole("button", { name: "settings.mcpServer.save" });
+}
+
+describe("local MCP server settings", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    stored = makeView();
+    api.GetMCPServerSettings.mockImplementation(() => Promise.resolve(stored));
+    api.SaveMCPServerSettings.mockImplementation((input: servercfg.Local) => {
+      stored = makeView(input, {
+        running: input.enabled,
+        url: input.enabled ? `http://127.0.0.1:${input.port}/mcp` : "",
+      });
+      return Promise.resolve(stored);
+    });
+  });
+
+  it("opens the server controls from the settings navigation", async () => {
+    const { user } = setup(<SettingsDialog open onClose={vi.fn()} />);
+    expect(api.GetMCPServerSettings).not.toHaveBeenCalled();
+    await user.click(
+      screen.getByRole("button", { name: "settings.mcpServer.tab" }),
+    );
+    await loaded();
+    expect(
+      screen.getByRole("spinbutton", { name: "settings.mcpServer.port" }),
+    ).toHaveValue(5108);
+    expect(
+      screen.getByRole("checkbox", { name: /settings.mcpServer.currentNovel/ }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole("checkbox", { name: /settings.mcpServer.currentNovel/ }),
+    ).toBeDisabled();
+    expect(saveButton()).toBeDisabled();
+    expect(screen.queryByText("private-server-token")).not.toBeInTheDocument();
+  });
+
+  it("starts and stops immediately using saved settings, then applies draft port and tools", async () => {
+    const { qc, user } = setup();
+    await loaded();
+    const port = screen.getByRole("spinbutton", {
+      name: "settings.mcpServer.port",
+    });
+    await user.clear(port);
+    await user.type(port, "5208");
+    await user.click(
+      screen.getByRole("checkbox", { name: /settings.mcpServer.chapterList/ }),
+    );
+    const enabled = screen.getByRole("switch", {
+      name: "settings.mcpServer.enabled",
+    });
+    await user.click(enabled);
+    await waitFor(() => expect(enabled).toBeChecked());
+    expect(api.SaveMCPServerSettings).toHaveBeenLastCalledWith(
+      expect.objectContaining({ enabled: true, port: 5108, allowed_tools: [] }),
+    );
+    expect(port).toHaveValue(5208);
+    await waitFor(() => expect(saveButton()).toBeEnabled());
+    await user.click(saveButton());
+    await screen.findByText("settings.mcpServer.saved");
+    expect(api.SaveMCPServerSettings).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        enabled: true,
+        port: 5208,
+        allowed_tools: ["get_chapter_list"],
+      }),
+    );
+    expect(
+      qc.getQueryData<mcpserver.LocalView>(mcpServerKeys.all)?.config.port,
+    ).toBe(5208);
+    expect(screen.getByText("settings.mcpServer.running")).toBeInTheDocument();
+    await user.click(enabled);
+    await waitFor(() => expect(enabled).not.toBeChecked());
+    expect(api.SaveMCPServerSettings).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        enabled: false,
+        port: 5208,
+        allowed_tools: ["get_chapter_list"],
+      }),
+    );
+    expect(screen.getByText("settings.mcpServer.stopped")).toBeInTheDocument();
+  });
+
+  it.each(["", "0", "1023", "32768", "65536", "5108.5"])(
+    "rejects invalid port %s without calling the backend",
+    async (value) => {
+      const { user } = setup();
+      await loaded();
+      fireEvent.change(
+        screen.getByRole("spinbutton", { name: "settings.mcpServer.port" }),
+        { target: { value } },
+      );
+      await user.click(saveButton());
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "settings.mcpServer.invalidPort",
+      );
+      expect(api.SaveMCPServerSettings).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["1024", "32767"])("accepts port boundary %s", async (value) => {
+    const { user } = setup();
+    await loaded();
+    fireEvent.change(
+      screen.getByRole("spinbutton", { name: "settings.mcpServer.port" }),
+      { target: { value } },
+    );
+    await user.click(saveButton());
+    await screen.findByText("settings.mcpServer.saved");
+    expect(api.SaveMCPServerSettings).toHaveBeenLastCalledWith(
+      expect.objectContaining({ port: Number(value) }),
+    );
+  });
+
+  it("lets users explicitly expose read, edit and deletion tools", async () => {
+    const { user } = setup();
+    await loaded();
+    for (const name of ["read", "edit", "delete_record"]) {
+      const checkbox = screen.getByRole("checkbox", {
+        name,
+      });
+      expect(checkbox).not.toBeChecked();
+      await user.click(checkbox);
+    }
+    expect(screen.queryByText("run_subagent")).not.toBeInTheDocument();
+    await user.click(saveButton());
+    await screen.findByText("settings.mcpServer.saved");
+    expect(api.SaveMCPServerSettings).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        allowed_tools: ["read", "edit", "delete_record"],
+      }),
+    );
+  });
+
+  it("reloads persisted settings after a start failure and allows retrying the same settings", async () => {
+    const { qc, user } = setup();
+    await loaded();
+    api.SaveMCPServerSettings.mockImplementationOnce(
+      (input: servercfg.Local) => {
+        stored = makeView(input, {}, "port occupied");
+        return Promise.reject("port occupied");
+      },
+    );
+    await user.click(
+      screen.getByRole("switch", { name: "settings.mcpServer.enabled" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent("port occupied"),
+    );
+    expect(
+      screen.getByRole("switch", { name: "settings.mcpServer.enabled" }),
+    ).toBeChecked();
+    expect(screen.getByText("settings.mcpServer.stopped")).toBeInTheDocument();
+    expect(
+      screen.getByText("settings.mcpServer.enabledNotRunning"),
+    ).toBeInTheDocument();
+    expect(
+      qc.getQueryData<mcpserver.LocalView>(mcpServerKeys.all)?.config.enabled,
+    ).toBe(true);
+    expect(api.GetMCPServerSettings).toHaveBeenCalledTimes(2);
+    await user.click(saveButton());
+    await screen.findByText("settings.mcpServer.saved");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByText("settings.mcpServer.running")).toBeInTheDocument();
+  });
+
+  it("keeps unsaved fields when the runtime status is refreshed", async () => {
+    const { user } = setup();
+    await loaded();
+    const port = screen.getByRole("spinbutton", {
+      name: "settings.mcpServer.port",
+    });
+    await user.clear(port);
+    await user.type(port, "5308");
+    await user.click(
+      screen.getByRole("checkbox", { name: /settings.mcpServer.chapterList/ }),
+    );
+    stored = makeView({ port: 6108 });
+    await user.click(
+      screen.getByRole("button", { name: "settings.mcpServer.refresh" }),
+    );
+    await waitFor(() =>
+      expect(api.GetMCPServerSettings).toHaveBeenCalledTimes(2),
+    );
+    expect(port).toHaveValue(5308);
+    expect(
+      screen.getByRole("checkbox", { name: /settings.mcpServer.chapterList/ }),
+    ).toBeChecked();
+    expect(api.SaveMCPServerSettings).not.toHaveBeenCalled();
+  });
+
+  it("displays configuration errors returned with a successful settings query", async () => {
+    stored = makeView({}, {}, "MCP configuration decrypt failed");
+    setup();
+    await loaded();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "MCP configuration decrypt failed",
+    );
+    expect(
+      screen.getByRole("switch", { name: "settings.mcpServer.enabled" }),
+    ).not.toBeChecked();
+    expect(screen.getByText("settings.mcpServer.stopped")).toBeInTheDocument();
+    expect(saveButton()).toBeEnabled();
+  });
+
+  it("recovers from a query failure using the refresh action", async () => {
+    api.GetMCPServerSettings.mockRejectedValueOnce("settings unavailable");
+    const { user } = setup();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "settings unavailable",
+    );
+    await user.click(
+      screen.getByRole("button", { name: "settings.mcpServer.refresh" }),
+    );
+    await loaded();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("refreshes while shutdown is draining and stops polling once it completes", async () => {
+    api.GetMCPServerSettings.mockResolvedValueOnce(
+      makeView({}, { stopping: true }),
+    );
+    setup();
+    await loaded();
+    expect(screen.getByText("settings.mcpServer.stopping")).toBeInTheDocument();
+    await waitFor(
+      () =>
+        expect(
+          screen.getByText("settings.mcpServer.stopped"),
+        ).toBeInTheDocument(),
+      { timeout: 2500 },
+    );
+    expect(api.GetMCPServerSettings).toHaveBeenCalledTimes(2);
+    expect(api.SaveMCPServerSettings).not.toHaveBeenCalled();
+  });
+});

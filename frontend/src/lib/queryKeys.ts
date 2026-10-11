@@ -121,6 +121,10 @@ export const settingsKeys = {
   all: ["settings"] as const,
 };
 
+export const mcpServerKeys = {
+  all: ["mcp-server"] as const,
+};
+
 // 5.8 commit 1：LLM 配置 query key。
 // GetLLMConfig 返回 LLMConfigView（含 providers），与 modelKeys（GetModels 返回 model 列表）语义不同，独立 key。
 // useSaveLLMConfig onSuccess invalidate 此 key，让 ModelConfigTab 自动 refetch。
