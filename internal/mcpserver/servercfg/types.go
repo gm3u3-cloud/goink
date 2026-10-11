@@ -5,7 +5,11 @@ import (
 	"errors"
 )
 
-const DefaultPort = 5108
+const (
+	DefaultPort = 5108
+	MinPort     = 1024
+	MaxPort     = 32767
+)
 
 type Local struct {
 	Enabled      bool     `json:"enabled"`
@@ -14,8 +18,8 @@ type Local struct {
 }
 
 func (c Local) Validate() error {
-	if c.Port < 1 || c.Port > 65535 {
-		return errors.New("MCP 端口必须在 1 到 65535 之间")
+	if c.Port < MinPort || c.Port > MaxPort {
+		return errors.New("MCP 端口必须在 1024 到 32767 之间")
 	}
 	return nil
 }

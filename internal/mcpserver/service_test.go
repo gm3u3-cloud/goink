@@ -20,6 +20,7 @@ import (
 	"github.com/sigpanic/goink/internal/mcpclient"
 	"github.com/sigpanic/goink/internal/mcpclient/clientcfg"
 	"github.com/sigpanic/goink/internal/mcpserver/servercfg"
+	"github.com/sigpanic/goink/internal/testsupport"
 	"github.com/stretchr/testify/require"
 )
 
@@ -46,11 +47,7 @@ func newTestService(t *testing.T, store Repository) *Service {
 
 func freeLocalPort(t *testing.T) int {
 	t.Helper()
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-	port := listener.Addr().(*net.TCPAddr).Port
-	require.NoError(t, listener.Close())
-	return port
+	return testsupport.FreeLocalPort(t, servercfg.MinPort, servercfg.MaxPort)
 }
 
 type testBearerTransport struct{ token string }
@@ -312,7 +309,7 @@ func TestLocalPortDefaultsAndValidation(t *testing.T) {
 	require.Equal(t, servercfg.DefaultPort, service.LocalSettings().Config.Port)
 	require.Equal(t, 5108, service.LocalSettings().Config.Port)
 	defer service.Close(context.Background())
-	for _, port := range []int{-1, 65536} {
+	for _, port := range []int{-1, 1023, 32768, 65536} {
 		_, err := service.SaveLocal(context.Background(), servercfg.Local{Port: port})
 		require.Error(t, err)
 	}

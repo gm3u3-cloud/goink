@@ -125,6 +125,8 @@ func TestStoreRejectsInvalidSnapshotsAndPreservesFiles(t *testing.T) {
 		mutate func(*State)
 	}{
 		{"negative_port", func(s *State) { s.Local.Port = -1 }},
+		{"privileged_port", func(s *State) { s.Local.Port = MinPort - 1 }},
+		{"ephemeral_port", func(s *State) { s.Local.Port = MaxPort + 1 }},
 		{"oversized_port", func(s *State) { s.Local.Port = 65536 }},
 		{"enabled_without_token", func(s *State) { s.LocalToken = "" }},
 		{"malformed_token", func(s *State) { s.LocalToken = strings.Repeat("x", 64) }},
@@ -158,5 +160,17 @@ func TestStoreRejectsInvalidSnapshotsAndPreservesFiles(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, corrupted, remaining, "非法加载不能覆盖异常配置")
 		})
+	}
+}
+
+func TestStorePortRangeBoundaries(t *testing.T) {
+	store := NewStore(filepath.Join(t.TempDir(), "mcp_server_config.enc"))
+	for _, port := range []int{MinPort, DefaultPort, MaxPort} {
+		state := testState()
+		state.Local.Port = port
+		require.NoError(t, store.Save(state))
+		loaded, err := store.Load()
+		require.NoError(t, err)
+		require.Equal(t, port, loaded.Local.Port)
 	}
 }

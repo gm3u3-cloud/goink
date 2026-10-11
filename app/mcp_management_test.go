@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io"
 	"log/slog"
-	"net"
 	"os"
 	"path/filepath"
 	"testing"
@@ -55,10 +54,7 @@ func TestMCPManagementAPIAndShutdown(t *testing.T) {
 	require.NotContains(t, string(encoded), "external-private-token")
 	require.NoError(t, a.SetMCPConnectionEnabled(connection.Config.ID, true))
 	require.NoError(t, a.SetMCPToolAllowed(connection.Config.ID, "echo", true))
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-	port := listener.Addr().(*net.TCPAddr).Port
-	require.NoError(t, listener.Close())
+	port := testsupport.FreeLocalPort(t, servercfg.MinPort, servercfg.MaxPort)
 	local, err := a.SaveMCPServerSettings(servercfg.Local{Enabled: true, Port: port})
 	require.NoError(t, err)
 	require.NotEmpty(t, local.Token)
