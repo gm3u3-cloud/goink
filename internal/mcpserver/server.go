@@ -16,7 +16,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/sigpanic/goink/internal/mcp_tools"
-	"github.com/sigpanic/goink/internal/mcpconfig"
+	"github.com/sigpanic/goink/internal/mcpserver/servercfg"
 	"github.com/sigpanic/goink/internal/version"
 	"gorm.io/gorm"
 )
@@ -95,7 +95,7 @@ func New(registry *mcp_tools.Registry, db *gorm.DB, current CurrentNovelFunc, lo
 	for _, name := range allowed {
 		allowSet[name] = true
 	}
-	return &Server{registry: registry, db: db, current: current, logger: logger, allowed: allowSet, port: mcpconfig.DefaultPort}
+	return &Server{registry: registry, db: db, current: current, logger: logger, allowed: allowSet, port: servercfg.DefaultPort}
 }
 
 // SetPort 在服务停止时设置端口；0 供测试显式申请临时端口。
@@ -111,7 +111,7 @@ func (s *Server) SetPort(port int) error {
 
 // Start 使用调用方提供的令牌启动本地服务；令牌的生成和持久化由管理层负责。
 func (s *Server) Start(token string) (Endpoint, error) {
-	if err := mcpconfig.ValidateToken(token); err != nil {
+	if err := servercfg.ValidateToken(token); err != nil {
 		return Endpoint{}, err
 	}
 	s.mu.Lock()
