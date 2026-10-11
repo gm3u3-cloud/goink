@@ -22,7 +22,10 @@ func NewStore(path string) *Store { return &Store{path: path} }
 func (s *Store) Load() (State, error) {
 	data, err := os.ReadFile(s.path)
 	if errors.Is(err, os.ErrNotExist) {
-		state := State{}
+		state := State{Local: Local{
+			Port:         DefaultPort,
+			AllowedTools: []string{"get_chapter_list", "read", "edit"},
+		}}
 		state.normalize()
 		return state, state.Validate()
 	}

@@ -303,6 +303,15 @@
       "selectGroup": "选择{{group}}的全部工具",
       "selectAll": "全选",
       "deselectAll": "取消全选",
+      "disableCoreToolsTitle": "建议保留基础工具",
+      "disableCoreToolsDescription": "关闭以下工具后，外部 AI 通过 Goink MCP 的相应能力将受限，建议保留开启。选择“仍然关闭”后，还需保存并应用才会生效。",
+      "keepCoreTools": "保留开启",
+      "disableCoreTools": "仍然关闭",
+      "coreToolEffects": {
+        "get_chapter_list": "无法通过该工具获取章节目录、章节 ID 和阅读顺序。",
+        "read": "无法通过该工具读取章节正文、大纲和故事状态等文件。",
+        "edit": "无法通过该工具新建或修改章节正文、大纲和故事状态等文件。"
+      },
       "credentials": "连接凭据",
       "url": "连接地址（已保存配置）",
       "urlHint": "地址根据已保存端口生成。修改端口后请先保存，再更新外部客户端的地址。",

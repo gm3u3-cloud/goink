@@ -244,7 +244,9 @@ func TestSavedTokenSurvivesStopTimeout(t *testing.T) {
 	started := make(chan struct{})
 	release := make(chan struct{})
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	server := New(mcp_tools.NewRegistry(logger), nil, func(ctx context.Context) (CurrentNovel, error) {
+	registry := mcp_tools.NewRegistry(logger)
+	mcp_tools.RegisterAllTools(registry)
+	server := New(registry, nil, func(ctx context.Context) (CurrentNovel, error) {
 		close(started)
 		<-ctx.Done()
 		<-release
@@ -304,11 +306,14 @@ func TestSavedTokenSurvivesStopTimeout(t *testing.T) {
 func TestLocalPortDefaultsAndValidation(t *testing.T) {
 	store := servercfg.NewStore(filepath.Join(t.TempDir(), "mcp_server_config.enc"))
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	server := New(mcp_tools.NewRegistry(logger), nil, nil, logger, nil)
+	registry := mcp_tools.NewRegistry(logger)
+	mcp_tools.RegisterAllTools(registry)
+	server := New(registry, nil, nil, logger, nil)
 	service, err := NewService(store, server)
 	require.NoError(t, err)
 	require.Equal(t, servercfg.DefaultPort, service.LocalSettings().Config.Port)
 	require.Equal(t, 5108, service.LocalSettings().Config.Port)
+	require.Equal(t, []string{"get_chapter_list", "read", "edit"}, service.LocalSettings().Config.AllowedTools)
 	defer service.Close(context.Background())
 	for _, port := range []int{-1, 1023, 32768, 65536} {
 		_, err := service.SaveLocal(context.Background(), servercfg.Local{Port: port})

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   BookOpen,
   Brain,
@@ -17,6 +18,9 @@ import {
   type ToolGroup,
 } from "@/components/tools/catalog";
 import ToolSummary from "@/components/tools/ToolSummary";
+import MCPServerToolDisableDialog from "./MCPServerToolDisableDialog";
+
+const coreTools = ["get_chapter_list", "read", "edit"];
 
 interface Props {
   available: string[];
@@ -45,6 +49,17 @@ export default function MCPServerTools({
   onChange,
 }: Props) {
   const { t } = useTranslation();
+  const [pendingRemoval, setPendingRemoval] = useState<string[]>([]);
+
+  function changeSelection(next: string[]) {
+    const removed = selected.filter((name) => !next.includes(name));
+    if (removed.some((name) => coreTools.includes(name))) {
+      setPendingRemoval(removed);
+      return;
+    }
+    onChange(next);
+  }
+
   return (
     <section className="space-y-4" aria-labelledby="mcp-server-tools-title">
       <div className="flex items-center justify-between gap-3">
@@ -78,9 +93,19 @@ export default function MCPServerTools({
           group={group}
           selected={selected}
           disabled={disabled}
-          onChange={onChange}
+          onChange={changeSelection}
         />
       ))}
+      <MCPServerToolDisableDialog
+        tools={coreTools.filter((name) => pendingRemoval.includes(name))}
+        disabled={disabled}
+        onKeep={() => setPendingRemoval([])}
+        onDisable={() => {
+          if (disabled) return;
+          onChange(selected.filter((name) => !pendingRemoval.includes(name)));
+          setPendingRemoval([]);
+        }}
+      />
     </section>
   );
 }

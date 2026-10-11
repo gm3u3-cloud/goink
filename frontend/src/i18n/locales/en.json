@@ -312,6 +312,15 @@
       "selectGroup": "Select all tools in {{group}}",
       "selectAll": "Select all",
       "deselectAll": "Deselect all",
+      "disableCoreToolsTitle": "Keep essential tools enabled",
+      "disableCoreToolsDescription": "Disabling these tools limits what external AI clients can do through Goink MCP. We recommend keeping them enabled. If you choose Disable anyway, save and apply the settings for the changes to take effect.",
+      "keepCoreTools": "Keep enabled",
+      "disableCoreTools": "Disable anyway",
+      "coreToolEffects": {
+        "get_chapter_list": "This tool will no longer provide the chapter list, chapter IDs, or reading order.",
+        "read": "This tool will no longer read chapter text, outlines, story state, and other supported files.",
+        "edit": "This tool will no longer create or modify chapter text, outlines, story state, and other supported files."
+      },
       "credentials": "Connection credentials",
       "url": "Connection URL (saved configuration)",
       "urlHint": "This URL uses the saved port. Save port changes before updating your external client.",

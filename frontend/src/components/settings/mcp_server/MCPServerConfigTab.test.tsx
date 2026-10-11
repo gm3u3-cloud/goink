@@ -326,8 +326,17 @@ describe("local MCP server settings", () => {
       }),
     );
     await user.click(groupCheckbox);
+    const confirmation = within(await screen.findByRole("alertdialog"));
+    expect(groupCheckbox).toBeChecked();
+    expect(api.SaveMCPServerSettings).toHaveBeenCalledTimes(1);
+    await user.click(
+      confirmation.getByRole("button", {
+        name: "settings.mcpServer.disableCoreTools",
+      }),
+    );
     expect(groupCheckbox).not.toBeChecked();
     expect(files.getByText("0/2")).toBeInTheDocument();
+    expect(api.SaveMCPServerSettings).toHaveBeenCalledTimes(1);
     await user.click(saveButton());
     await screen.findByText("settings.mcpServer.saved");
     expect(api.SaveMCPServerSettings).toHaveBeenLastCalledWith(

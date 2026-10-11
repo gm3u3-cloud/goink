@@ -20,7 +20,13 @@ func TestStoreEncryptedRoundTripAndCorruption(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, empty.Local.Enabled)
 	require.Equal(t, DefaultPort, empty.Local.Port)
+	require.Equal(t, []string{"get_chapter_list", "read", "edit"}, empty.Local.AllowedTools)
 	require.NoFileExists(t, path, "读取默认设置不能创建配置文件")
+	empty.Local.AllowedTools = nil
+	empty, err = NewStore(path).Load()
+	require.NoError(t, err)
+	require.Equal(t, []string{"get_chapter_list", "read", "edit"}, empty.Local.AllowedTools)
+	require.NoFileExists(t, path)
 	state := testState()
 	require.NoError(t, store.Save(state))
 	loaded, err := NewStore(path).Load()
@@ -106,6 +112,7 @@ func TestStoreNormalizesDefaultsWithoutRewritingOnLoad(t *testing.T) {
 	state, err := store.Load()
 	require.NoError(t, err)
 	require.Equal(t, DefaultPort, state.Local.Port)
+	require.Empty(t, state.Local.AllowedTools)
 	remaining, err := os.ReadFile(path)
 	require.NoError(t, err)
 	require.Equal(t, data, remaining, "加载补默认值不能自动改写文件")
@@ -117,6 +124,26 @@ func TestStoreNormalizesDefaultsWithoutRewritingOnLoad(t *testing.T) {
 	var saved State
 	require.NoError(t, json.Unmarshal(plain, &saved))
 	require.Equal(t, state, saved, "保存也应补齐同一套默认值")
+}
+
+func TestStorePreservesSavedToolSelection(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		tools []string
+	}{
+		{name: "all_disabled", tools: []string{}},
+		{name: "read_only", tools: []string{"read"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "mcp_server_config.enc")
+			store := NewStore(path)
+			state := State{Local: Local{Port: DefaultPort, AllowedTools: tc.tools}}
+			require.NoError(t, store.Save(state))
+			loaded, err := NewStore(path).Load()
+			require.NoError(t, err)
+			require.Equal(t, state, loaded)
+		})
+	}
 }
 
 func TestStoreRejectsInvalidSnapshotsAndPreservesFiles(t *testing.T) {
