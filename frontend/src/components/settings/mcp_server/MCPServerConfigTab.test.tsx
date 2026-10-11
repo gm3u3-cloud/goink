@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { mcpserver, servercfg } from "@/lib/wailsjs/go/models";
@@ -73,11 +79,12 @@ describe("local MCP server settings", () => {
       screen.getByRole("spinbutton", { name: "settings.mcpServer.port" }),
     ).toHaveValue(5108);
     expect(
-      screen.getByRole("checkbox", { name: /settings.mcpServer.currentNovel/ }),
-    ).toBeChecked();
+      screen.getByText("tools.names.get_current_novel"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("settings.mcpServer.builtin")).toBeInTheDocument();
     expect(
-      screen.getByRole("checkbox", { name: /settings.mcpServer.currentNovel/ }),
-    ).toBeDisabled();
+      screen.queryByRole("checkbox", { name: "tools.names.get_current_novel" }),
+    ).not.toBeInTheDocument();
     expect(saveButton()).toBeDisabled();
     expect(screen.queryByText("private-server-token")).not.toBeInTheDocument();
   });
@@ -91,7 +98,7 @@ describe("local MCP server settings", () => {
     await user.clear(port);
     await user.type(port, "5208");
     await user.click(
-      screen.getByRole("checkbox", { name: /settings.mcpServer.chapterList/ }),
+      screen.getByRole("checkbox", { name: "tools.names.get_chapter_list" }),
     );
     const enabled = screen.getByRole("switch", {
       name: "settings.mcpServer.enabled",
@@ -164,7 +171,7 @@ describe("local MCP server settings", () => {
     await loaded();
     for (const name of ["read", "edit", "delete_record"]) {
       const checkbox = screen.getByRole("checkbox", {
-        name,
+        name: `tools.names.${name}`,
       });
       expect(checkbox).not.toBeChecked();
       await user.click(checkbox);
@@ -177,6 +184,70 @@ describe("local MCP server settings", () => {
         allowed_tools: ["read", "edit", "delete_record"],
       }),
     );
+  });
+
+  it("selects and clears a domain without changing other domains or adding unavailable tools", async () => {
+    stored = makeView({ allowed_tools: ["read", "delete_record"] });
+    const { user } = setup();
+    await loaded();
+    const files = within(
+      screen.getByRole("group", { name: "tools.groups.files" }),
+    );
+    const groupCheckbox = files.getByRole("checkbox", {
+      name: "settings.mcpServer.selectGroup",
+    });
+    expect(groupCheckbox).toBePartiallyChecked();
+    expect(files.getByText("1/2")).toBeInTheDocument();
+    await user.click(groupCheckbox);
+    expect(groupCheckbox).toBeChecked();
+    expect(files.getByText("2/2")).toBeInTheDocument();
+    expect(
+      screen.getByRole("checkbox", { name: "tools.names.delete_record" }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole("checkbox", { name: "tools.names.get_chapter_list" }),
+    ).not.toBeChecked();
+    expect(api.SaveMCPServerSettings).not.toHaveBeenCalled();
+    await user.click(saveButton());
+    await screen.findByText("settings.mcpServer.saved");
+    expect(api.SaveMCPServerSettings).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        allowed_tools: ["read", "delete_record", "edit"],
+      }),
+    );
+    await user.click(groupCheckbox);
+    expect(groupCheckbox).not.toBeChecked();
+    expect(files.getByText("0/2")).toBeInTheDocument();
+    await user.click(saveButton());
+    await screen.findByText("settings.mcpServer.saved");
+    expect(api.SaveMCPServerSettings).toHaveBeenLastCalledWith(
+      expect.objectContaining({ allowed_tools: ["delete_record"] }),
+    );
+  });
+
+  it("disables group selection while applying settings", async () => {
+    let complete: (view: mcpserver.LocalView) => void;
+    api.SaveMCPServerSettings.mockImplementationOnce(
+      () =>
+        new Promise<mcpserver.LocalView>((resolve) => {
+          complete = resolve;
+        }),
+    );
+    const { user } = setup();
+    await loaded();
+    await user.click(
+      screen.getByRole("checkbox", { name: "tools.names.read" }),
+    );
+    await user.click(saveButton());
+    for (const checkbox of screen.getAllByRole("checkbox")) {
+      expect(checkbox).toBeDisabled();
+    }
+    stored = makeView({ allowed_tools: ["read"] });
+    complete!(stored);
+    await screen.findByText("settings.mcpServer.saved");
+    expect(
+      screen.getByRole("checkbox", { name: "tools.names.read" }),
+    ).toBeEnabled();
   });
 
   it("reloads persisted settings after a start failure and allows retrying the same settings", async () => {
@@ -220,7 +291,7 @@ describe("local MCP server settings", () => {
     await user.clear(port);
     await user.type(port, "5308");
     await user.click(
-      screen.getByRole("checkbox", { name: /settings.mcpServer.chapterList/ }),
+      screen.getByRole("checkbox", { name: "tools.names.get_chapter_list" }),
     );
     stored = makeView({ port: 6108 });
     await user.click(
@@ -231,7 +302,7 @@ describe("local MCP server settings", () => {
     );
     expect(port).toHaveValue(5308);
     expect(
-      screen.getByRole("checkbox", { name: /settings.mcpServer.chapterList/ }),
+      screen.getByRole("checkbox", { name: "tools.names.get_chapter_list" }),
     ).toBeChecked();
     expect(api.SaveMCPServerSettings).not.toHaveBeenCalled();
   });

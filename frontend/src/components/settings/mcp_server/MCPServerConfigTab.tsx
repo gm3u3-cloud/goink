@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { AlertCircle, Loader2, RefreshCw, Server } from "lucide-react";
+import { AlertCircle, Check, Loader2, RefreshCw, Server } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { servercfg } from "@/lib/wailsjs/go/models";
 import { toErrorMessage } from "@/utils/error";
+import { Button } from "@/components/ui/button";
+import MCPServerConnection from "./MCPServerConnection";
+import MCPServerTools from "./MCPServerTools";
 import { useMCPServerSettings } from "./useMCPServerSettings";
 import { useSaveMCPServerSettings } from "./useSaveMCPServerSettings";
 
@@ -31,13 +34,14 @@ export default function MCPServerConfigTab() {
             <p role="alert" className="text-sm text-destructive">
               {toErrorMessage(query.error, t("settings.mcpServer.loadFailed"))}
             </p>
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => void query.refetch()}
               disabled={query.isFetching}
-              className="h-8 px-3 rounded-md border text-xs hover:bg-muted disabled:opacity-50"
             >
               {t("settings.mcpServer.refresh")}
-            </button>
+            </Button>
           </>
         )}
       </div>
@@ -104,21 +108,14 @@ export default function MCPServerConfigTab() {
     );
   }
 
-  function toggleTool(name: string, allowed: boolean) {
-    setToolsDraft(
-      allowed
-        ? [...allowedTools, name]
-        : allowedTools.filter((item) => item !== name),
-    );
-    setSaved(false);
-  }
-
   return (
     <div className="flex flex-col h-full min-h-0">
       <div className="flex items-start justify-between gap-3 mb-5 pr-6">
         <div>
-          <h3 className="flex items-center gap-2 text-sm font-medium">
-            <Server className="w-4 h-4" />
+          <h3 className="flex items-center gap-2 text-base font-semibold">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Server className="w-4 h-4" />
+            </span>
             {t("settings.mcpServer.title")}
           </h3>
           <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
@@ -127,13 +124,16 @@ export default function MCPServerConfigTab() {
         </div>
         <span
           role="status"
-          className={`shrink-0 px-2 py-1 rounded-md text-xs ${statusColor}`}
+          className={`flex shrink-0 items-center gap-1.5 px-2.5 py-1 rounded-full text-xs ${statusColor}`}
         >
+          <span
+            className={`h-1.5 w-1.5 rounded-full bg-current ${view.status.stopping ? "animate-pulse" : ""}`}
+          />
           {t(`settings.mcpServer.${statusKey}`)}
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-5">
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-5 pr-1">
         {error && (
           <div
             role="alert"
@@ -144,153 +144,66 @@ export default function MCPServerConfigTab() {
           </div>
         )}
 
-        <section className="rounded-lg border p-4 space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <label htmlFor="mcp-server-enabled" className="text-sm font-medium">
-              {t("settings.mcpServer.enabled")}
-            </label>
-            <input
-              id="mcp-server-enabled"
-              type="checkbox"
-              role="switch"
-              checked={view.config.enabled}
-              disabled={disabled}
-              onChange={(event) =>
-                void apply(
-                  new servercfg.Local({
-                    ...view.config,
-                    enabled: event.target.checked,
-                  }),
-                  false,
-                )
-              }
-              className="h-4 w-4 accent-primary disabled:opacity-50"
-            />
-          </div>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            {t("settings.mcpServer.enabledHint")}
-          </p>
-          {view.config.enabled &&
-            !view.status.running &&
-            !view.status.stopping && (
-              <p className="text-xs text-amber-600 dark:text-amber-400">
-                {t("settings.mcpServer.enabledNotRunning")}
-              </p>
-            )}
-        </section>
+        <MCPServerConnection
+          enabled={config.enabled}
+          running={view.status.running}
+          stopping={view.status.stopping}
+          port={portValue}
+          disabled={disabled}
+          onEnabledChange={(enabled) =>
+            void apply(new servercfg.Local({ ...config, enabled }), false)
+          }
+          onPortChange={(port) => {
+            setPortDraft(port);
+            setSaved(false);
+          }}
+        />
 
-        <section className="rounded-lg border p-4 space-y-3">
-          <label
-            htmlFor="mcp-server-port"
-            className="block text-xs font-medium"
-          >
-            {t("settings.mcpServer.port")}
-          </label>
-          <input
-            id="mcp-server-port"
-            type="number"
-            min={1024}
-            max={32767}
-            step={1}
-            value={portValue}
-            disabled={disabled}
-            onChange={(event) => {
-              setPortDraft(event.target.value);
-              setSaved(false);
-            }}
-            className="h-8 w-32 rounded-md border bg-background px-3 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
-          />
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            {t("settings.mcpServer.portHint")}
-          </p>
-        </section>
-
-        <section className="rounded-lg border p-4 space-y-3">
-          <h4 className="text-xs font-medium">
-            {t("settings.mcpServer.tools")}
-          </h4>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            {t("settings.mcpServer.toolsHint")}
-          </p>
-          <div className="space-y-3">
-            <label className="flex items-start gap-2 text-xs">
-              <input
-                type="checkbox"
-                checked
-                disabled
-                className="mt-0.5 h-3.5 w-3.5 accent-primary"
-              />
-              <span>
-                <span className="font-medium">
-                  {t("settings.mcpServer.currentNovel")}
-                </span>
-                <span className="ml-2 text-muted-foreground">
-                  {t("settings.mcpServer.builtin")}
-                </span>
-                <code className="block mt-1 text-[11px] text-muted-foreground">
-                  get_current_novel
-                </code>
-              </span>
-            </label>
-            {view.available_tools.map((name) => (
-              <label key={name} className="flex items-start gap-2 text-xs">
-                <input
-                  type="checkbox"
-                  aria-label={
-                    name === "get_chapter_list"
-                      ? t("settings.mcpServer.chapterList")
-                      : name
-                  }
-                  checked={allowedTools.includes(name)}
-                  disabled={disabled}
-                  onChange={(event) => toggleTool(name, event.target.checked)}
-                  className="mt-0.5 h-3.5 w-3.5 accent-primary"
-                />
-                <span>
-                  <span className="font-medium">
-                    {name === "get_chapter_list"
-                      ? t("settings.mcpServer.chapterList")
-                      : name}
-                  </span>
-                  <code className="block mt-1 text-[11px] text-muted-foreground">
-                    {name}
-                  </code>
-                </span>
-              </label>
-            ))}
-          </div>
-        </section>
+        <MCPServerTools
+          available={view.available_tools}
+          selected={allowedTools}
+          disabled={disabled}
+          onChange={(names) => {
+            setToolsDraft(names);
+            setSaved(false);
+          }}
+        />
       </div>
 
       <div className="flex items-center justify-between gap-3 pt-4 border-t mt-4">
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => {
             setActionError("");
             void query.refetch();
           }}
           disabled={busy || query.isFetching}
-          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border text-xs hover:bg-muted disabled:opacity-50"
         >
           <RefreshCw
             className={`w-3.5 h-3.5 ${query.isFetching ? "animate-spin" : ""}`}
           />
           {t("settings.mcpServer.refresh")}
-        </button>
+        </Button>
         <div className="flex items-center gap-3">
           {saved && (
-            <span role="status" className="text-xs text-primary">
+            <span
+              role="status"
+              className="flex items-center gap-1 text-xs text-primary"
+            >
+              <Check className="h-3.5 w-3.5" />
               {t("settings.mcpServer.saved")}
             </span>
           )}
-          <button
+          <Button
+            size="sm"
             onClick={saveConfig}
             disabled={
               disabled || (!dirty && !view.last_error && !view.status.stopping)
             }
-            className="h-8 px-4 rounded-md bg-primary text-primary-foreground text-xs disabled:opacity-50"
           >
             {busy ? t("common.saving") : t("settings.mcpServer.save")}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
