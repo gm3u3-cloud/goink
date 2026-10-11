@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"slices"
 	"sync"
 	"time"
 
@@ -26,8 +25,6 @@ type LocalView struct {
 	Status         Status          `json:"status"`
 	LastError      string          `json:"last_error"`
 }
-
-var localTools = []string{"get_chapter_list"}
 
 // Service 编排本地 Server 配置、令牌与运行状态。
 type Service struct {
@@ -48,7 +45,7 @@ func NewService(store Repository, server *Server) (*Service, error) {
 	}
 	state, err := store.Load()
 	if err == nil {
-		err = checkLocalTools(state.Local.AllowedTools)
+		err = server.validateAllowedTools(state.Local.AllowedTools)
 	}
 	if err != nil {
 		s.loadErr, s.localErr = err, err.Error()
@@ -84,7 +81,7 @@ func (s *Service) SaveLocal(ctx context.Context, config servercfg.Local) (LocalV
 	if config.Port == 0 {
 		config.Port = s.state.Local.Port
 	}
-	if err := checkLocalTools(config.AllowedTools); err != nil {
+	if err := s.server.validateAllowedTools(config.AllowedTools); err != nil {
 		return s.localView(), err
 	}
 	next := cloneState(s.state)
@@ -185,18 +182,9 @@ func (s *Service) localView() LocalView {
 	config := s.state.Local
 	config.AllowedTools = append([]string{}, config.AllowedTools...)
 	return LocalView{
-		Config: config, AvailableTools: slices.Clone(localTools),
+		Config: config, AvailableTools: s.server.AvailableTools(),
 		Token: s.state.LocalToken, Status: s.server.Status(), LastError: s.localErr,
 	}
-}
-
-func checkLocalTools(names []string) error {
-	for _, name := range names {
-		if !slices.Contains(localTools, name) {
-			return errors.New("选择了当前不允许对外开放的 MCP 工具；get_current_novel 始终内置")
-		}
-	}
-	return nil
 }
 
 func newToken() (string, error) {

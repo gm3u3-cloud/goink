@@ -26,6 +26,10 @@ Goink 当前只有一个本地 Server 实例，其运行生命周期由 Server �
 
 App 通过 Server 管理服务关闭 MCP Server；管理服务尚未创建时才直接关闭 Server，避免重复关闭同一实例。
 
+候选工具由 Server 从 Registry 动态读取并排序，包含 `read`、`edit`、数据增删改和网络工具；`run_subagent` 尚无独立 MCP 会话入口，暂不对外提供。`get_current_novel` 始终内置，不属于可选白名单。保存配置及启动时复用同一套工具检查，未知工具和暂不开放的工具不能写入开放配置；候选列表不会自动变成实际许可。
+
+勾选并保存某个工具即授权本机客户端直接调用它。当前桌面 Server 不接入聊天审批通道，编辑和删除沿用 `Approver=nil` 的直接执行行为。App 注入工具上下文 provider，按每次请求读取当前搜索服务、技能 Store 和 DeepSeek 网络搜索配置；DB、小说快照及 logger 由 Server 确定。请求上下文保留 MCP 的取消与截止时间，桌面上下文仅作为值的补充来源，使编辑后的文件事件能够刷新界面；搜索缓存和向量刷新复用现有工具实现与 singleton。
+
 ## 查询 DTO
 
 `LocalView.config` 复用 `servercfg.Local`，其余字段只提供可开放工具、Token、运行状态和错误。凭据是否存在由 `token` 是否为空判断，不重复返回 `has_credential`。

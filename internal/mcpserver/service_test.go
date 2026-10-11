@@ -86,8 +86,9 @@ func TestLocalLifecyclePersistenceRotationAndRevocation(t *testing.T) {
 	result.Config.AllowedTools[0] = "edit"
 	require.Equal(t, []string{"get_chapter_list"}, service.LocalSettings().Config.AllowedTools)
 	settings := service.LocalSettings()
-	settings.AvailableTools[0] = "edit"
-	require.Equal(t, []string{"get_chapter_list"}, service.LocalSettings().AvailableTools)
+	available := append([]string{}, settings.AvailableTools...)
+	settings.AvailableTools[0] = "not_registered"
+	require.Equal(t, available, service.LocalSettings().AvailableTools)
 	client, err := localClient(ctx, result.Status.URL, result.Token)
 	require.NoError(t, err)
 	tools, err := client.ListTools(ctx)
@@ -178,7 +179,7 @@ func TestFailedSavePreservesRuntimeAndRejectsUnsafeConfig(t *testing.T) {
 	store.fail = false
 	beforeState, err := store.Load()
 	require.NoError(t, err)
-	_, err = service.SaveLocal(ctx, servercfg.Local{Enabled: true, AllowedTools: []string{"edit"}})
+	_, err = service.SaveLocal(ctx, servercfg.Local{Enabled: true, AllowedTools: []string{"not_registered"}})
 	require.Error(t, err)
 	_, err = service.SaveLocal(ctx, servercfg.Local{Port: -1})
 	require.Error(t, err)
@@ -361,4 +362,34 @@ func TestRuntimePolicyValidationOnLoad(t *testing.T) {
 	require.Error(t, err)
 	require.False(t, service.LocalSettings().Status.Running)
 	require.NoError(t, service.Close(context.Background()))
+}
+
+func TestAvailableToolsFollowRegistryAndExplicitPermissions(t *testing.T) {
+	store := servercfg.NewStore(filepath.Join(t.TempDir(), "mcp_server_config.enc"))
+	service := newTestService(t, store)
+	names := service.LocalSettings().AvailableTools
+	require.IsIncreasing(t, names)
+	for _, name := range []string{"read", "edit", "delete_record", "create_character", "web_search"} {
+		require.Contains(t, names, name)
+	}
+	require.NotContains(t, names, "get_current_novel")
+	require.NotContains(t, names, "run_subagent")
+	for _, tool := range service.server.registry.List() {
+		if tool.Name() != "run_subagent" {
+			require.Contains(t, names, tool.Name())
+		}
+	}
+	service.server.registry.Register(&testNovelTool{name: "new_registered_tool"})
+	require.Contains(t, service.LocalSettings().AvailableTools, "new_registered_tool")
+	view, err := service.SaveLocal(context.Background(), servercfg.Local{AllowedTools: []string{"read", "edit", "delete_record"}})
+	require.NoError(t, err)
+	require.ElementsMatch(t, []string{"read", "edit", "delete_record"}, view.Config.AllowedTools)
+	for _, name := range []string{"run_subagent", "get_current_novel", "not_registered"} {
+		_, err := service.SaveLocal(context.Background(), servercfg.Local{AllowedTools: []string{name}})
+		require.Error(t, err)
+		require.Equal(t, view, service.LocalSettings())
+	}
+	loaded, err := store.Load()
+	require.NoError(t, err)
+	require.Equal(t, view.Config, loaded.Local)
 }

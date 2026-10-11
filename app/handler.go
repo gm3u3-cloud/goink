@@ -362,7 +362,10 @@ func (a *App) initWithConfig(cfg *config.AppConfig) error {
 	// 7. 初始化 MCP 工具注册表
 	a.registry = mcp_tools.NewRegistry(a.logger)
 	mcp_tools.RegisterAllTools(a.registry)
-	a.mcpServer = mcpserver.New(a.registry, db, a.currentNovel, a.logger, []string{"get_chapter_list"})
+	a.mcpServer = mcpserver.New(a.registry, db, a.currentNovel, a.logger, nil)
+	if err := a.mcpServer.SetToolContextProvider(a.mcpToolContext); err != nil {
+		return err
+	}
 
 	// 8. 初始化 LLM 客户端
 	userConfig, err := llm.LoadUserConfig(config.LLMConfigPath())

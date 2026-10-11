@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -32,6 +33,9 @@ type CurrentNovel struct {
 
 // CurrentNovelFunc 在请求开始时读取当前小说，不使用上次打开的历史设置。
 type CurrentNovelFunc func(context.Context) (CurrentNovel, error)
+
+// ToolContextProvider 注入工具依赖及桌面上下文；返回的上下文须保留请求的取消和截止时间。
+type ToolContextProvider func(context.Context) (context.Context, mcp_tools.ToolContext)
 
 // Endpoint 是显式启动本地服务后返回的连接信息。Token 只在启动时返回。
 type Endpoint struct {
@@ -78,12 +82,13 @@ func (instance *runningServer) track(handler mcp.ToolHandler) mcp.ToolHandler {
 
 // Server 将明确选中的 Goink 工具提供为本地 MCP 协议端点。
 type Server struct {
-	registry *mcp_tools.Registry
-	db       *gorm.DB
-	current  CurrentNovelFunc
-	logger   *slog.Logger
-	allowed  map[string]bool
-	port     int
+	registry    *mcp_tools.Registry
+	db          *gorm.DB
+	current     CurrentNovelFunc
+	logger      *slog.Logger
+	allowed     map[string]bool
+	port        int
+	toolContext ToolContextProvider
 
 	mu      sync.Mutex
 	running *runningServer
@@ -96,6 +101,56 @@ func New(registry *mcp_tools.Registry, db *gorm.DB, current CurrentNovelFunc, lo
 		allowSet[name] = true
 	}
 	return &Server{registry: registry, db: db, current: current, logger: logger, allowed: allowSet, port: servercfg.DefaultPort}
+}
+
+// SetToolContextProvider 在启动前注入依赖，运行中不允许更换。
+func (s *Server) SetToolContextProvider(provider ToolContextProvider) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.running != nil {
+		return errors.New("请先停止 MCP server")
+	}
+	s.toolContext = provider
+	return nil
+}
+
+// AvailableTools 返回 Registry 中全部可选工具；内置工具由 Server 单独提供。
+func (s *Server) AvailableTools() []string {
+	names := []string{}
+	if s.registry != nil {
+		for _, tool := range s.registry.List() {
+			if s.validateAllowedTool(tool.Name()) == nil {
+				names = append(names, tool.Name())
+			}
+		}
+	}
+	sort.Strings(names)
+	return names
+}
+
+func (s *Server) validateAllowedTools(names []string) error {
+	for _, name := range names {
+		if err := s.validateAllowedTool(name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Server) validateAllowedTool(name string) error {
+	if name == "get_current_novel" {
+		return errors.New("get_current_novel 是 MCP server 内置工具")
+	}
+	if name == "run_subagent" {
+		return errors.New("run_subagent 尚未支持独立 MCP 调用，暂不对外开放")
+	}
+	if s.registry == nil {
+		return errors.New("MCP server 工具注册表未初始化")
+	}
+	if _, ok := s.registry.Get(name); !ok {
+		return fmt.Errorf("MCP server 工具不存在: %s", name)
+	}
+	return nil
 }
 
 // SetPort 在服务停止时设置端口；0 供测试显式申请临时端口。
@@ -123,11 +178,8 @@ func (s *Server) Start(token string) (Endpoint, error) {
 		return Endpoint{}, fmt.Errorf("MCP server 依赖未初始化")
 	}
 	for name := range s.allowed {
-		if name == "get_current_novel" {
-			return Endpoint{}, fmt.Errorf("get_current_novel 是 MCP server 内置工具")
-		}
-		if _, ok := s.registry.Get(name); !ok {
-			return Endpoint{}, fmt.Errorf("MCP server 工具不存在: %s", name)
+		if err := s.validateAllowedTool(name); err != nil {
+			return Endpoint{}, err
 		}
 	}
 
@@ -184,11 +236,11 @@ func (s *Server) SetAllowedTools(names []string) error {
 	if s.running != nil {
 		return fmt.Errorf("请先停止 MCP server")
 	}
+	if err := s.validateAllowedTools(names); err != nil {
+		return err
+	}
 	allowed := make(map[string]bool, len(names))
 	for _, name := range names {
-		if _, ok := s.registry.Get(name); !ok || name == "get_current_novel" {
-			return fmt.Errorf("MCP server 工具不可用")
-		}
 		allowed[name] = true
 	}
 	s.allowed = allowed
@@ -285,14 +337,18 @@ func (s *Server) addTools(protocolServer *mcp.Server, instance *runningServer) {
 }
 
 func (s *Server) toolHandler(name string) mcp.ToolHandler {
+	provider := s.toolContext
 	return func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		novel, err := s.current(ctx)
 		if err != nil {
 			return s.currentNovelError(err), nil
 		}
-		result := s.registry.Execute(ctx, name, request.Params.Arguments, mcp_tools.ToolContext{
-			DB: s.db, NovelID: novel.ID, Logger: s.logger,
-		}, s.allowed)
+		tc := mcp_tools.ToolContext{}
+		if provider != nil {
+			ctx, tc = provider(ctx)
+		}
+		tc.DB, tc.NovelID, tc.Logger = s.db, novel.ID, s.logger
+		result := s.registry.Execute(ctx, name, request.Params.Arguments, tc, s.allowed)
 		if result == nil {
 			return toolError("工具没有返回结果"), nil
 		}
