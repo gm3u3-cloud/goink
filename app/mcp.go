@@ -35,8 +35,6 @@ func (a *App) stopMCP(ctx context.Context) error {
 	var serverErr, clientErr error
 	if service := a.mcpServerService.Load(); service != nil {
 		serverErr = service.Close(stopCtx)
-	} else if a.mcpServer != nil {
-		serverErr = a.mcpServer.Stop(stopCtx)
 	}
 	if service := a.mcpClientService.Load(); service != nil {
 		clientErr = service.Close(stopCtx)

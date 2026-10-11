@@ -74,7 +74,6 @@ type App struct {
 	agent            *agent.Agent
 	cancelMgr        *agent.CancelManager
 	registry         *mcp_tools.Registry
-	mcpServer        *mcpserver.Server
 	mcpClientService atomic.Pointer[mcpclient.Service]
 	mcpServerService atomic.Pointer[mcpserver.Service]
 	activeNovelMu    sync.Mutex
@@ -362,10 +361,6 @@ func (a *App) initWithConfig(cfg *config.AppConfig) error {
 	// 7. 初始化 MCP 工具注册表
 	a.registry = mcp_tools.NewRegistry(a.logger)
 	mcp_tools.RegisterAllTools(a.registry)
-	a.mcpServer = mcpserver.New(a.registry, db, a.currentNovel, a.logger, nil)
-	if err := a.mcpServer.SetToolContextProvider(a.mcpToolContext); err != nil {
-		return err
-	}
 
 	// 8. 初始化 LLM 客户端
 	userConfig, err := llm.LoadUserConfig(config.LLMConfigPath())
@@ -429,7 +424,11 @@ func (a *App) initWithConfig(cfg *config.AppConfig) error {
 	if clientConfigErr != nil {
 		a.logger.Error("加载 MCP Client 配置失败，Client 已停用", "err", clientConfigErr)
 	}
-	serverService, serverConfigErr := mcpserver.NewService(servercfg.NewStore(config.MCPServerConfigPath()), a.mcpServer)
+	server := mcpserver.New(a.registry, db, a.currentNovel, a.logger, nil)
+	if err := server.SetToolContextProvider(a.mcpToolContext); err != nil {
+		return err
+	}
+	serverService, serverConfigErr := mcpserver.NewService(servercfg.NewStore(config.MCPServerConfigPath()), server)
 	if serverConfigErr != nil {
 		a.logger.Error("加载 MCP 配置失败，MCP 已停用", "err", serverConfigErr)
 	}

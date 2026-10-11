@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -11,6 +12,7 @@ import (
 	"github.com/sigpanic/goink/internal/mcpclient"
 	"github.com/sigpanic/goink/internal/mcpclient/clientcfg"
 	"github.com/sigpanic/goink/internal/mcpserver"
+	"github.com/sigpanic/goink/internal/mcpserver/servercfg"
 	"github.com/stretchr/testify/require"
 )
 
@@ -65,21 +67,24 @@ func TestShutdownTimeoutPreservesMCPDependencies(t *testing.T) {
 	release := make(chan struct{})
 	var releaseOnce sync.Once
 	unblock := func() { releaseOnce.Do(func() { close(release) }) }
-	a.mcpServer = mcpserver.New(a.registry, a.db, func(ctx context.Context) (mcpserver.CurrentNovel, error) {
+	server := mcpserver.New(a.registry, a.db, func(ctx context.Context) (mcpserver.CurrentNovel, error) {
 		close(started)
 		<-ctx.Done()
 		close(canceled)
 		<-release
 		return mcpserver.CurrentNovel{}, ctx.Err()
 	}, a.logger, nil)
-	require.NoError(t, a.mcpServer.SetPort(0))
-	endpoint, err := a.mcpServer.Start(strings.Repeat("a", 64))
+	service, err := mcpserver.NewService(servercfg.NewStore(filepath.Join(t.TempDir(), "mcp_server_config.enc")), server)
+	require.NoError(t, err)
+	a.mcpServerService.Store(service)
+	require.NoError(t, server.SetPort(0))
+	endpoint, err := server.Start(strings.Repeat("a", 64))
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		unblock()
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		require.NoError(t, a.mcpServer.Stop(ctx))
+		require.NoError(t, service.Close(ctx))
 	})
 	callCtx, cancelCall := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelCall()
@@ -116,7 +121,7 @@ func TestShutdownTimeoutPreservesMCPDependencies(t *testing.T) {
 	unblock()
 	stopCtx, cancelStop := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelStop()
-	require.NoError(t, a.mcpServer.Stop(stopCtx))
+	require.NoError(t, service.Close(stopCtx))
 	select {
 	case <-callDone:
 	case <-callCtx.Done():

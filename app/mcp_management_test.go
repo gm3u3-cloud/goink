@@ -21,11 +21,11 @@ import (
 
 func TestMCPManagementAPIAndShutdown(t *testing.T) {
 	a := setupTestApp(t)
-	a.mcpServer = mcpserver.New(a.registry, a.db, a.currentNovel, a.logger, nil)
+	server := mcpserver.New(a.registry, a.db, a.currentNovel, a.logger, nil)
 	dir := t.TempDir()
 	serverStore := servercfg.NewStore(filepath.Join(dir, "mcp_server_config.enc"))
 	clientStore := clientcfg.NewStore(filepath.Join(dir, "mcp_client_config.enc"))
-	service, err := mcpserver.NewService(serverStore, a.mcpServer)
+	service, err := mcpserver.NewService(serverStore, server)
 	require.NoError(t, err)
 	a.mcpServerService.Store(service)
 	clientService, err := mcpclient.NewService(clientStore, mcpclient.NewManager())
@@ -84,7 +84,7 @@ func TestMCPManagementAPIAndShutdown(t *testing.T) {
 	require.Equal(t, rotated.Token, savedServer.LocalToken, "Client 写入不能覆盖 Server 配置")
 	require.Equal(t, port, savedServer.Local.Port)
 	a.OnShutdown(context.Background())
-	require.False(t, a.mcpServer.Status().Running)
+	require.False(t, service.LocalSettings().Status.Running)
 	sqlDB, err := a.db.DB()
 	require.NoError(t, err)
 	require.Error(t, sqlDB.Ping())
