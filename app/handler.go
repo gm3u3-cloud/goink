@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"gorm.io/gorm"
@@ -21,7 +20,10 @@ import (
 	"github.com/sigpanic/goink/internal/llm"
 	"github.com/sigpanic/goink/internal/location"
 	"github.com/sigpanic/goink/internal/mcp_tools"
+	"github.com/sigpanic/goink/internal/mcpclient"
+	"github.com/sigpanic/goink/internal/mcpclient/clientcfg"
 	"github.com/sigpanic/goink/internal/mcpserver"
+	"github.com/sigpanic/goink/internal/mcpserver/servercfg"
 	"github.com/sigpanic/goink/internal/migrate"
 	"github.com/sigpanic/goink/internal/novel"
 	"github.com/sigpanic/goink/internal/preference"
@@ -66,16 +68,18 @@ type App struct {
 	settings *config.AppSettings
 	db       *gorm.DB
 
-	llmClient     *llm.Client
-	agent         *agent.Agent
-	cancelMgr     *agent.CancelManager
-	registry      *mcp_tools.Registry
-	mcpServer     *mcpserver.Server
-	activeNovelMu sync.Mutex
-	activeNovelID atomic.Int64
-	approvals     *approval.Service
-	vectorStore   atomic.Pointer[rag.VectorStore]
-	searchService atomic.Pointer[search.Service]
+	llmClient        *llm.Client
+	agent            *agent.Agent
+	cancelMgr        *agent.CancelManager
+	registry         *mcp_tools.Registry
+	mcpServer        *mcpserver.Server
+	mcpClientService atomic.Pointer[mcpclient.Service]
+	mcpServerService atomic.Pointer[mcpserver.Service]
+	activeNovelMu    sync.Mutex
+	activeNovelID    atomic.Int64
+	approvals        *approval.Service
+	vectorStore      atomic.Pointer[rag.VectorStore]
+	searchService    atomic.Pointer[search.Service]
 
 	novel          *novel.Store
 	preference     *preference.Store
@@ -184,15 +188,10 @@ func (a *App) OnShutdown(shutdownCtx context.Context) {
 	if a.cancel != nil {
 		a.cancel()
 	}
-	if a.mcpServer != nil {
-		stopCtx, cancel := context.WithTimeout(shutdownCtx, 5*time.Second)
-		if err := a.mcpServer.Stop(stopCtx); err != nil {
-			a.logger.Error("停止本地 MCP server 失败", "err", err)
-			// 在途调用可能尚未退出，保留它们的依赖，交由进程退出回收。
-			cancel()
-			return
-		}
-		cancel()
+	if err := a.stopMCP(shutdownCtx); err != nil {
+		a.logger.Error("停止 MCP 管理服务失败", "err", err)
+		// 在途调用可能尚未退出，保留它们的依赖，交由进程退出回收。
+		return
 	}
 
 	// 2. 停止 RAG 后台消费者
@@ -417,6 +416,21 @@ func (a *App) initWithConfig(cfg *config.AppConfig) error {
 		}
 	}()
 
+	clientService, clientConfigErr := mcpclient.NewService(clientcfg.NewStore(config.MCPClientConfigPath()), mcpclient.NewManager())
+	if clientConfigErr != nil {
+		a.logger.Error("加载 MCP Client 配置失败，Client 已停用", "err", clientConfigErr)
+	}
+	serverService, serverConfigErr := mcpserver.NewService(servercfg.NewStore(config.MCPServerConfigPath()), a.mcpServer)
+	if serverConfigErr != nil {
+		a.logger.Error("加载 MCP 配置失败，MCP 已停用", "err", serverConfigErr)
+	}
+	if serverConfigErr == nil {
+		if err := serverService.Restore(); err != nil {
+			a.logger.Error("恢复本地 MCP 服务失败", "err", err)
+		}
+	}
+	a.mcpClientService.Store(clientService)
+	a.mcpServerService.Store(serverService)
 	a.cfg = cfg
 	a.logger.Info("应用初始化完成", "data_dir", config.DataDirPath())
 	initSucceeded = true

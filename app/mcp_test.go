@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/sigpanic/goink/internal/mcpclient"
-	"github.com/sigpanic/goink/internal/mcpconfig"
+	"github.com/sigpanic/goink/internal/mcpclient/clientcfg"
 	"github.com/sigpanic/goink/internal/mcpserver"
 	"github.com/stretchr/testify/require"
 )
@@ -41,7 +41,7 @@ func TestMCPServerUsesCurrentNovelWithRegisteredTool(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client, err := mcpclient.Connect(ctx, mcpclient.Config{
-		TransportSettings: mcpconfig.TransportSettings{Transport: mcpconfig.TransportStreamableHTTP, Endpoint: endpoint.URL},
+		TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStreamableHTTP, Endpoint: endpoint.URL},
 		HTTPClient:        &http.Client{Transport: mcpTestAuthTransport{token: endpoint.Token}},
 	})
 	require.NoError(t, err)
@@ -84,7 +84,7 @@ func TestShutdownTimeoutPreservesMCPDependencies(t *testing.T) {
 	callCtx, cancelCall := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelCall()
 	client, err := mcpclient.Connect(callCtx, mcpclient.Config{
-		TransportSettings: mcpconfig.TransportSettings{Transport: mcpconfig.TransportStreamableHTTP, Endpoint: endpoint.URL},
+		TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStreamableHTTP, Endpoint: endpoint.URL},
 		HTTPClient:        &http.Client{Transport: mcpTestAuthTransport{token: endpoint.Token}},
 	})
 	require.NoError(t, err)

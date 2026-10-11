@@ -145,7 +145,21 @@ Goink 作为 MCP client 调用外部工具时，只负责启用状态、工具�
 
 ## 实施范围、顺序与提交路线
 
-以下工作均纳入 v1.7.0 目标。本文若单独提交，可使用 `docs(mcp): define bidirectional tool architecture`，它只是设计文档提交，不算第一个代码提交。代码先接通双向 MCP 协议，再接 `run_mcp` 和发现入口，最后增加内部低频工具及管理页面。每行是一份可单独 review 的建议 commit；subject 只是路线，真正提交时仍需写清变更原因的 body。文件范围是预计范围，实施前以当时的代码结构核对，不因本表自动暂存或提交：
+### Client 内聚迁移
+
+Client 功能交付继续推迟。本次只迁移已保留的实现：配置结构、静态校验和 Store 下沉到 `internal/mcpclient/clientcfg`，Client 管理方法和 DTO 迁入 `mcpclient.Service`，协议和 Manager 生命周期逻辑保持原样，不新增功能。Client 包内部已提交（`cd04834`），App 接线和生成绑定待后续提交。
+
+按依赖顺序 review：Client 配置与校验 → Client Service / DTO → App 接线、原测试迁移及 Wails 生成绑定。职责说明分别放在组件包的 design.md，不在其中记录实施进度。
+
+Client 独立保存到 `~/.goink/mcp_client_config.enc`，Server 独立保存到 `~/.goink/mcp_server_config.enc`。拆开两个快照，避免独立 Store 覆盖对方配置；保持原字段、加密和原子写方式，不增加未发行格式的迁移层。验证原协议、授权、凭据隐藏、保存失败保护、双方独立配置读写，以及 Server 的端口和令牌行为。完成后暂存，等待用户 review，不自动提交。
+
+### Server 内聚迁移
+
+沿用 Client 的目录约定：Server 配置结构、常量及对应校验方法合并到 `internal/mcpserver/servercfg/types.go`，Store 和原测试一起迁移；原本地管理逻辑及 DTO 迁入 `mcpserver.Service`。移除工作区中的 `mcpconfig` 和 `mcpmanagement`，不保留兼容包。Server 协议、鉴权、工具执行、生命周期及管理行为保持原样，不新增功能。
+
+顺序为配置与校验 → Service / DTO 和原测试 → App 引用与 Wails 生成绑定。保持 `~/.goink/mcp_server_config.enc`、端口 5108、持久令牌与工具权限的原行为。比对迁移前后实现，并验证保存失败保护、配置异常、令牌轮换及启停超时。完成后只暂存 `internal/mcpserver/`，包外引用、生成绑定和旧包删除留待后续提交。
+
+以下表格保留原始双向方案路线。当前 v1.7.0 交付范围收缩为本地 Server、`run_mcp` 与内部低频工具；Client 功能与远程部署暂不实施。本文若单独提交，可使用 `docs(mcp): define bidirectional tool architecture`，它只是设计文档提交，不算第一个代码提交。代码先接通双向 MCP 协议，再接 `run_mcp` 和发现入口，最后增加内部低频工具及管理页面。每行是一份可单独 review 的建议 commit；subject 只是路线，真正提交时仍需写清变更原因的 body。文件范围是预计范围，实施前以当时的代码结构核对，不因本表自动暂存或提交：
 
 | 顺序 | 建议 commit subject | 预计文件范围与验收点 |
 | --- | --- | --- |
