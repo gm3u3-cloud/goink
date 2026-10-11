@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/sigpanic/goink/internal/mcpconfig"
 )
 
 func protocolTestServer(waitStarted chan<- struct{}, releaseWait <-chan struct{}) *mcp.Server {
@@ -67,7 +68,7 @@ func TestStdioClient(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client, err := Connect(ctx, Config{
-		Transport: TransportStdio,
+		Transport: mcpconfig.TransportStdio,
 		Command:   os.Args[0],
 		Args:      []string{"-test.run=^TestMCPServerProcess$"},
 		Env:       map[string]string{"GOINK_MCP_TEST_SERVER": "1"},
@@ -94,7 +95,7 @@ func TestStreamableHTTPClient(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	client, err := Connect(ctx, Config{Transport: TransportStreamableHTTP, Endpoint: httpServer.URL})
+	client, err := Connect(ctx, Config{Transport: mcpconfig.TransportStreamableHTTP, Endpoint: httpServer.URL})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +135,7 @@ func TestStreamableHTTPSessionlessClient(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	client, err := Connect(ctx, Config{Transport: TransportStreamableHTTP, Endpoint: httpServer.URL})
+	client, err := Connect(ctx, Config{Transport: mcpconfig.TransportStreamableHTTP, Endpoint: httpServer.URL})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,10 +196,14 @@ func assertToolListAndCall(t *testing.T, ctx context.Context, client *Client) {
 
 func TestConnectRejectsInvalidConfig(t *testing.T) {
 	for _, config := range []Config{
-		{Transport: TransportStdio},
-		{Transport: TransportStreamableHTTP, Endpoint: "file:///tmp/mcp"},
-		{Transport: TransportStdio, Command: "test", Env: map[string]string{"BAD=KEY": "value"}},
-		{Transport: Transport("unknown")},
+		{Transport: mcpconfig.TransportStdio},
+		{Transport: mcpconfig.TransportStreamableHTTP, Endpoint: "file:///tmp/mcp"},
+		{Transport: mcpconfig.TransportStdio, Command: "test", Env: map[string]string{"BAD=KEY": "value"}},
+		{Transport: mcpconfig.TransportStdio, Command: "bad\x00command"},
+		{Transport: mcpconfig.TransportStdio, Command: "test", Args: []string{"bad\x00arg"}},
+		{Transport: mcpconfig.TransportStdio, Command: "test", Endpoint: "http://localhost/mcp"},
+		{Transport: mcpconfig.TransportStreamableHTTP, Endpoint: "http://localhost/mcp", Command: "test"},
+		{Transport: mcpconfig.Transport("unknown")},
 	} {
 		_, err := Connect(context.Background(), config)
 		if err == nil || !strings.Contains(err.Error(), "MCP") {

@@ -194,7 +194,7 @@ func (m *Manager) connect(ctx context.Context, e *managedConnection) error {
 		return nil
 	}
 	config := Config{
-		Transport: Transport(e.config.Transport), Command: e.config.Command,
+		Transport: e.config.Transport, Command: e.config.Command,
 		Args: e.config.Args, Env: e.secret.Env, Endpoint: e.config.Endpoint,
 		HTTPClient: &http.Client{
 			Transport:     credentialTransport{token: e.secret.BearerToken},

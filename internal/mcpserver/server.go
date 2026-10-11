@@ -3,7 +3,6 @@ package mcpserver
 import (
 	"context"
 	"crypto/subtle"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,14 +16,13 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/sigpanic/goink/internal/mcp_tools"
+	"github.com/sigpanic/goink/internal/mcpconfig"
 	"github.com/sigpanic/goink/internal/version"
 	"gorm.io/gorm"
 )
 
 // ErrNoCurrentNovel 表示 Goink 界面当前没有打开的小说。
 var ErrNoCurrentNovel = errors.New("当前没有打开的小说")
-
-const DefaultPort = 17890
 
 // CurrentNovel 是每次 MCP 调用看到的当前小说快照。
 type CurrentNovel struct {
@@ -97,7 +95,7 @@ func New(registry *mcp_tools.Registry, db *gorm.DB, current CurrentNovelFunc, lo
 	for _, name := range allowed {
 		allowSet[name] = true
 	}
-	return &Server{registry: registry, db: db, current: current, logger: logger, allowed: allowSet, port: DefaultPort}
+	return &Server{registry: registry, db: db, current: current, logger: logger, allowed: allowSet, port: mcpconfig.DefaultPort}
 }
 
 // SetPort 在服务停止时设置端口；0 供测试显式申请临时端口。
@@ -107,18 +105,14 @@ func (s *Server) SetPort(port int) error {
 	if s.running != nil {
 		return fmt.Errorf("请先停止 MCP server")
 	}
-	if port < 0 || port > 65535 {
-		return fmt.Errorf("MCP 端口必须在 0 到 65535 之间")
-	}
 	s.port = port
 	return nil
 }
 
 // Start 使用调用方提供的令牌启动本地服务；令牌的生成和持久化由管理层负责。
 func (s *Server) Start(token string) (Endpoint, error) {
-	secret, err := hex.DecodeString(token)
-	if err != nil || len(secret) != 32 {
-		return Endpoint{}, fmt.Errorf("MCP 访问令牌无效")
+	if err := mcpconfig.ValidateToken(token); err != nil {
+		return Endpoint{}, err
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()

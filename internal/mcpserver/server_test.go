@@ -16,6 +16,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/sigpanic/goink/internal/mcp_tools"
 	"github.com/sigpanic/goink/internal/mcpclient"
+	"github.com/sigpanic/goink/internal/mcpconfig"
 	"github.com/stretchr/testify/require"
 )
 
@@ -95,12 +96,12 @@ func TestServerProtocolAndCurrentNovel(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if client, err := mcpclient.Connect(ctx, mcpclient.Config{Transport: mcpclient.TransportStreamableHTTP, Endpoint: endpoint.URL}); err == nil {
+	if client, err := mcpclient.Connect(ctx, mcpclient.Config{Transport: mcpconfig.TransportStreamableHTTP, Endpoint: endpoint.URL}); err == nil {
 		_ = client.Close()
 		t.Fatal("未携带令牌的客户端不应连接成功")
 	}
 	if client, err := mcpclient.Connect(ctx, mcpclient.Config{
-		Transport:  mcpclient.TransportStreamableHTTP,
+		Transport:  mcpconfig.TransportStreamableHTTP,
 		Endpoint:   endpoint.URL,
 		HTTPClient: &http.Client{Transport: bearerTransport{token: endpoint.Token, origin: "https://evil.example"}},
 	}); err == nil {
@@ -108,7 +109,7 @@ func TestServerProtocolAndCurrentNovel(t *testing.T) {
 		t.Fatal("非法 Origin 不应通过")
 	}
 	client, err := mcpclient.Connect(ctx, mcpclient.Config{
-		Transport:  mcpclient.TransportStreamableHTTP,
+		Transport:  mcpconfig.TransportStreamableHTTP,
 		Endpoint:   endpoint.URL,
 		HTTPClient: &http.Client{Transport: bearerTransport{token: endpoint.Token}},
 	})
@@ -240,7 +241,7 @@ func TestServerStopWaitsForCanceledCalls(t *testing.T) {
 			callCtx, cancelCall := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancelCall()
 			client, err := mcpclient.Connect(callCtx, mcpclient.Config{
-				Transport: mcpclient.TransportStreamableHTTP, Endpoint: endpoint.URL,
+				Transport: mcpconfig.TransportStreamableHTTP, Endpoint: endpoint.URL,
 				HTTPClient: &http.Client{Transport: bearerTransport{token: endpoint.Token}},
 			})
 			require.NoError(t, err)

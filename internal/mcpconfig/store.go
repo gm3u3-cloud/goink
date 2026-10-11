@@ -12,7 +12,7 @@ import (
 type Connection struct {
 	ID           string          `json:"id"`
 	Name         string          `json:"name"`
-	Transport    string          `json:"transport"`
+	Transport    Transport       `json:"transport"`
 	Command      string          `json:"command"`
 	Args         []string        `json:"args"`
 	Endpoint     string          `json:"endpoint"`
@@ -28,6 +28,7 @@ type Secrets struct {
 
 type Local struct {
 	Enabled      bool     `json:"enabled"`
+	Port         int      `json:"port"`
 	AllowedTools []string `json:"allowed_tools"`
 }
 
