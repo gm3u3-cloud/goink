@@ -34,7 +34,7 @@ func TestManagerPermissionsAndCancellation(t *testing.T) {
 	defer cancel()
 	manager := NewManager()
 	defer manager.Close(ctx)
-	config := mcpconfig.Connection{ID: "one", Transport: mcpconfig.TransportStreamableHTTP, Endpoint: httpServer.URL}
+	config := mcpconfig.Connection{ConnectionSettings: mcpconfig.ConnectionSettings{ID: "one", Transport: mcpconfig.TransportStreamableHTTP, Endpoint: httpServer.URL}}
 	manager.Configure(config, mcpconfig.Secrets{BearerToken: "http-secret"})
 	_, err := manager.CallTool(ctx, "one", "echo", nil)
 	require.Error(t, err)
@@ -104,8 +104,8 @@ func TestManagerCloseCancelsAllConnections(t *testing.T) {
 		defer httpServer.Close()
 		defer close(release)
 		config := mcpconfig.Connection{
-			ID: id, Transport: mcpconfig.TransportStreamableHTTP, Endpoint: httpServer.URL,
-			Enabled: true, AllowedTools: map[string]bool{"wait": true},
+			ConnectionSettings: mcpconfig.ConnectionSettings{ID: id, Transport: mcpconfig.TransportStreamableHTTP, Endpoint: httpServer.URL, Enabled: true},
+			AllowedTools:       map[string]bool{"wait": true},
 		}
 		manager.Configure(config, mcpconfig.Secrets{})
 		if id == "two" {
@@ -154,8 +154,11 @@ func TestManagerStdioAndRedactedErrors(t *testing.T) {
 	manager := NewManager()
 	defer manager.Close(ctx)
 	manager.Configure(mcpconfig.Connection{
-		ID: "stdio", Transport: mcpconfig.TransportStdio, Command: os.Args[0],
-		Args: []string{"-test.run=^TestMCPServerProcess$"}, Enabled: true, AllowedTools: map[string]bool{"echo": true},
+		ConnectionSettings: mcpconfig.ConnectionSettings{
+			ID: "stdio", Transport: mcpconfig.TransportStdio, Command: os.Args[0],
+			Args: []string{"-test.run=^TestMCPServerProcess$"}, Enabled: true,
+		},
+		AllowedTools: map[string]bool{"echo": true},
 	}, mcpconfig.Secrets{Env: map[string]string{"GOINK_MCP_TEST_SERVER": "1"}})
 	list, err := manager.Refresh(ctx, "stdio")
 	require.NoError(t, err)
@@ -168,7 +171,7 @@ func TestManagerStdioAndRedactedErrors(t *testing.T) {
 		http.Error(w, "private-token private-env", http.StatusUnauthorized)
 	}))
 	defer httpServer.Close()
-	manager.Configure(mcpconfig.Connection{ID: "bad", Transport: mcpconfig.TransportStreamableHTTP, Endpoint: httpServer.URL}, mcpconfig.Secrets{BearerToken: "private-token"})
+	manager.Configure(mcpconfig.Connection{ConnectionSettings: mcpconfig.ConnectionSettings{ID: "bad", Transport: mcpconfig.TransportStreamableHTTP, Endpoint: httpServer.URL}}, mcpconfig.Secrets{BearerToken: "private-token"})
 	_, err = manager.Refresh(ctx, "bad")
 	require.Error(t, err)
 	require.NotContains(t, err.Error(), "private-token")
@@ -193,7 +196,7 @@ func TestManagerRejectsCredentialRedirect(t *testing.T) {
 	defer cancel()
 	manager := NewManager()
 	defer manager.Close(ctx)
-	manager.Configure(mcpconfig.Connection{ID: "redirect", Transport: mcpconfig.TransportStreamableHTTP, Endpoint: source.URL}, mcpconfig.Secrets{BearerToken: "secret"})
+	manager.Configure(mcpconfig.Connection{ConnectionSettings: mcpconfig.ConnectionSettings{ID: "redirect", Transport: mcpconfig.TransportStreamableHTTP, Endpoint: source.URL}}, mcpconfig.Secrets{BearerToken: "secret"})
 	_, err := manager.Refresh(ctx, "redirect")
 	require.Error(t, err)
 	require.False(t, leaked.Load())

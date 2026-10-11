@@ -9,14 +9,18 @@ import (
 	"github.com/sigpanic/goink/internal/config"
 )
 
+type ConnectionSettings struct {
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Transport Transport `json:"transport"`
+	Command   string    `json:"command"`
+	Args      []string  `json:"args"`
+	Endpoint  string    `json:"endpoint"`
+	Enabled   bool      `json:"enabled"`
+}
+
 type Connection struct {
-	ID           string          `json:"id"`
-	Name         string          `json:"name"`
-	Transport    Transport       `json:"transport"`
-	Command      string          `json:"command"`
-	Args         []string        `json:"args"`
-	Endpoint     string          `json:"endpoint"`
-	Enabled      bool            `json:"enabled"`
+	ConnectionSettings
 	AllowedTools map[string]bool `json:"allowed_tools"`
 }
 
@@ -50,7 +54,9 @@ func NewStore(path string) *Store { return &Store{path: path} }
 func (s *Store) Load() (State, error) {
 	data, err := os.ReadFile(s.path)
 	if errors.Is(err, os.ErrNotExist) {
-		return State{Credentials: map[string]Secrets{}}, nil
+		state := State{}
+		state.normalize()
+		return state, state.Validate()
 	}
 	if err != nil {
 		return State{}, errors.New("读取 MCP 配置失败")
@@ -59,21 +65,22 @@ func (s *Store) Load() (State, error) {
 	if err != nil {
 		return State{}, errors.New("MCP 配置解密失败")
 	}
-	return decodeState(plain)
-}
-
-func decodeState(plain []byte) (State, error) {
 	var state State
 	if err := json.Unmarshal(plain, &state); err != nil {
 		return State{}, errors.New("解析 MCP 配置失败")
 	}
-	if state.Credentials == nil {
-		state.Credentials = map[string]Secrets{}
+	state.normalize()
+	if err := state.Validate(); err != nil {
+		return State{}, err
 	}
 	return state, nil
 }
 
 func (s *Store) Save(state State) error {
+	state.normalize()
+	if err := state.Validate(); err != nil {
+		return err
+	}
 	if err := os.MkdirAll(filepath.Dir(s.path), 0700); err != nil {
 		return errors.New("创建 MCP 配置目录失败")
 	}
