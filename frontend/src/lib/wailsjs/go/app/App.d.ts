@@ -15,6 +15,7 @@ import {timeline} from '../models';
 import {llm} from '../models';
 import {pattern} from '../models';
 import {git} from '../models';
+import {mcpmanagement} from '../models';
 import {apperr} from '../models';
 import {session} from '../models';
 import {storage} from '../models';
@@ -23,6 +24,7 @@ import {volume} from '../models';
 import {writing} from '../models';
 import {imp} from '../models';
 import {skill} from '../models';
+import {mcpconfig} from '../models';
 import {search} from '../models';
 
 export function ApproveTool(arg1:string,arg2:boolean,arg3:string):Promise<void>;
@@ -76,6 +78,8 @@ export function DeleteCharacter(arg1:number,arg2:number):Promise<void>;
 export function DeleteCover(arg1:number):Promise<void>;
 
 export function DeleteLocation(arg1:number,arg2:number):Promise<void>;
+
+export function DeleteMCPConnection(arg1:string):Promise<void>;
 
 export function DeleteNovel(arg1:number):Promise<void>;
 
@@ -137,6 +141,10 @@ export function GetLocationRelations(arg1:number):Promise<Array<location.Locatio
 
 export function GetLocations(arg1:number):Promise<Array<location.Location>>;
 
+export function GetMCPServerSettings():Promise<mcpmanagement.LocalView>;
+
+export function GetMCPTools(arg1:string):Promise<Array<mcpmanagement.ToolView>>;
+
 export function GetMaxChapterNumber(arg1:number):Promise<number>;
 
 export function GetModels():Promise<Array<llm.AvailableModel>>;
@@ -187,6 +195,8 @@ export function InstallRemoteSkill(arg1:app.InstallRemoteSkillInput):Promise<app
 
 export function IsInitialized():Promise<boolean>;
 
+export function ListMCPConnections():Promise<Array<mcpmanagement.ConnectionView>>;
+
 export function ListRemoteSkills(arg1:app.ListRemoteSkillsInput):Promise<apperr.Result_github_com_sigpanic_goink_internal_storage_PageResult_github_com_sigpanic_goink_internal_skill_remote_RemoteSkillMeta__>;
 
 export function ListSkills(arg1:app.ListSkillsInput):Promise<Array<skill.SkillMeta>>;
@@ -203,7 +213,13 @@ export function PlaceVolume(arg1:volume.PlaceInput):Promise<volume.Volume>;
 
 export function RebuildNovelIndex(arg1:number):Promise<void>;
 
+export function RefreshMCPTools(arg1:string):Promise<Array<mcpmanagement.ToolView>>;
+
 export function RetryStartup():Promise<void>;
+
+export function RevokeMCPServerCredential():Promise<void>;
+
+export function RotateMCPServerCredential():Promise<mcpmanagement.LocalView>;
 
 export function SaveAvatar(arg1:Array<number>):Promise<void>;
 
@@ -214,6 +230,10 @@ export function SaveCover(arg1:number,arg2:Array<number>):Promise<void>;
 export function SaveGitConfig(arg1:string,arg2:string):Promise<void>;
 
 export function SaveLLMConfig(arg1:llm.LLMConfigView):Promise<void>;
+
+export function SaveMCPConnection(arg1:mcpmanagement.ConnectionInput):Promise<mcpmanagement.ConnectionView>;
+
+export function SaveMCPServerSettings(arg1:mcpconfig.Local):Promise<mcpmanagement.LocalView>;
 
 export function SaveSettings(arg1:app.SaveSettingsInput):Promise<void>;
 
@@ -227,11 +247,17 @@ export function SetApprovalMode(arg1:string):Promise<void>;
 
 export function SetLastSession(arg1:string):Promise<void>;
 
+export function SetMCPConnectionEnabled(arg1:string,arg2:boolean):Promise<void>;
+
+export function SetMCPToolAllowed(arg1:string,arg2:string,arg3:boolean):Promise<void>;
+
 export function SetReasoningEffort(arg1:string):Promise<void>;
 
 export function SetSelectedModel(arg1:string,arg2:string):Promise<void>;
 
 export function TestConnection(arg1:app.TestConnectionInput):Promise<llm.TestConnectionResult>;
+
+export function TestMCPConnection(arg1:string):Promise<Array<mcpmanagement.ToolView>>;
 
 export function UpdateArcNode(arg1:number,arg2:number,arg3:app.UpdateArcNodeInput):Promise<void>;
 

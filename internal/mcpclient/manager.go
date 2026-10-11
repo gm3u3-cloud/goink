@@ -194,8 +194,8 @@ func (m *Manager) connect(ctx context.Context, e *managedConnection) error {
 		return nil
 	}
 	config := Config{
-		Transport: e.config.Transport, Command: e.config.Command,
-		Args: e.config.Args, Env: e.secret.Env, Endpoint: e.config.Endpoint,
+		TransportSettings: e.config.TransportSettings,
+		Env:               e.secret.Env,
 		HTTPClient: &http.Client{
 			Transport:     credentialTransport{token: e.secret.BearerToken},
 			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },

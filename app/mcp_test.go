@@ -41,9 +41,8 @@ func TestMCPServerUsesCurrentNovelWithRegisteredTool(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client, err := mcpclient.Connect(ctx, mcpclient.Config{
-		Transport:  mcpconfig.TransportStreamableHTTP,
-		Endpoint:   endpoint.URL,
-		HTTPClient: &http.Client{Transport: mcpTestAuthTransport{token: endpoint.Token}},
+		TransportSettings: mcpconfig.TransportSettings{Transport: mcpconfig.TransportStreamableHTTP, Endpoint: endpoint.URL},
+		HTTPClient:        &http.Client{Transport: mcpTestAuthTransport{token: endpoint.Token}},
 	})
 	require.NoError(t, err)
 	defer client.Close()
@@ -85,8 +84,8 @@ func TestShutdownTimeoutPreservesMCPDependencies(t *testing.T) {
 	callCtx, cancelCall := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelCall()
 	client, err := mcpclient.Connect(callCtx, mcpclient.Config{
-		Transport: mcpconfig.TransportStreamableHTTP, Endpoint: endpoint.URL,
-		HTTPClient: &http.Client{Transport: mcpTestAuthTransport{token: endpoint.Token}},
+		TransportSettings: mcpconfig.TransportSettings{Transport: mcpconfig.TransportStreamableHTTP, Endpoint: endpoint.URL},
+		HTTPClient:        &http.Client{Transport: mcpTestAuthTransport{token: endpoint.Token}},
 	})
 	require.NoError(t, err)
 	defer client.Close()

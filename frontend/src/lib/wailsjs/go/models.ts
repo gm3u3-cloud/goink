@@ -1670,6 +1670,248 @@ export namespace location {
 
 }
 
+export namespace mcpclient {
+	
+	export class ConnectionStatus {
+	    connected: boolean;
+	    tool_count: number;
+	    last_error: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ConnectionStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.connected = source["connected"];
+	        this.tool_count = source["tool_count"];
+	        this.last_error = source["last_error"];
+	    }
+	}
+
+}
+
+export namespace mcpconfig {
+	
+	export class Connection {
+	    id: string;
+	    name: string;
+	    transport: string;
+	    command: string;
+	    args: string[];
+	    endpoint: string;
+	    enabled: boolean;
+	    allowed_tools: Record<string, boolean>;
+	
+	    static createFrom(source: any = {}) {
+	        return new Connection(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.transport = source["transport"];
+	        this.command = source["command"];
+	        this.args = source["args"];
+	        this.endpoint = source["endpoint"];
+	        this.enabled = source["enabled"];
+	        this.allowed_tools = source["allowed_tools"];
+	    }
+	}
+	export class Local {
+	    enabled: boolean;
+	    port: number;
+	    allowed_tools: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new Local(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.enabled = source["enabled"];
+	        this.port = source["port"];
+	        this.allowed_tools = source["allowed_tools"];
+	    }
+	}
+	export class Secrets {
+	    env: Record<string, string>;
+	    bearer_token: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Secrets(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.env = source["env"];
+	        this.bearer_token = source["bearer_token"];
+	    }
+	}
+
+}
+
+export namespace mcpmanagement {
+	
+	export class ConnectionInput {
+	    id: string;
+	    name: string;
+	    transport: string;
+	    command: string;
+	    args: string[];
+	    endpoint: string;
+	    enabled: boolean;
+	    credentials?: mcpconfig.Secrets;
+	
+	    static createFrom(source: any = {}) {
+	        return new ConnectionInput(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.transport = source["transport"];
+	        this.command = source["command"];
+	        this.args = source["args"];
+	        this.endpoint = source["endpoint"];
+	        this.enabled = source["enabled"];
+	        this.credentials = this.convertValues(source["credentials"], mcpconfig.Secrets);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class ConnectionView {
+	    config: mcpconfig.Connection;
+	    env_keys: string[];
+	    has_bearer_token: boolean;
+	    status: mcpclient.ConnectionStatus;
+	
+	    static createFrom(source: any = {}) {
+	        return new ConnectionView(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.config = this.convertValues(source["config"], mcpconfig.Connection);
+	        this.env_keys = source["env_keys"];
+	        this.has_bearer_token = source["has_bearer_token"];
+	        this.status = this.convertValues(source["status"], mcpclient.ConnectionStatus);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class LocalView {
+	    config: mcpconfig.Local;
+	    available_tools: string[];
+	    token: string;
+	    status: mcpserver.Status;
+	    last_error: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new LocalView(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.config = this.convertValues(source["config"], mcpconfig.Local);
+	        this.available_tools = source["available_tools"];
+	        this.token = source["token"];
+	        this.status = this.convertValues(source["status"], mcpserver.Status);
+	        this.last_error = source["last_error"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class ToolView {
+	    name: string;
+	    description: string;
+	    allowed: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new ToolView(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.description = source["description"];
+	        this.allowed = source["allowed"];
+	    }
+	}
+
+}
+
+export namespace mcpserver {
+	
+	export class Status {
+	    running: boolean;
+	    stopping: boolean;
+	    url: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Status(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.running = source["running"];
+	        this.stopping = source["stopping"];
+	        this.url = source["url"];
+	    }
+	}
+
+}
+
 export namespace novel {
 	
 	export class Novel {

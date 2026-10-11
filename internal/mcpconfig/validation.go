@@ -23,19 +23,32 @@ func (c Connection) Validate(secret Secrets) error {
 	if strings.TrimSpace(c.Name) == "" || len(c.Name) > 200 {
 		return errors.New("MCP server 名称不能为空或超过 200 字节")
 	}
-	return c.ValidateTransport(secret)
-}
-
-// ValidateTransport 校验传输参数和凭据，不要求持久化连接的 ID、名称。
-// Client 可复用此规则检查直接传入的运行参数。
-func (c ConnectionSettings) ValidateTransport(secret Secrets) error {
-	for key, value := range secret.Env {
-		if key == "" || strings.ContainsAny(key, "=\x00") || strings.ContainsRune(value, '\x00') {
-			return errors.New("MCP 环境变量格式无效")
-		}
+	if err := c.TransportSettings.Validate(secret.Env); err != nil {
+		return err
 	}
 	if strings.ContainsAny(secret.BearerToken, "\r\n\x00") {
 		return errors.New("MCP 认证令牌格式无效")
+	}
+	switch c.Transport {
+	case TransportStdio:
+		if secret.BearerToken != "" {
+			return errors.New("stdio 连接不能包含 HTTP 令牌")
+		}
+	case TransportStreamableHTTP:
+		endpoint, err := url.Parse(c.Endpoint)
+		if err != nil || endpoint.User != nil || endpoint.RawQuery != "" || endpoint.Fragment != "" {
+			return errors.New("HTTP MCP 连接需要有效的 http(s) 地址；认证信息请使用独立凭据字段，不要放入 URL")
+		}
+	}
+	return nil
+}
+
+// Validate 校验建立连接所需的传输参数和环境变量；不检查持久化字段或凭据存储策略。
+func (c TransportSettings) Validate(env map[string]string) error {
+	for key, value := range env {
+		if key == "" || strings.ContainsAny(key, "=\x00") || strings.ContainsRune(value, '\x00') {
+			return errors.New("MCP 环境变量格式无效")
+		}
 	}
 	switch c.Transport {
 	case TransportStdio:
@@ -47,18 +60,12 @@ func (c ConnectionSettings) ValidateTransport(secret Secrets) error {
 				return errors.New("MCP 命令参数格式无效")
 			}
 		}
-		if secret.BearerToken != "" {
-			return errors.New("stdio 连接不能包含 HTTP 令牌")
-		}
 	case TransportStreamableHTTP:
 		endpoint, err := url.Parse(c.Endpoint)
 		if err != nil || endpoint.Hostname() == "" || (endpoint.Scheme != "http" && endpoint.Scheme != "https") {
 			return errors.New("HTTP MCP 连接需要有效的 http(s) 地址")
 		}
-		if endpoint.User != nil || endpoint.RawQuery != "" || endpoint.Fragment != "" {
-			return errors.New("HTTP MCP 连接需要有效的 http(s) 地址；认证信息请使用独立凭据字段，不要放入 URL")
-		}
-		if c.Command != "" || len(c.Args) > 0 || len(secret.Env) > 0 {
+		if c.Command != "" || len(c.Args) > 0 || len(env) > 0 {
 			return errors.New("HTTP MCP 连接不能包含 stdio 命令或环境变量")
 		}
 	default:

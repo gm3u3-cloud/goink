@@ -42,8 +42,11 @@ func TestStoreEncryptedRoundTripAndCorruption(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, json.Unmarshal(connectionJSON, &fields))
 	require.JSONEq(t, `"stable-id"`, string(fields["id"]))
+	require.JSONEq(t, `"stdio"`, string(fields["transport"]))
+	require.JSONEq(t, `"test"`, string(fields["command"]))
 	require.JSONEq(t, `{"echo":true}`, string(fields["allowed_tools"]))
 	require.NotContains(t, fields, "ConnectionSettings", "匿名嵌入应保持配置字段平铺")
+	require.NotContains(t, fields, "TransportSettings", "两层匿名嵌入应保持传输字段平铺")
 	entries, err := os.ReadDir(filepath.Dir(path))
 	require.NoError(t, err)
 	require.Len(t, entries, 1, "新存储不能产生独立密钥或残留临时文件")
@@ -71,8 +74,8 @@ func TestStoreEncryptedRoundTripAndCorruption(t *testing.T) {
 func testState() State {
 	return State{
 		Connections: []Connection{
-			{ConnectionSettings: ConnectionSettings{ID: "stable-id", Name: "server", Transport: TransportStdio, Command: "test", Enabled: true}, AllowedTools: map[string]bool{"echo": true}},
-			{ConnectionSettings: ConnectionSettings{ID: "http-id", Name: "http-server", Transport: TransportStreamableHTTP, Endpoint: "https://example.com/mcp"}},
+			{ConnectionSettings: ConnectionSettings{ID: "stable-id", Name: "server", TransportSettings: TransportSettings{Transport: TransportStdio, Command: "test"}, Enabled: true}, AllowedTools: map[string]bool{"echo": true}},
+			{ConnectionSettings: ConnectionSettings{ID: "http-id", Name: "http-server", TransportSettings: TransportSettings{Transport: TransportStreamableHTTP, Endpoint: "https://example.com/mcp"}}},
 		},
 		Credentials: map[string]Secrets{
 			"stable-id": {Env: map[string]string{"KEY": "env-secret"}},
@@ -118,6 +121,27 @@ func TestStoreNormalizesDefaultsWithoutRewritingOnLoad(t *testing.T) {
 	var saved State
 	require.NoError(t, json.Unmarshal(plain, &saved))
 	require.Equal(t, state, saved, "保存也应补齐同一套默认值")
+}
+
+func TestStoreLoadsFlatConnectionSettings(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "mcp_config.enc")
+	plain := []byte(`{"connections":[{"id":"flat-id","name":"server","transport":"stdio","command":"test","args":["--stdio"],"endpoint":"","enabled":true,"allowed_tools":{"echo":true}}],"credentials":{"flat-id":{"env":{"KEY":"value"},"bearer_token":""}},"local":{"enabled":false,"port":5108,"allowed_tools":[]},"local_token":""}`)
+	data, err := config.Encrypt(plain)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(path, data, 0600))
+	store := NewStore(path)
+	state, err := store.Load()
+	require.NoError(t, err)
+	require.Len(t, state.Connections, 1)
+	connection := state.Connections[0]
+	require.Equal(t, "flat-id", connection.ID)
+	require.Equal(t, TransportSettings{Transport: TransportStdio, Command: "test", Args: []string{"--stdio"}}, connection.TransportSettings)
+	require.NoError(t, store.Save(state))
+	data, err = os.ReadFile(path)
+	require.NoError(t, err)
+	saved, err := config.Decrypt(data)
+	require.NoError(t, err)
+	require.JSONEq(t, string(plain), string(saved), "抽出公共传输结构不能改变持久化字段布局")
 }
 
 func TestStoreRejectsInvalidSnapshotsAndPreservesFiles(t *testing.T) {

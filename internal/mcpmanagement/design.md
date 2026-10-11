@@ -29,6 +29,10 @@ Client Manager 管理多个外部连接，顶层 context 下派生各连接 cont
 
 `mcpconfig` 定义共用的 Transport 类型以及全部静态配置规则，包括连接 ID、名称、ID 唯一性、传输参数、环境变量、URL、凭据格式、本地端口，以及启用状态与 Token 的一致性。Store 加载、保存时补齐默认端口与凭据 map，内部调用 `State.Validate()`；`Load()` 成功返回的结果已经通过配置包的全部校验。无效快照不会写入磁盘；加载失败保留原文件。Client 复用配置包的传输参数校验，不重新声明规则。Service 只检查当前工具开放策略并编排配置与运行状态；Server 检查工具是否实际注册以及是否完全停止，负责执行运行操作。
 
+`TransportSettings` 只包含 Transport、Command、Args、Endpoint，供持久化设置与 Client 运行参数匿名嵌入。其 `Validate(env)` 检查建立连接所需的参数，保持原 Client 的校验范围，不检查连接 ID、名称或凭据存储策略。`Connection.Validate(secrets)` 复用传输校验，再检查 ID、名称、Bearer Token、stdio 不允许 HTTP Token，以及 Goink 持久化 URL 不允许 userinfo、query、fragment 的约束；这些 URL 存储约束不施加到直接调用 Client 的运行参数上。`State.Validate()` 汇总连接与本地 Server 配置的校验。
+
+Client 的 `Config` 在公共传输设置上增加 Env 和 HTTPClient；Env 从持久化的 Secrets 取得，HTTPClient 由 Manager 构造用于认证和重定向控制，不保存到磁盘。本次整理只修正结构复用与校验职责，不扩展 Client 功能交付范围。
+
 App 统一通过管理服务关闭 MCP；管理服务尚未创建时才直接关闭 Server，避免正常退出重复关闭同一实例。
 
 ## 查询 DTO

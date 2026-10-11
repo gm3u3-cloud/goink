@@ -4,10 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/sigpanic/goink/internal/mcpconfig"
@@ -17,11 +15,8 @@ import (
 // Config 提供单个连接的运行时参数。调用方可通过 HTTPClient 注入认证能力；
 // 持久化配置和凭据管理不属于本包。
 type Config struct {
-	Transport  mcpconfig.Transport
-	Command    string
-	Args       []string
+	mcpconfig.TransportSettings
 	Env        map[string]string
-	Endpoint   string
 	HTTPClient *http.Client
 }
 
@@ -47,38 +42,8 @@ func Connect(ctx context.Context, config Config) (*Client, error) {
 	return &Client{session: session}, nil
 }
 
-func (config Config) Validate() error {
-	for key, value := range config.Env {
-		if key == "" || strings.ContainsAny(key, "=\x00") || strings.ContainsRune(value, '\x00') {
-			return fmt.Errorf("MCP 环境变量格式无效")
-		}
-	}
-	switch config.Transport {
-	case mcpconfig.TransportStdio:
-		if strings.TrimSpace(config.Command) == "" || strings.ContainsRune(config.Command, '\x00') || config.Endpoint != "" {
-			return fmt.Errorf("stdio MCP 连接需要命令，不能包含 HTTP 地址")
-		}
-		for _, arg := range config.Args {
-			if strings.ContainsRune(arg, '\x00') {
-				return fmt.Errorf("MCP 命令参数格式无效")
-			}
-		}
-	case mcpconfig.TransportStreamableHTTP:
-		endpoint, err := url.Parse(config.Endpoint)
-		if err != nil || endpoint.Hostname() == "" || (endpoint.Scheme != "http" && endpoint.Scheme != "https") {
-			return fmt.Errorf("HTTP MCP 连接需要有效的 http(s) 地址")
-		}
-		if config.Command != "" || len(config.Args) > 0 || len(config.Env) > 0 {
-			return fmt.Errorf("HTTP MCP 连接不能包含 stdio 命令或环境变量")
-		}
-	default:
-		return fmt.Errorf("不支持的 MCP 传输方式")
-	}
-	return nil
-}
-
 func newTransport(config Config) (mcp.Transport, error) {
-	if err := config.Validate(); err != nil {
+	if err := config.Validate(config.Env); err != nil {
 		return nil, err
 	}
 	switch config.Transport {

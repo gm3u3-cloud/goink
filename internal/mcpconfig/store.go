@@ -9,14 +9,18 @@ import (
 	"github.com/sigpanic/goink/internal/config"
 )
 
-type ConnectionSettings struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
+type TransportSettings struct {
 	Transport Transport `json:"transport"`
 	Command   string    `json:"command"`
 	Args      []string  `json:"args"`
 	Endpoint  string    `json:"endpoint"`
-	Enabled   bool      `json:"enabled"`
+}
+
+type ConnectionSettings struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	TransportSettings
+	Enabled bool `json:"enabled"`
 }
 
 type Connection struct {
