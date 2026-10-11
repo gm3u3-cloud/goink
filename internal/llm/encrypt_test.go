@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -54,7 +55,19 @@ func TestUserConfigEncryptionCompatibility(t *testing.T) {
 	require.NoError(t, os.WriteFile(path, data, 0600))
 	_, err = LoadUserConfig(path)
 	require.Error(t, err)
+	require.NotNil(t, errors.Unwrap(err))
 	require.NotContains(t, err.Error(), "private-test-key")
 	_, err = config.Decrypt([]byte("short"))
 	require.Error(t, err)
+}
+
+func TestLoadUserConfigPreservesJSONError(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "llm_config.enc")
+	data, err := config.Encrypt([]byte("{"))
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(path, data, 0600))
+	_, err = LoadUserConfig(path)
+	var parseErr *json.SyntaxError
+	require.ErrorAs(t, err, &parseErr)
+	require.ErrorContains(t, err, "parse config failed")
 }

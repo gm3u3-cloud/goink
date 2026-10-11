@@ -3,6 +3,7 @@ package llm
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 
 	"github.com/sigpanic/goink/internal/config"
@@ -21,12 +22,12 @@ func LoadUserConfig(path string) (*UserLLMConfig, error) {
 
 	plain, err := config.Decrypt(data)
 	if err != nil {
-		return nil, errors.New("decrypt config failed: " + err.Error())
+		return nil, fmt.Errorf("decrypt config failed: %w", err)
 	}
 
 	var cfg UserLLMConfig
 	if err := json.Unmarshal(plain, &cfg); err != nil {
-		return nil, errors.New("parse config failed: " + err.Error())
+		return nil, fmt.Errorf("parse config failed: %w", err)
 	}
 	return &cfg, nil
 }
