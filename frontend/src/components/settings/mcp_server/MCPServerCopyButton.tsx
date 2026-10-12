@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Copy, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,12 @@ export default function MCPServerCopyButton({ text, label, disabled }: Props) {
   }>();
   const copied = feedback?.text === text && feedback.success;
   const failed = feedback?.text === text && !feedback.success;
+
+  useEffect(() => {
+    if (!feedback?.success || feedback.text !== text) return;
+    const timer = window.setTimeout(() => setFeedback(undefined), 2000);
+    return () => window.clearTimeout(timer);
+  }, [feedback, text]);
 
   async function copy() {
     setCopying(true);
