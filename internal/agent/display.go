@@ -27,6 +27,7 @@ var toolDisplayNames = map[string]string{
 	"update_character":                "更新角色设定",
 	"update_character_relationship":   "更新人物关系",
 	"run_subagent":                    "调度AI子任务",
+	"run_mcp":                         "调用按需工具",
 	"get_reader_perspective":          "查看读者视角",
 	"create_reader_perspective_entry": "添加读者视角",
 	"update_reader_perspective_entry": "更新读者视角",
@@ -130,6 +131,19 @@ func (a *Agent) buildDisplay(ctx context.Context, name string, args map[string]a
 	}
 
 	var metadata map[string]any
+
+	if name == "run_mcp" {
+		if target, ok := args["tool_name"].(string); ok && target != "" {
+			baseText = "调用 " + target
+			if label := toolDisplayNames[target]; label != "" {
+				baseText = label
+			}
+			if kind := toolActivityKinds[target]; kind != "" {
+				activityKind = kind
+			}
+			metadata = map[string]any{"tool_name": target}
+		}
+	}
 
 	// run_subagent：根据 agent_type 定制展示文本
 	if name == "run_subagent" {

@@ -74,6 +74,29 @@ func TestChapterID(t *testing.T) {
 	}
 }
 
+func TestBuildDisplayRunMCP(t *testing.T) {
+	a := &Agent{}
+	for _, tt := range []struct {
+		target string
+		phase  mcp_tools.DisplayPhase
+		want   string
+	}{
+		{"get_volumes", mcp_tools.PhaseExecuting, "正在调用 get_volumes"},
+		{"get_volumes", mcp_tools.PhaseCompleted, "调用 get_volumes"},
+		{"get_volumes", mcp_tools.PhaseFailed, "调用 get_volumes"},
+		{"run_mcp", mcp_tools.PhaseFailed, "调用按需工具"},
+		{"", mcp_tools.PhaseSelected, "正在调用按需工具"},
+	} {
+		got := a.buildDisplay(context.Background(), "run_mcp", map[string]any{"tool_name": tt.target}, tt.phase, 1)
+		if got.DisplayText != tt.want {
+			t.Errorf("target %q: got %q, want %q", tt.target, got.DisplayText, tt.want)
+		}
+		if tt.target != "" && got.Metadata["tool_name"] != tt.target {
+			t.Errorf("target %q missing from metadata: %v", tt.target, got.Metadata)
+		}
+	}
+}
+
 func newDisplayTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})

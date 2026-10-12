@@ -17,4 +17,5 @@ func RegisterAllTools(r *Registry) {
 	RegisterDeleteTools(r)
 	RegisterWebSearchTools(r)
 	RegisterWebFetchTools(r)
+	RegisterRunMCPTools(r)
 }

@@ -33,6 +33,7 @@ var mainAgentTools = []string{
 	"web_search",
 	"web_fetch",
 	"run_subagent",
+	"run_mcp",
 }
 
 var reviewAgentTools = []string{
