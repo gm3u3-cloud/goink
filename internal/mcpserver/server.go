@@ -143,6 +143,9 @@ func (s *Server) validateAllowedTool(name string) error {
 	if name == "run_mcp" {
 		return errors.New("run_mcp 仅供内部 Agent 使用，请直接开放具体工具")
 	}
+	if name == "search_mcp" {
+		return errors.New("search_mcp 仅供内部 Agent 使用，请直接开放具体工具")
+	}
 	if s.registry == nil {
 		return errors.New("MCP server 工具注册表未初始化")
 	}

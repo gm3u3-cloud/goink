@@ -28,6 +28,7 @@ var toolDisplayNames = map[string]string{
 	"update_character_relationship":   "更新人物关系",
 	"run_subagent":                    "调度AI子任务",
 	"run_mcp":                         "调用按需工具",
+	"search_mcp":                      "搜索拓展工具",
 	"get_reader_perspective":          "查看读者视角",
 	"create_reader_perspective_entry": "添加读者视角",
 	"update_reader_perspective_entry": "更新读者视角",
@@ -49,6 +50,7 @@ var toolDisplayNames = map[string]string{
 var toolActivityKinds = map[string]string{
 	"get_chapter_list":                "browse",
 	"search_story_memory":             "memory",
+	"search_mcp":                      "browse",
 	"get_timeline":                    "view",
 	"create_timeline_entry":           "write",
 	"update_timeline_entry":           "edit",

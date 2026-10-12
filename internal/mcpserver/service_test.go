@@ -380,8 +380,9 @@ func TestAvailableToolsFollowRegistryAndExplicitPermissions(t *testing.T) {
 	require.NotContains(t, names, "get_current_novel")
 	require.NotContains(t, names, "run_subagent")
 	require.NotContains(t, names, "run_mcp")
+	require.NotContains(t, names, "search_mcp")
 	for _, tool := range service.server.registry.List() {
-		if tool.Name() != "run_subagent" && tool.Name() != "run_mcp" {
+		if tool.Name() != "run_subagent" && tool.Name() != "run_mcp" && tool.Name() != "search_mcp" {
 			require.Contains(t, names, tool.Name())
 		}
 	}
@@ -390,7 +391,7 @@ func TestAvailableToolsFollowRegistryAndExplicitPermissions(t *testing.T) {
 	view, err := service.SaveLocal(context.Background(), servercfg.Local{AllowedTools: []string{"read", "edit", "delete_record"}})
 	require.NoError(t, err)
 	require.ElementsMatch(t, []string{"read", "edit", "delete_record"}, view.Config.AllowedTools)
-	for _, name := range []string{"run_subagent", "run_mcp", "get_current_novel", "not_registered"} {
+	for _, name := range []string{"run_subagent", "run_mcp", "search_mcp", "get_current_novel", "not_registered"} {
 		_, err := service.SaveLocal(context.Background(), servercfg.Local{AllowedTools: []string{name}})
 		require.Error(t, err)
 		require.Equal(t, view, service.LocalSettings())

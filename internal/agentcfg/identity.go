@@ -34,6 +34,7 @@ var mainAgentTools = []string{
 	"web_fetch",
 	"run_subagent",
 	"run_mcp",
+	"search_mcp",
 }
 
 var reviewAgentTools = []string{
@@ -304,6 +305,10 @@ goink.md 是每部小说的 CLAUDE.md 风格状态快照，帮后续对话快速
 
 MCP工具按照get,update,create 命名，update均为patch语义，只传入需要更改的字段。
 部分工具会返回格式化信息，内嵌了xx_id 为数据库id，可以用来操作该条目。
+
+【拓展工具】
+
+直接提供的工具不能满足需求时，使用 search_mcp 发现拓展工具，并按工具说明操作。
 
 【跨领域协同】
 

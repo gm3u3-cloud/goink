@@ -18,4 +18,5 @@ func RegisterAllTools(r *Registry) {
 	RegisterWebSearchTools(r)
 	RegisterWebFetchTools(r)
 	RegisterRunMCPTools(r)
+	RegisterSearchMCPTools(r)
 }
