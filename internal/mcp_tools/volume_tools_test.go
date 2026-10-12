@@ -21,7 +21,7 @@ func TestVolumeToolsDiscoverReadAndRun(t *testing.T) {
 	call := func(name, raw string) *mcp_tools.ToolResult {
 		return r.Execute(ctx, name, json.RawMessage(raw), tc, allowed)
 	}
-	for _, name := range []string{"get_volumes", "create_volume"} {
+	for _, name := range []string{"get_volumes", "place_volume", "update_volume"} {
 		found := call("search_mcp", fmt.Sprintf(`{"queries":[%q]}`, name))
 		require.True(t, found.Success, found.Error)
 		require.Contains(t, found.Data["content"], "`"+name+"`")
@@ -43,12 +43,13 @@ func TestVolumeToolsDiscoverReadAndRun(t *testing.T) {
 	require.True(t, empty.Success, empty.Error)
 	require.Contains(t, empty.Data["content"], "暂无分卷")
 	foreignID := seedVolume(t, db, 2, "其他小说", 1)
-	created := call("run_mcp", `{"tool_name":"create_volume","args":{"volumes":[{"name":"起点"},{"name":"终点"}]}}`)
-	require.True(t, created.Success, created.Error)
-	ids := created.Data["ids"].([]int64)
-	require.Len(t, ids, 2)
-	require.Equal(t, 2, created.Data["count"])
-	inserted := call("run_mcp", fmt.Sprintf(`{"tool_name":"create_volume","args":{"volumes":[{"name":"转折","before_volume_id":%d}]}}`, ids[1]))
+	var ids []int64
+	for _, name := range []string{"起点", "终点"} {
+		created := call("run_mcp", fmt.Sprintf(`{"tool_name":"place_volume","args":{"name":%q}}`, name))
+		require.True(t, created.Success, created.Error)
+		ids = append(ids, created.Data["volume_id"].(int64))
+	}
+	inserted := call("run_mcp", fmt.Sprintf(`{"tool_name":"place_volume","args":{"name":"转折","before_volume_id":%d}}`, ids[1]))
 	require.True(t, inserted.Success, inserted.Error)
 	volumes, err := volume.NewStore(db, nil).ListByNovel(ctx, nil, tc.NovelID)
 	require.NoError(t, err)
@@ -66,38 +67,79 @@ func TestVolumeToolsDiscoverReadAndRun(t *testing.T) {
 	foreign, err := volume.NewStore(db, nil).GetByID(ctx, nil, 2, foreignID)
 	require.NoError(t, err)
 	require.Equal(t, 1, foreign.SortOrder)
+
+	for _, raw := range []string{
+		fmt.Sprintf(`{"source_volume_id":%d,"before_volume_id":%d}`, ids[1], ids[0]),
+		fmt.Sprintf(`{"source_volume_id":%d,"before_volume_id":%d}`, ids[1], ids[1]),
+		fmt.Sprintf(`{"source_volume_id":%d,"before_volume_id":null}`, ids[0]),
+		fmt.Sprintf(`{"source_volume_id":%d}`, ids[0]),
+	} {
+		moved := call("run_mcp", `{"tool_name":"place_volume","args":`+raw+`}`)
+		require.True(t, moved.Success, moved.Error)
+	}
+	for range 2 {
+		renamed := call("run_mcp", fmt.Sprintf(`{"tool_name":"update_volume","args":{"volume_id":%d,"name":"序卷"}}`, ids[0]))
+		require.True(t, renamed.Success, renamed.Error)
+	}
+	final, err := volume.NewStore(db, nil).ListByNovel(ctx, nil, tc.NovelID)
+	require.NoError(t, err)
+	require.Len(t, final, 3)
+	require.Equal(t, []int64{ids[1], inserted.Data["volume_id"].(int64), ids[0]}, []int64{final[0].ID, final[1].ID, final[2].ID})
+	require.Equal(t, "序卷", final[2].Name)
+	require.Equal(t, volumes[0].OutlineFilePath, final[2].OutlineFilePath)
 }
 
-func TestCreateVolumeRejectsInvalidBatch(t *testing.T) {
+func TestVolumeToolsRejectInvalidChanges(t *testing.T) {
 	for _, tt := range []struct {
 		name string
+		tool string
 		args string
 	}{
-		{"empty", `{"volumes":[]}`},
-		{"blank name", `{"volumes":[{"name":"新卷"},{"name":"  "}]}`},
-		{"duplicate in batch", `{"volumes":[{"name":"新卷"},{"name":"新卷"}]}`},
-		{"existing name", `{"volumes":[{"name":"新卷"},{"name":"已有卷"}]}`},
-		{"foreign anchor", `{"volumes":[{"name":"新卷"},{"name":"另一卷","before_volume_id":20}]}`},
-		{"missing anchor", `{"volumes":[{"name":"新卷","before_volume_id":99}]}`},
-		{"zero anchor", `{"volumes":[{"name":"新卷","before_volume_id":0}]}`},
-		{"novel injection", `{"volumes":[{"name":"新卷"}],"novel_id":2}`},
+		{"empty", "place_volume", `{}`},
+		{"null inputs", "place_volume", `{"source_volume_id":null,"name":null}`},
+		{"blank name", "place_volume", `{"name":"  "}`},
+		{"both inputs", "place_volume", `{"name":"新卷","source_volume_id":10}`},
+		{"existing name", "place_volume", `{"name":"已有卷"}`},
+		{"foreign anchor", "place_volume", `{"name":"新卷","before_volume_id":20}`},
+		{"missing anchor", "place_volume", `{"name":"新卷","before_volume_id":99}`},
+		{"zero anchor", "place_volume", `{"name":"新卷","before_volume_id":0}`},
+		{"foreign source", "place_volume", `{"source_volume_id":20}`},
+		{"missing source", "place_volume", `{"source_volume_id":99}`},
+		{"zero source", "place_volume", `{"source_volume_id":0}`},
+		{"foreign move anchor", "place_volume", `{"source_volume_id":10,"before_volume_id":20}`},
+		{"novel injection", "place_volume", `{"name":"新卷","novel_id":2}`},
+		{"batch rejected", "place_volume", `{"volumes":[{"name":"新卷"}]}`},
+		{"rename duplicate", "update_volume", `{"volume_id":10,"name":"另一卷"}`},
+		{"rename foreign", "update_volume", `{"volume_id":20,"name":"越权"}`},
+		{"rename missing", "update_volume", `{"volume_id":99,"name":"新名"}`},
+		{"rename empty", "update_volume", `{"volume_id":10,"name":""}`},
+		{"rename blank", "update_volume", `{"volume_id":10,"name":"  "}`},
+		{"rename missing name", "update_volume", `{"volume_id":10}`},
+		{"rename missing id", "update_volume", `{"name":"新名"}`},
+		{"rename zero id", "update_volume", `{"volume_id":0,"name":"新名"}`},
+		{"rename novel injection", "update_volume", `{"volume_id":10,"name":"新名","novel_id":2}`},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			db, tc, ctx := setupRWEnv(t)
 			require.NoError(t, db.Create(&volume.Volume{ID: 10, NovelID: 1, Name: "已有卷", SortOrder: 1}).Error)
+			require.NoError(t, db.Create(&volume.Volume{ID: 11, NovelID: 1, Name: "另一卷", SortOrder: 2}).Error)
 			require.NoError(t, db.Create(&volume.Volume{ID: 20, NovelID: 2, Name: "外部卷", SortOrder: 1}).Error)
 			before, err := volume.NewStore(db, nil).ListByNovel(ctx, nil, 1)
 			require.NoError(t, err)
-			result := newTestRegistry(t).Execute(ctx, "run_mcp", json.RawMessage(`{"tool_name":"create_volume","args":`+tt.args+`}`), tc, nil)
+			result := newTestRegistry(t).Execute(ctx, "run_mcp", json.RawMessage(`{"tool_name":"`+tt.tool+`","args":`+tt.args+`}`), tc, nil)
 			require.False(t, result.Success)
 			after, err := volume.NewStore(db, nil).ListByNovel(ctx, nil, 1)
 			require.NoError(t, err)
 			require.Equal(t, before, after)
+			foreign, err := volume.NewStore(db, nil).GetByID(ctx, nil, 2, 20)
+			require.NoError(t, err)
+			require.Equal(t, "外部卷", foreign.Name)
+			require.Equal(t, 1, foreign.SortOrder)
 		})
 	}
 }
 
-func TestCreateVolumeTransactionAndOperationLog(t *testing.T) {
+func TestPlaceVolumeTransactionAndOperationLog(t *testing.T) {
 	for _, fail := range []bool{false, true} {
 		t.Run(fmt.Sprintf("fail=%t", fail), func(t *testing.T) {
 			db, tc, ctx := setupRWEnv(t)
@@ -109,24 +151,23 @@ func TestCreateVolumeTransactionAndOperationLog(t *testing.T) {
 			require.NoError(t, storage.RegisterOplogHooks(db))
 			ctx = storage.WithTurn(ctx, "volume-test", 1)
 			if fail {
-				require.NoError(t, db.Exec(`CREATE TRIGGER reject_volume BEFORE INSERT ON volumes WHEN NEW.name = '第二卷' BEGIN SELECT RAISE(ABORT, 'test failure'); END`).Error)
+				require.NoError(t, db.Exec(`CREATE TRIGGER reject_order BEFORE UPDATE OF sort_order ON volumes WHEN NEW.sort_order = 2 BEGIN SELECT RAISE(ABORT, 'test failure'); END`).Error)
 			}
-			result := newTestRegistry(t).Execute(ctx, "run_mcp", json.RawMessage(fmt.Sprintf(`{"tool_name":"create_volume","args":{"volumes":[{"name":"第一卷","before_volume_id":%d},{"name":"第二卷","before_volume_id":%d}]}}`, anchor, anchor)), tc, nil)
+			result := newTestRegistry(t).Execute(ctx, "run_mcp", json.RawMessage(fmt.Sprintf(`{"tool_name":"place_volume","args":{"name":"第一卷","before_volume_id":%d}}`, anchor)), tc, nil)
 			volumes, err := volume.NewStore(db, nil).ListByNovel(ctx, nil, tc.NovelID)
 			require.NoError(t, err)
 			var logs []storage.OperationLogRecord
 			require.NoError(t, db.Where("session_id = ?", "volume-test").Find(&logs).Error)
 			if fail {
 				require.False(t, result.Success)
-				require.Contains(t, result.Error, "事务已回滚")
-				require.Contains(t, result.Error, "第2项")
+				require.Contains(t, result.Error, "放置分卷失败")
 				require.Len(t, volumes, 1)
 				require.Equal(t, 1, volumes[0].SortOrder)
 				require.Empty(t, logs)
 				return
 			}
 			require.True(t, result.Success, result.Error)
-			require.Len(t, volumes, 3)
+			require.Len(t, volumes, 2)
 			var createdIDs []int64
 			for _, log := range logs {
 				if log.Operation == "create" && log.Table == "volumes" {
@@ -137,7 +178,7 @@ func TestCreateVolumeTransactionAndOperationLog(t *testing.T) {
 					createdIDs = append(createdIDs, key.ID)
 				}
 			}
-			require.Equal(t, result.Data["ids"], createdIDs)
+			require.Equal(t, []int64{result.Data["volume_id"].(int64)}, createdIDs)
 		})
 	}
 }

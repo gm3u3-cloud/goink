@@ -9,12 +9,12 @@ import (
 
 	"github.com/sigpanic/goink/internal/git"
 	"github.com/sigpanic/goink/internal/volume"
-	"gorm.io/gorm"
 )
 
 func RegisterVolumeTools(r *Registry) {
 	r.Register(&GetVolumesTool{})
-	r.Register(&CreateVolumeTool{})
+	r.Register(&PlaceVolumeTool{})
+	r.Register(&UpdateVolumeTool{})
 }
 
 type GetVolumesArgs struct{}
@@ -47,79 +47,69 @@ func (t *GetVolumesTool) Execute(ctx context.Context, _ any, tc ToolContext) (*T
 	return &ToolResult{Success: true, Data: map[string]any{"content": content.String()}}, nil
 }
 
-type CreateVolumeItem struct {
-	Name           string `json:"name" jsonschema:"required,description=卷名，同一小说内不可重复" validate:"required"`
-	BeforeVolumeID *int64 `json:"before_volume_id,omitempty" jsonschema:"description=插入到此卷之前，省略则追加到小说末尾" validate:"omitempty,min=1"`
+type PlaceVolumeArgs struct {
+	SourceVolumeID *int64  `json:"source_volume_id,omitempty" jsonschema:"description=移动的卷 ID；创建时不传，与 name 二选一" validate:"required_without=Name,excluded_with=Name,omitempty,min=1"`
+	Name           *string `json:"name,omitempty" jsonschema:"description=新卷名称；移动时不传，与 source_volume_id 二选一" validate:"required_without=SourceVolumeID,excluded_with=SourceVolumeID,omitempty"`
+	BeforeVolumeID *int64  `json:"before_volume_id,omitempty" jsonschema:"description=放到此卷之前，不传或 null 则放到小说末尾" validate:"omitempty,min=1"`
 }
 
-type CreateVolumeArgs struct {
-	Volumes []CreateVolumeItem `json:"volumes" jsonschema:"required,minItems=1,maxItems=10,description=要创建的分卷（1-10个），按数组顺序创建" validate:"required,min=1,max=10,dive"`
+type PlaceVolumeTool struct{}
+
+func (t *PlaceVolumeTool) Name() string { return "place_volume" }
+func (t *PlaceVolumeTool) Description() string {
+	return "创建或移动当前小说的一个分卷。创建时传 name，移动时传 source_volume_id，二者互斥。before_volume_id 指定放到哪个已有卷之前，省略或 null 则放到末尾。创建不生成章节或卷纲文件；卷纲可用 edit 编写，重命名用 update_volume。"
 }
+func (t *PlaceVolumeTool) Category() ToolCategory      { return CategoryNovelManagement }
+func (t *PlaceVolumeTool) JSONSchema() json.RawMessage { return SchemaOf(PlaceVolumeArgs{}) }
+func (t *PlaceVolumeTool) ExposeToLLM() bool           { return false }
+func (t *PlaceVolumeTool) NewArgs() any                { return &PlaceVolumeArgs{} }
 
-type CreateVolumeTool struct{}
-
-func (t *CreateVolumeTool) Name() string { return "create_volume" }
-func (t *CreateVolumeTool) Description() string {
-	return "批量创建当前小说的分卷（建卷，1-10个），失败时整批回滚。默认追加到末尾，也可通过 before_volume_id 插入到已有卷之前。只创建卷记录，不创建章节或卷纲文件；卷纲可随后用 edit 编写。"
-}
-func (t *CreateVolumeTool) Category() ToolCategory      { return CategoryNovelManagement }
-func (t *CreateVolumeTool) JSONSchema() json.RawMessage { return SchemaOf(CreateVolumeArgs{}) }
-func (t *CreateVolumeTool) ExposeToLLM() bool           { return false }
-func (t *CreateVolumeTool) NewArgs() any                { return &CreateVolumeArgs{} }
-
-func (t *CreateVolumeTool) Execute(ctx context.Context, args any, tc ToolContext) (*ToolResult, error) {
-	a := args.(*CreateVolumeArgs)
-	names := make(map[string]bool, len(a.Volumes))
-	for i, item := range a.Volumes {
-		if strings.TrimSpace(item.Name) == "" {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("第%d项卷名不能为空", i+1)}, nil
-		}
-		if names[item.Name] {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("第%d项卷名与本批次其他项重复", i+1)}, nil
-		}
-		names[item.Name] = true
+func (t *PlaceVolumeTool) Execute(ctx context.Context, args any, tc ToolContext) (*ToolResult, error) {
+	a := args.(*PlaceVolumeArgs)
+	if a.Name != nil && strings.TrimSpace(*a.Name) == "" {
+		return &ToolResult{Success: false, Error: "卷名不能为空"}, nil
 	}
-	store := volume.NewStore(tc.DB, tc.LoggerOrDefault())
-	ids := make([]int64, 0, len(a.Volumes))
-	err := tc.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		existing, err := store.ListByNovel(ctx, tx, tc.NovelID)
-		if err != nil {
-			return err
-		}
-		existingNames := make(map[string]bool, len(existing))
-		existingIDs := make(map[int64]bool, len(existing))
-		for _, v := range existing {
-			existingNames[v.Name] = true
-			existingIDs[v.ID] = true
-		}
-		for i, item := range a.Volumes {
-			if existingNames[item.Name] {
-				return businessErrorf("第%d项卷名已存在", i+1)
-			}
-			if item.BeforeVolumeID != nil && !existingIDs[*item.BeforeVolumeID] {
-				return businessErrorf("第%d项指定的前置卷不存在或不属于当前小说", i+1)
-			}
-		}
-		for i, item := range a.Volumes {
-			v, err := store.Place(ctx, tx, volume.PlaceInput{
-				NovelID: tc.NovelID, Name: &item.Name, BeforeVolumeID: item.BeforeVolumeID,
-			})
-			if errors.Is(err, volume.ErrNameTaken) || errors.Is(err, volume.ErrNotFound) {
-				return businessErrorf("第%d项创建失败：%s", i+1, err)
-			}
-			if err != nil {
-				return fmt.Errorf("第%d项创建失败: %w", i+1, err)
-			}
-			ids = append(ids, v.ID)
-		}
-		return nil
+	v, err := volume.NewStore(tc.DB, tc.LoggerOrDefault()).Place(ctx, nil, volume.PlaceInput{
+		NovelID: tc.NovelID, SourceVolumeID: a.SourceVolumeID,
+		Name: a.Name, BeforeVolumeID: a.BeforeVolumeID,
 	})
 	if err != nil {
-		if isBusinessError(err) {
+		if errors.Is(err, volume.ErrNameTaken) || errors.Is(err, volume.ErrNotFound) {
 			return &ToolResult{Success: false, Error: err.Error()}, nil
 		}
-		return nil, fmt.Errorf("创建分卷失败，事务已回滚: %w", err)
+		return nil, fmt.Errorf("放置分卷失败: %w", err)
 	}
-	emitFileMetadataChanged(ctx, tc.NovelID, git.VolumePath(ids[0]))
-	return &ToolResult{Success: true, Data: map[string]any{"ids": ids, "count": len(ids)}}, nil
+	emitFileMetadataChanged(ctx, tc.NovelID, v.OutlineFilePath)
+	return &ToolResult{Success: true, Data: map[string]any{"volume_id": v.ID}}, nil
+}
+
+type UpdateVolumeArgs struct {
+	VolumeID int64  `json:"volume_id" jsonschema:"required,description=要重命名的卷 ID" validate:"required,min=1"`
+	Name     string `json:"name" jsonschema:"required,description=新的卷名，同一小说内不可重复" validate:"required"`
+}
+
+type UpdateVolumeTool struct{}
+
+func (t *UpdateVolumeTool) Name() string { return "update_volume" }
+func (t *UpdateVolumeTool) Description() string {
+	return "重命名当前小说的一个分卷，不改变卷顺序、章节归属或卷纲路径。调整卷顺序使用 place_volume。"
+}
+func (t *UpdateVolumeTool) Category() ToolCategory      { return CategoryNovelManagement }
+func (t *UpdateVolumeTool) JSONSchema() json.RawMessage { return SchemaOf(UpdateVolumeArgs{}) }
+func (t *UpdateVolumeTool) ExposeToLLM() bool           { return false }
+func (t *UpdateVolumeTool) NewArgs() any                { return &UpdateVolumeArgs{} }
+
+func (t *UpdateVolumeTool) Execute(ctx context.Context, args any, tc ToolContext) (*ToolResult, error) {
+	a := args.(*UpdateVolumeArgs)
+	if strings.TrimSpace(a.Name) == "" {
+		return &ToolResult{Success: false, Error: "卷名不能为空"}, nil
+	}
+	if err := volume.NewStore(tc.DB, tc.LoggerOrDefault()).Update(ctx, nil, tc.NovelID, a.VolumeID, a.Name); err != nil {
+		if errors.Is(err, volume.ErrNameTaken) || errors.Is(err, volume.ErrNotFound) {
+			return &ToolResult{Success: false, Error: err.Error()}, nil
+		}
+		return nil, fmt.Errorf("重命名分卷失败: %w", err)
+	}
+	emitFileMetadataChanged(ctx, tc.NovelID, git.VolumePath(a.VolumeID))
+	return &ToolResult{Success: true, Data: map[string]any{"message": "卷名已更新"}}, nil
 }
