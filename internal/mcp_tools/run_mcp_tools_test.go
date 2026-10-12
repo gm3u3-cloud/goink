@@ -26,7 +26,7 @@ type runMCPTestTool struct {
 }
 
 func (runMCPTestTool) Name() string                { return "low_frequency" }
-func (runMCPTestTool) Description() string         { return "测试低频工具" }
+func (runMCPTestTool) Description() string         { return "测试拓展工具" }
 func (runMCPTestTool) Category() ToolCategory      { return CategoryWritingAssistant }
 func (runMCPTestTool) JSONSchema() json.RawMessage { return SchemaOf(runMCPTestArgs{}) }
 func (runMCPTestTool) ExposeToLLM() bool           { return false }
@@ -142,7 +142,7 @@ func TestRunMCPAcceptsEmptyObjectAndExposesOnlyEntry(t *testing.T) {
 	argsSchema := schema["properties"].(map[string]any)["args"].(map[string]any)
 	require.Equal(t, "object", argsSchema["type"])
 	require.NotEqual(t, false, argsSchema["additionalProperties"])
-	require.Len(t, reg.OpenAI(nil), 1, "低频目标不直接向模型展示")
+	require.Len(t, reg.OpenAI(nil), 1, "拓展工具不直接向模型展示")
 	result := reg.Execute(context.Background(), "run_mcp", json.RawMessage(`{"tool_name":"low_frequency","args":{}}`), tc, agentcfg.Allowlist(agentcfg.MainAgent))
 	require.True(t, result.Success, result.Error)
 }
