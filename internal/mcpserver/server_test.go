@@ -82,7 +82,8 @@ func TestServerProtocolAndCurrentNovel(t *testing.T) {
 			return CurrentNovel{}, ErrNoCurrentNovel
 		}
 		return CurrentNovel{ID: id, Title: "测试小说"}, nil
-	}, logger, []string{"read_novel", "failed_novel"})
+	}, logger)
+	require.NoError(t, server.SetAllowedTools([]string{"read_novel", "failed_novel"}))
 	require.NoError(t, server.SetPort(0))
 	token := strings.Repeat("a", 64)
 	endpoint, err := server.Start(token)
@@ -244,7 +245,8 @@ func TestServerStopWaitsForCanceledCalls(t *testing.T) {
 					return nil, ctx.Err()
 				}})
 			}
-			server := New(registry, nil, current, logger, allowed)
+			server := New(registry, nil, current, logger)
+			require.NoError(t, server.SetAllowedTools(allowed))
 			require.NoError(t, server.SetPort(0))
 			endpoint, err := server.Start(strings.Repeat("a", 64))
 			require.NoError(t, err)

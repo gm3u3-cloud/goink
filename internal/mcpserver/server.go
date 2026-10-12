@@ -94,13 +94,9 @@ type Server struct {
 	running *runningServer
 }
 
-// New 构建默认不监听的服务。allowed 只包含明确允许对外调用的工具名。
-func New(registry *mcp_tools.Registry, db *gorm.DB, current CurrentNovelFunc, logger *slog.Logger, allowed []string) *Server {
-	allowSet := make(map[string]bool, len(allowed))
-	for _, name := range allowed {
-		allowSet[name] = true
-	}
-	return &Server{registry: registry, db: db, current: current, logger: logger, allowed: allowSet, port: servercfg.DefaultPort}
+// New 构建默认不监听的服务，工具权限通过 SetAllowedTools 设置。
+func New(registry *mcp_tools.Registry, db *gorm.DB, current CurrentNovelFunc, logger *slog.Logger) *Server {
+	return &Server{registry: registry, db: db, current: current, logger: logger, allowed: make(map[string]bool), port: servercfg.DefaultPort}
 }
 
 // SetToolContextProvider 在启动前注入依赖，运行中不允许更换。

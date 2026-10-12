@@ -30,7 +30,8 @@ func TestMCPServerUsesCurrentNovelWithRegisteredTool(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, a.SetActiveNovel(SetActiveNovelInput{NovelID: created.ID}))
 
-	server := mcpserver.New(a.registry, a.db, a.currentNovel, a.logger, []string{"get_chapter_list"})
+	server := mcpserver.New(a.registry, a.db, a.currentNovel, a.logger)
+	require.NoError(t, server.SetAllowedTools([]string{"get_chapter_list"}))
 	require.NoError(t, server.SetPort(0))
 	endpoint, err := server.Start(strings.Repeat("a", 64))
 	require.NoError(t, err)
@@ -73,7 +74,7 @@ func TestShutdownTimeoutPreservesMCPDependencies(t *testing.T) {
 		close(canceled)
 		<-release
 		return mcpserver.CurrentNovel{}, ctx.Err()
-	}, a.logger, nil)
+	}, a.logger)
 	service, err := mcpserver.NewService(servercfg.NewStore(filepath.Join(t.TempDir(), "mcp_server_config.enc")), server)
 	require.NoError(t, err)
 	a.mcpServerService.Store(service)

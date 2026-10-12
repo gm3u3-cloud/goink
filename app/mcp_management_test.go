@@ -21,7 +21,7 @@ import (
 
 func TestMCPManagementAPIAndShutdown(t *testing.T) {
 	a := setupTestApp(t)
-	server := mcpserver.New(a.registry, a.db, a.currentNovel, a.logger, nil)
+	server := mcpserver.New(a.registry, a.db, a.currentNovel, a.logger)
 	dir := t.TempDir()
 	serverStore := servercfg.NewStore(filepath.Join(dir, "mcp_server_config.enc"))
 	clientStore := clientcfg.NewStore(filepath.Join(dir, "mcp_client_config.enc"))

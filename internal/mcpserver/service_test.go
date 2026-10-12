@@ -31,7 +31,7 @@ func newTestService(t *testing.T, store Repository) *Service {
 	mcp_tools.RegisterAllTools(registry)
 	server := New(registry, nil, func(context.Context) (CurrentNovel, error) {
 		return CurrentNovel{ID: 7, Title: "测试小说"}, nil
-	}, logger, nil)
+	}, logger)
 	service, err := NewService(store, server)
 	require.NoError(t, err)
 	if service.state.Local.Port == servercfg.DefaultPort && service.state.LocalToken == "" {
@@ -251,7 +251,7 @@ func TestSavedTokenSurvivesStopTimeout(t *testing.T) {
 		<-ctx.Done()
 		<-release
 		return CurrentNovel{}, ctx.Err()
-	}, logger, nil)
+	}, logger)
 	store := servercfg.NewStore(filepath.Join(t.TempDir(), "mcp_server_config.enc"))
 	service, err := NewService(store, server)
 	require.NoError(t, err)
@@ -308,7 +308,7 @@ func TestLocalPortDefaultsAndValidation(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	registry := mcp_tools.NewRegistry(logger)
 	mcp_tools.RegisterAllTools(registry)
-	server := New(registry, nil, nil, logger, nil)
+	server := New(registry, nil, nil, logger)
 	service, err := NewService(store, server)
 	require.NoError(t, err)
 	require.Equal(t, servercfg.DefaultPort, service.LocalSettings().Config.Port)
@@ -343,7 +343,7 @@ func TestLoadFailurePreservesConfiguration(t *testing.T) {
 	original, err := os.ReadFile(path)
 	require.NoError(t, err)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	server := New(mcp_tools.NewRegistry(logger), nil, nil, logger, nil)
+	server := New(mcp_tools.NewRegistry(logger), nil, nil, logger)
 	service, err := NewService(store, server)
 	require.Error(t, err)
 	require.NotNil(t, service)
@@ -362,7 +362,7 @@ func TestRuntimePolicyValidationOnLoad(t *testing.T) {
 	store := servercfg.NewStore(filepath.Join(t.TempDir(), "mcp_server_config.enc"))
 	require.NoError(t, store.Save(servercfg.State{Local: servercfg.Local{AllowedTools: []string{"edit"}}}), "Store 不负责工具开放策略")
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	server := New(mcp_tools.NewRegistry(logger), nil, nil, logger, nil)
+	server := New(mcp_tools.NewRegistry(logger), nil, nil, logger)
 	service, err := NewService(store, server)
 	require.Error(t, err)
 	require.False(t, service.LocalSettings().Status.Running)

@@ -424,7 +424,7 @@ func (a *App) initWithConfig(cfg *config.AppConfig) error {
 	if clientConfigErr != nil {
 		a.logger.Error("加载 MCP Client 配置失败，Client 已停用", "err", clientConfigErr)
 	}
-	server := mcpserver.New(a.registry, db, a.currentNovel, a.logger, nil)
+	server := mcpserver.New(a.registry, db, a.currentNovel, a.logger)
 	if err := server.SetToolContextProvider(a.mcpToolContext); err != nil {
 		return err
 	}
