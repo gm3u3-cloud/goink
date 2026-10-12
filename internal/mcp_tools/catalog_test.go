@@ -38,7 +38,8 @@ func readCatalogForTest(t *testing.T, r *Registry, args ReadArgs) *ToolResult {
 
 func TestReadCatalogIndex(t *testing.T) {
 	r := NewRegistry(slog.Default())
-	RegisterAllTools(r)
+	RegisterRWTools(r)
+	RegisterRunMCPTools(r)
 	result := readCatalogForTest(t, r, ReadArgs{Path: "mcp/index.md"})
 	require.True(t, result.Success, result.Error)
 	require.Contains(t, result.Data["content"], "暂无可用")

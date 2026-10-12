@@ -10,6 +10,8 @@ import (
 
 // toolDisplayNames 工具名 → 中文展示名称。
 var toolDisplayNames = map[string]string{
+	"get_volumes":                     "查看分卷",
+	"create_volume":                   "创建分卷",
 	"get_chapter_list":                "查看章节目录",
 	"search_story_memory":             "搜索故事记忆",
 	"get_timeline":                    "查看故事时间线",
@@ -48,6 +50,8 @@ var toolDisplayNames = map[string]string{
 
 // toolActivityKinds 工具名 → 前端展示类别。
 var toolActivityKinds = map[string]string{
+	"get_volumes":                     "browse",
+	"create_volume":                   "create",
 	"get_chapter_list":                "browse",
 	"search_story_memory":             "memory",
 	"search_mcp":                      "browse",

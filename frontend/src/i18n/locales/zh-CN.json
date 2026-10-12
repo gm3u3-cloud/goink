@@ -1282,7 +1282,7 @@
     "groups": {
       "characters": "角色与关系",
       "locations": "地点与关系",
-      "chapters": "章节与计划",
+      "chapters": "分卷与章节",
       "timeline": "时间线与伏笔",
       "storyArcs": "故事弧线",
       "reader": "读者认知",
@@ -1294,6 +1294,8 @@
     "unknownDescription": "此工具由服务提供，具体能力请查看客户端获取的工具说明。",
     "names": {
       "get_current_novel": "查看当前小说",
+      "get_volumes": "查看分卷",
+      "create_volume": "创建分卷",
       "get_chapter_list": "查看章节列表",
       "read": "读取文件",
       "get_characters": "查看角色",
@@ -1330,6 +1332,8 @@
     "descriptions": {
       "get_current_novel": "查看 Goink 当前打开的小说信息，帮助外部客户端确认操作目标。",
       "get_chapter_list": "浏览小说的章节列表，按章节号排序，支持翻页。",
+      "get_volumes": "按阅读顺序查看当前小说的分卷、卷 ID 和卷纲路径。",
+      "create_volume": "批量创建分卷，可追加到末尾或插入到已有卷之前；失败时整批回滚。",
       "read": "读取小说相关文件的内容，包括章节正文、大纲、故事状态和技能文件。",
       "get_characters": "查看小说中所有角色的列表，支持按名称搜索。",
       "create_character": "在小说中创建新角色，设定姓名、外貌、性格等属性。",

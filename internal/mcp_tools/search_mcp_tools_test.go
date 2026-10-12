@@ -82,7 +82,9 @@ func TestSearchCatalogRankingAndQueryDeduplication(t *testing.T) {
 
 func TestSearchMCPDiscoverReadAndExecute(t *testing.T) {
 	r := NewRegistry(slog.Default())
-	RegisterAllTools(r)
+	RegisterRWTools(r)
+	RegisterRunMCPTools(r)
+	RegisterSearchMCPTools(r)
 	r.Register(catalogTestTool{
 		name: "get_volumes", description: "查询小说分卷信息。\n详细参数只在 schema 中说明。",
 		runMCPTestTool: runMCPTestTool{execute: func(_ context.Context, args any, _ ToolContext) (*ToolResult, error) {

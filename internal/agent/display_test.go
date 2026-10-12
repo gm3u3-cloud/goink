@@ -81,9 +81,11 @@ func TestBuildDisplayRunMCP(t *testing.T) {
 		phase  mcp_tools.DisplayPhase
 		want   string
 	}{
-		{"get_volumes", mcp_tools.PhaseExecuting, "正在调用 get_volumes"},
-		{"get_volumes", mcp_tools.PhaseCompleted, "调用 get_volumes"},
-		{"get_volumes", mcp_tools.PhaseFailed, "调用 get_volumes"},
+		{"get_volumes", mcp_tools.PhaseExecuting, "正在查看分卷"},
+		{"get_volumes", mcp_tools.PhaseCompleted, "查看分卷"},
+		{"get_volumes", mcp_tools.PhaseFailed, "查看分卷"},
+		{"create_volume", mcp_tools.PhaseCompleted, "创建分卷"},
+		{"unknown_extension", mcp_tools.PhaseCompleted, "调用 unknown_extension"},
 		{"run_mcp", mcp_tools.PhaseFailed, "调用按需工具"},
 		{"", mcp_tools.PhaseSelected, "正在调用按需工具"},
 	} {

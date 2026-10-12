@@ -36,7 +36,12 @@ export const toolGroups: ToolGroup[] = [
   },
   {
     id: "chapters",
-    tools: ["get_chapter_list", "update_chapter_plan"],
+    tools: [
+      "get_volumes",
+      "create_volume",
+      "get_chapter_list",
+      "update_chapter_plan",
+    ],
   },
   {
     id: "timeline",
