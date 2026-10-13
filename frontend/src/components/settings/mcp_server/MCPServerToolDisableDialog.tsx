@@ -42,7 +42,7 @@ export default function MCPServerToolDisableDialog({
           }}
         >
           <AlertDialog.Title className="mb-3 flex items-center gap-2 text-base font-semibold">
-            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <AlertTriangle className="h-5 w-5 shrink-0 text-warning-foreground" />
             {t("settings.mcpServer.disableCoreToolsTitle")}
           </AlertDialog.Title>
           <AlertDialog.Description className="text-sm leading-relaxed text-muted-foreground">

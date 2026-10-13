@@ -54,7 +54,7 @@ export default function MCPServerConnection({
           {t("settings.mcpServer.enabledHint")}
         </p>
         {enabled && !running && !stopping && (
-          <p className="text-xs text-amber-600 dark:text-amber-400">
+          <p className="text-xs text-warning-foreground">
             {t("settings.mcpServer.enabledNotRunning")}
           </p>
         )}

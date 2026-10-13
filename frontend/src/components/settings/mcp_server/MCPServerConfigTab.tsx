@@ -78,7 +78,7 @@ export default function MCPServerConfigTab() {
       ? "running"
       : "stopped";
   const statusColor = view.status.stopping
-    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+    ? "bg-warning text-warning-foreground"
     : view.status.running
       ? "bg-primary/10 text-primary"
       : "bg-muted text-muted-foreground";
