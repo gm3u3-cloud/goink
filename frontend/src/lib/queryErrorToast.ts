@@ -52,6 +52,7 @@ const QUERY_ERROR_I18N: Record<string, string> = {
   "writing-stats": "profile.statsLoadFailed",
   // 5.8 commit 1：LLM 配置 query（GetLLMConfig）
   "llm-config": "settings.llmConfigLoadFailed",
+  "mcp-server": "settings.mcpServer.loadFailed",
 };
 
 // 4a 全局 query 错误 toast 中间件。

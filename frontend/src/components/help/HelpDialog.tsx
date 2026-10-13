@@ -12,6 +12,10 @@ import {
 } from "lucide-react";
 import SkillContributeDialog from "@/components/skill/SkillContributeDialog";
 
+// ── 工具参考（i18n key） ──────────────────────────
+import { toolGroups } from "@/components/tools/catalog";
+import ToolSummary from "@/components/tools/ToolSummary";
+
 type Tab =
   | "quickstart"
   | "tools"
@@ -25,90 +29,6 @@ interface Props {
   open: boolean;
   onClose: () => void;
 }
-
-// ── 工具参考（i18n key） ──────────────────────────
-
-interface ToolEntry {
-  name: string;
-  desc: string;
-}
-
-const toolGroups: { label: string; tools: ToolEntry[] }[] = [
-  {
-    label: "help.toolGroupNovel",
-    tools: [
-      { name: "get_chapter_list", desc: "help.toolRef_get_chapter_list" },
-      { name: "read", desc: "help.toolRef_read" },
-      { name: "get_characters", desc: "help.toolRef_get_characters" },
-      { name: "create_character", desc: "help.toolRef_create_character" },
-      { name: "update_character", desc: "help.toolRef_update_character" },
-      { name: "get_locations", desc: "help.toolRef_get_locations" },
-      { name: "create_location", desc: "help.toolRef_create_location" },
-      { name: "update_location", desc: "help.toolRef_update_location" },
-      { name: "delete_record", desc: "help.toolRef_delete_record" },
-    ],
-  },
-  {
-    label: "help.toolGroupMemory",
-    tools: [
-      {
-        name: "get_character_relations",
-        desc: "help.toolRef_get_character_relations",
-      },
-      { name: "get_timeline", desc: "help.toolRef_get_timeline" },
-      { name: "get_story_arcs", desc: "help.toolRef_get_story_arcs" },
-      {
-        name: "get_reader_perspective",
-        desc: "help.toolRef_get_reader_perspective",
-      },
-      { name: "search_story_memory", desc: "help.toolRef_search_story_memory" },
-    ],
-  },
-  {
-    label: "help.toolGroupWriting",
-    tools: [
-      { name: "upsert_preference", desc: "help.toolRef_upsert_preference" },
-      { name: "upsert_setting", desc: "help.toolRef_upsert_setting" },
-      {
-        name: "update_character_relationship",
-        desc: "help.toolRef_update_character_relationship",
-      },
-      {
-        name: "create_location_relation",
-        desc: "help.toolRef_create_location_relation",
-      },
-      {
-        name: "update_location_relation",
-        desc: "help.toolRef_update_location_relation",
-      },
-      {
-        name: "create_timeline_entry",
-        desc: "help.toolRef_create_timeline_entry",
-      },
-      {
-        name: "update_timeline_entry",
-        desc: "help.toolRef_update_timeline_entry",
-      },
-      { name: "update_chapter_plan", desc: "help.toolRef_update_chapter_plan" },
-      { name: "create_story_arc", desc: "help.toolRef_create_story_arc" },
-      { name: "update_story_arc", desc: "help.toolRef_update_story_arc" },
-      { name: "create_arc_node", desc: "help.toolRef_create_arc_node" },
-      { name: "update_arc_node", desc: "help.toolRef_update_arc_node" },
-      {
-        name: "create_reader_perspective_entry",
-        desc: "help.toolRef_create_reader_perspective_entry",
-      },
-      {
-        name: "update_reader_perspective_entry",
-        desc: "help.toolRef_update_reader_perspective_entry",
-      },
-      { name: "edit", desc: "help.toolRef_edit" },
-      { name: "run_subagent", desc: "help.toolRef_run_subagent" },
-      { name: "web_search", desc: "help.toolRef_web_search" },
-      { name: "web_fetch", desc: "help.toolRef_web_fetch" },
-    ],
-  },
-];
 
 // ── 子代理介绍（i18n key） ──────────────────────────────────
 
@@ -343,20 +263,14 @@ function ToolsTab() {
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">{t("help.toolRef_intro")}</p>
       {toolGroups.map((group) => (
-        <section key={group.label}>
-          <h3 className="text-base font-semibold mb-3">{t(group.label)}</h3>
+        <section key={group.id}>
+          <h3 className="text-base font-semibold mb-3">
+            {t(`tools.groups.${group.id}`)}
+          </h3>
           <div className="space-y-2">
-            {group.tools.map((tool) => (
-              <div
-                key={tool.name}
-                className="rounded-lg border bg-card px-4 py-3"
-              >
-                <code className="text-sm font-medium text-primary">
-                  {tool.name}
-                </code>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {t(tool.desc)}
-                </p>
+            {group.tools.map((name) => (
+              <div key={name} className="rounded-lg border bg-card px-4 py-3">
+                <ToolSummary name={name} />
               </div>
             ))}
           </div>

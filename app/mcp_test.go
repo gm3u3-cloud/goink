@@ -3,12 +3,16 @@ package app
 import (
 	"context"
 	"net/http"
+	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/sigpanic/goink/internal/mcpclient"
+	"github.com/sigpanic/goink/internal/mcpclient/clientcfg"
 	"github.com/sigpanic/goink/internal/mcpserver"
+	"github.com/sigpanic/goink/internal/mcpserver/servercfg"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,8 +30,10 @@ func TestMCPServerUsesCurrentNovelWithRegisteredTool(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, a.SetActiveNovel(SetActiveNovelInput{NovelID: created.ID}))
 
-	server := mcpserver.New(a.registry, a.db, a.currentNovel, a.logger, []string{"get_chapter_list"})
-	endpoint, err := server.Start()
+	server := mcpserver.New(a.registry, a.db, a.currentNovel, a.logger)
+	require.NoError(t, server.SetAllowedTools([]string{"get_chapter_list"}))
+	require.NoError(t, server.SetPort(0))
+	endpoint, err := server.Start(strings.Repeat("a", 64))
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -38,9 +44,8 @@ func TestMCPServerUsesCurrentNovelWithRegisteredTool(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client, err := mcpclient.Connect(ctx, mcpclient.Config{
-		Transport:  mcpclient.TransportStreamableHTTP,
-		Endpoint:   endpoint.URL,
-		HTTPClient: &http.Client{Transport: mcpTestAuthTransport{token: endpoint.Token}},
+		TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStreamableHTTP, Endpoint: endpoint.URL},
+		HTTPClient:        &http.Client{Transport: mcpTestAuthTransport{token: endpoint.Token}},
 	})
 	require.NoError(t, err)
 	defer client.Close()
@@ -63,26 +68,30 @@ func TestShutdownTimeoutPreservesMCPDependencies(t *testing.T) {
 	release := make(chan struct{})
 	var releaseOnce sync.Once
 	unblock := func() { releaseOnce.Do(func() { close(release) }) }
-	a.mcpServer = mcpserver.New(a.registry, a.db, func(ctx context.Context) (mcpserver.CurrentNovel, error) {
+	server := mcpserver.New(a.registry, a.db, func(ctx context.Context) (mcpserver.CurrentNovel, error) {
 		close(started)
 		<-ctx.Done()
 		close(canceled)
 		<-release
 		return mcpserver.CurrentNovel{}, ctx.Err()
-	}, a.logger, nil)
-	endpoint, err := a.mcpServer.Start()
+	}, a.logger)
+	service, err := mcpserver.NewService(servercfg.NewStore(filepath.Join(t.TempDir(), "mcp_server_config.enc")), server)
+	require.NoError(t, err)
+	a.mcpServerService.Store(service)
+	require.NoError(t, server.SetPort(0))
+	endpoint, err := server.Start(strings.Repeat("a", 64))
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		unblock()
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		require.NoError(t, a.mcpServer.Stop(ctx))
+		require.NoError(t, service.Close(ctx))
 	})
 	callCtx, cancelCall := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelCall()
 	client, err := mcpclient.Connect(callCtx, mcpclient.Config{
-		Transport: mcpclient.TransportStreamableHTTP, Endpoint: endpoint.URL,
-		HTTPClient: &http.Client{Transport: mcpTestAuthTransport{token: endpoint.Token}},
+		TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStreamableHTTP, Endpoint: endpoint.URL},
+		HTTPClient:        &http.Client{Transport: mcpTestAuthTransport{token: endpoint.Token}},
 	})
 	require.NoError(t, err)
 	defer client.Close()
@@ -113,7 +122,7 @@ func TestShutdownTimeoutPreservesMCPDependencies(t *testing.T) {
 	unblock()
 	stopCtx, cancelStop := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelStop()
-	require.NoError(t, a.mcpServer.Stop(stopCtx))
+	require.NoError(t, service.Close(stopCtx))
 	select {
 	case <-callDone:
 	case <-callCtx.Done():

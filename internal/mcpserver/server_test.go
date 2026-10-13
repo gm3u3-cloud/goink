@@ -18,6 +18,7 @@ import (
 	"github.com/sigpanic/goink/internal/activity"
 	"github.com/sigpanic/goink/internal/mcp_tools"
 	"github.com/sigpanic/goink/internal/mcpclient"
+	"github.com/sigpanic/goink/internal/mcpclient/clientcfg"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -81,8 +82,11 @@ func TestServerProtocolAndCurrentNovel(t *testing.T) {
 			return CurrentNovel{}, ErrNoCurrentNovel
 		}
 		return CurrentNovel{ID: id, Title: "测试小说"}, nil
-	}, logger, []string{"read_novel", "failed_novel"})
-	endpoint, err := server.Start()
+	}, logger)
+	require.NoError(t, server.SetAllowedTools([]string{"read_novel", "failed_novel"}))
+	require.NoError(t, server.SetPort(0))
+	token := strings.Repeat("a", 64)
+	endpoint, err := server.Start(token)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,28 +100,27 @@ func TestServerProtocolAndCurrentNovel(t *testing.T) {
 	if !strings.HasPrefix(endpoint.URL, "http://127.0.0.1:") || endpoint.Token == "" {
 		t.Fatalf("本地端点不符合预期: %+v", endpoint)
 	}
-	if _, err := server.Start(); err == nil {
+	require.Equal(t, token, endpoint.Token)
+	if _, err := server.Start(token); err == nil {
 		t.Fatal("重复启动 MCP server 应被拒绝")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if client, err := mcpclient.Connect(ctx, mcpclient.Config{Transport: mcpclient.TransportStreamableHTTP, Endpoint: endpoint.URL}); err == nil {
+	if client, err := mcpclient.Connect(ctx, mcpclient.Config{TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStreamableHTTP, Endpoint: endpoint.URL}}); err == nil {
 		_ = client.Close()
 		t.Fatal("未携带令牌的客户端不应连接成功")
 	}
 	if client, err := mcpclient.Connect(ctx, mcpclient.Config{
-		Transport:  mcpclient.TransportStreamableHTTP,
-		Endpoint:   endpoint.URL,
-		HTTPClient: &http.Client{Transport: bearerTransport{token: endpoint.Token, origin: "https://evil.example"}},
+		TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStreamableHTTP, Endpoint: endpoint.URL},
+		HTTPClient:        &http.Client{Transport: bearerTransport{token: endpoint.Token, origin: "https://evil.example"}},
 	}); err == nil {
 		_ = client.Close()
 		t.Fatal("非法 Origin 不应通过")
 	}
 	client, err := mcpclient.Connect(ctx, mcpclient.Config{
-		Transport:  mcpclient.TransportStreamableHTTP,
-		Endpoint:   endpoint.URL,
-		HTTPClient: &http.Client{Transport: bearerTransport{token: endpoint.Token}},
+		TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStreamableHTTP, Endpoint: endpoint.URL},
+		HTTPClient:        &http.Client{Transport: bearerTransport{token: endpoint.Token}},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -242,8 +245,10 @@ func TestServerStopWaitsForCanceledCalls(t *testing.T) {
 					return nil, ctx.Err()
 				}})
 			}
-			server := New(registry, nil, current, logger, allowed)
-			endpoint, err := server.Start()
+			server := New(registry, nil, current, logger)
+			require.NoError(t, server.SetAllowedTools(allowed))
+			require.NoError(t, server.SetPort(0))
+			endpoint, err := server.Start(strings.Repeat("a", 64))
 			require.NoError(t, err)
 			t.Cleanup(func() {
 				unblock()
@@ -254,8 +259,8 @@ func TestServerStopWaitsForCanceledCalls(t *testing.T) {
 			callCtx, cancelCall := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancelCall()
 			client, err := mcpclient.Connect(callCtx, mcpclient.Config{
-				Transport: mcpclient.TransportStreamableHTTP, Endpoint: endpoint.URL,
-				HTTPClient: &http.Client{Transport: bearerTransport{token: endpoint.Token}},
+				TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStreamableHTTP, Endpoint: endpoint.URL},
+				HTTPClient:        &http.Client{Transport: bearerTransport{token: endpoint.Token}},
 			})
 			require.NoError(t, err)
 			defer client.Close()
@@ -284,7 +289,7 @@ func TestServerStopWaitsForCanceledCalls(t *testing.T) {
 				t.Fatal("测试工具应仍在退出清理阶段")
 			default:
 			}
-			_, err = server.Start()
+			_, err = server.Start(endpoint.Token)
 			require.Error(t, err, "旧调用未退出时不能重启")
 
 			waitCtx, cancelWait := context.WithTimeout(context.Background(), 5*time.Second)
@@ -308,7 +313,7 @@ func TestServerStopWaitsForCanceledCalls(t *testing.T) {
 			case <-callCtx.Done():
 				t.Fatal("客户端调用未结束")
 			}
-			next, err := server.Start()
+			next, err := server.Start(strings.Repeat("b", 64))
 			require.NoError(t, err)
 			require.NotEqual(t, endpoint.Token, next.Token)
 		})

@@ -114,6 +114,10 @@ export function DeleteLocation(arg1, arg2) {
   return window['go']['app']['App']['DeleteLocation'](arg1, arg2);
 }
 
+export function DeleteMCPConnection(arg1) {
+  return window['go']['app']['App']['DeleteMCPConnection'](arg1);
+}
+
 export function DeleteNovel(arg1) {
   return window['go']['app']['App']['DeleteNovel'](arg1);
 }
@@ -242,6 +246,14 @@ export function GetLocations(arg1) {
   return window['go']['app']['App']['GetLocations'](arg1);
 }
 
+export function GetMCPServerSettings() {
+  return window['go']['app']['App']['GetMCPServerSettings']();
+}
+
+export function GetMCPTools(arg1) {
+  return window['go']['app']['App']['GetMCPTools'](arg1);
+}
+
 export function GetMaxChapterNumber(arg1) {
   return window['go']['app']['App']['GetMaxChapterNumber'](arg1);
 }
@@ -342,6 +354,10 @@ export function IsInitialized() {
   return window['go']['app']['App']['IsInitialized']();
 }
 
+export function ListMCPConnections() {
+  return window['go']['app']['App']['ListMCPConnections']();
+}
+
 export function ListRemoteSkills(arg1) {
   return window['go']['app']['App']['ListRemoteSkills'](arg1);
 }
@@ -378,8 +394,20 @@ export function RecordCreativeActivity(arg1) {
   return window['go']['app']['App']['RecordCreativeActivity'](arg1);
 }
 
+export function RefreshMCPTools(arg1) {
+  return window['go']['app']['App']['RefreshMCPTools'](arg1);
+}
+
 export function RetryStartup() {
   return window['go']['app']['App']['RetryStartup']();
+}
+
+export function RevokeMCPServerCredential() {
+  return window['go']['app']['App']['RevokeMCPServerCredential']();
+}
+
+export function RotateMCPServerCredential() {
+  return window['go']['app']['App']['RotateMCPServerCredential']();
 }
 
 export function SaveAvatar(arg1) {
@@ -400,6 +428,14 @@ export function SaveGitConfig(arg1, arg2) {
 
 export function SaveLLMConfig(arg1) {
   return window['go']['app']['App']['SaveLLMConfig'](arg1);
+}
+
+export function SaveMCPConnection(arg1) {
+  return window['go']['app']['App']['SaveMCPConnection'](arg1);
+}
+
+export function SaveMCPServerSettings(arg1) {
+  return window['go']['app']['App']['SaveMCPServerSettings'](arg1);
 }
 
 export function SaveSettings(arg1) {
@@ -426,6 +462,14 @@ export function SetLastSession(arg1) {
   return window['go']['app']['App']['SetLastSession'](arg1);
 }
 
+export function SetMCPConnectionEnabled(arg1, arg2) {
+  return window['go']['app']['App']['SetMCPConnectionEnabled'](arg1, arg2);
+}
+
+export function SetMCPToolAllowed(arg1, arg2, arg3) {
+  return window['go']['app']['App']['SetMCPToolAllowed'](arg1, arg2, arg3);
+}
+
 export function SetReasoningEffort(arg1) {
   return window['go']['app']['App']['SetReasoningEffort'](arg1);
 }
@@ -436,6 +480,10 @@ export function SetSelectedModel(arg1, arg2) {
 
 export function TestConnection(arg1) {
   return window['go']['app']['App']['TestConnection'](arg1);
+}
+
+export function TestMCPConnection(arg1) {
+  return window['go']['app']['App']['TestMCPConnection'](arg1);
 }
 
 export function UpdateArcNode(arg1, arg2, arg3) {
