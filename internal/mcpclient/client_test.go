@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/sigpanic/goink/internal/mcpclient/clientcfg"
 )
 
 func protocolTestServer(waitStarted chan<- struct{}, releaseWait <-chan struct{}) *mcp.Server {
@@ -67,10 +68,12 @@ func TestStdioClient(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client, err := Connect(ctx, Config{
-		Transport: TransportStdio,
-		Command:   os.Args[0],
-		Args:      []string{"-test.run=^TestMCPServerProcess$"},
-		Env:       map[string]string{"GOINK_MCP_TEST_SERVER": "1"},
+		TransportSettings: clientcfg.TransportSettings{
+			Transport: clientcfg.TransportStdio,
+			Command:   os.Args[0],
+			Args:      []string{"-test.run=^TestMCPServerProcess$"},
+		},
+		Env: map[string]string{"GOINK_MCP_TEST_SERVER": "1"},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -94,7 +97,7 @@ func TestStreamableHTTPClient(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	client, err := Connect(ctx, Config{Transport: TransportStreamableHTTP, Endpoint: httpServer.URL})
+	client, err := Connect(ctx, Config{TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStreamableHTTP, Endpoint: httpServer.URL}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +137,7 @@ func TestStreamableHTTPSessionlessClient(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	client, err := Connect(ctx, Config{Transport: TransportStreamableHTTP, Endpoint: httpServer.URL})
+	client, err := Connect(ctx, Config{TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStreamableHTTP, Endpoint: httpServer.URL}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,14 +198,44 @@ func assertToolListAndCall(t *testing.T, ctx context.Context, client *Client) {
 
 func TestConnectRejectsInvalidConfig(t *testing.T) {
 	for _, config := range []Config{
-		{Transport: TransportStdio},
-		{Transport: TransportStreamableHTTP, Endpoint: "file:///tmp/mcp"},
-		{Transport: TransportStdio, Command: "test", Env: map[string]string{"BAD=KEY": "value"}},
-		{Transport: Transport("unknown")},
+		{TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStdio}},
+		{TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStreamableHTTP, Endpoint: "file:///tmp/mcp"}},
+		{TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStdio, Command: "test"}, Env: map[string]string{"BAD=KEY": "value"}},
+		{TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStdio, Command: "bad\x00command"}},
+		{TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStdio, Command: "test", Args: []string{"bad\x00arg"}}},
+		{TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStdio, Command: "test", Endpoint: "http://localhost/mcp"}},
+		{TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStreamableHTTP, Endpoint: "http://localhost/mcp", Command: "test"}},
+		{TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.Transport("unknown")}},
 	} {
 		_, err := Connect(context.Background(), config)
 		if err == nil || !strings.Contains(err.Error(), "MCP") {
 			t.Fatalf("配置 %+v 返回错误 %v", config, err)
 		}
+	}
+}
+
+func TestNewTransportKeepsRuntimeURL(t *testing.T) {
+	for _, endpoint := range []string{
+		"http://user:private@localhost/mcp",
+		"http://localhost/mcp?token=private",
+		"http://localhost/mcp#private",
+	} {
+		t.Run(endpoint, func(t *testing.T) {
+			httpClient := &http.Client{}
+			transport, err := newTransport(Config{
+				TransportSettings: clientcfg.TransportSettings{Transport: clientcfg.TransportStreamableHTTP, Endpoint: endpoint},
+				HTTPClient:        httpClient,
+			})
+			if err != nil {
+				t.Fatalf("Client 不应施加持久化 URL 约束: %v", err)
+			}
+			httpTransport, ok := transport.(*mcp.StreamableClientTransport)
+			if !ok {
+				t.Fatalf("传输类型为 %T，期望 HTTP", transport)
+			}
+			if httpTransport.Endpoint != endpoint || httpTransport.HTTPClient != httpClient {
+				t.Fatal("传输构造应保留运行地址和注入的 HTTPClient")
+			}
+		})
 	}
 }

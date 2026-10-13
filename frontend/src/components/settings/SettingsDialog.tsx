@@ -1,16 +1,18 @@
 import { useState } from "react";
-import { Settings, Cpu, Info } from "lucide-react";
+import { Settings, Cpu, Info, Plug } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import ModelConfigTab from "./ModelConfigTab";
 import GeneralConfigTab from "./GeneralConfigTab";
 import AboutTab from "./AboutTab";
+import MCPServerConfigTab from "./mcp_server/MCPServerConfigTab";
 
-type Tab = "general" | "model" | "about";
+type Tab = "general" | "model" | "mcp" | "about";
 
 // 内容区按 activeTab 映射渲染，避免嵌套三元。
 const TAB_CONTENT: Record<Tab, React.ReactNode> = {
   general: <GeneralConfigTab />,
   model: <ModelConfigTab />,
+  mcp: <MCPServerConfigTab />,
   about: <AboutTab />,
 };
 
@@ -42,6 +44,11 @@ export default function SettingsDialog({
       icon: <Cpu className="w-4 h-4" />,
     },
     {
+      id: "mcp",
+      label: t("settings.mcpServer.tab"),
+      icon: <Plug className="w-4 h-4" />,
+    },
+    {
       id: "about",
       label: t("settings.about"),
       icon: <Info className="w-4 h-4" />,
@@ -54,9 +61,9 @@ export default function SettingsDialog({
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
       {/* 弹窗 */}
-      <div className="relative bg-background rounded-xl shadow-2xl border flex w-[880px] h-[700px] max-w-[95vw] max-h-[90vh]">
+      <div className="relative bg-background rounded-xl shadow-2xl border flex w-[min(1056px,95vw,calc(90vh*44/35))] aspect-[44/35] min-h-0 overflow-hidden">
         {/* 左侧导航 */}
-        <nav className="w-[160px] border-r py-4 px-2 flex flex-col gap-1 shrink-0">
+        <nav className="w-[160px] border-r py-4 px-2 flex flex-col gap-1 shrink-0 overflow-y-auto">
           <div className="text-sm font-medium px-3 pb-3 text-foreground">
             {t("settings.title")}
           </div>
@@ -77,7 +84,7 @@ export default function SettingsDialog({
         </nav>
 
         {/* 右侧内容区 */}
-        <div className="flex-1 p-5 flex flex-col min-w-0">
+        <div className="flex-1 p-5 flex flex-col min-w-0 min-h-0">
           {/* 关闭按钮 */}
           <button
             onClick={onClose}

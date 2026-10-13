@@ -4,31 +4,19 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/sigpanic/goink/internal/mcpclient/clientcfg"
 	"github.com/sigpanic/goink/internal/version"
-)
-
-// Transport 表示外部 MCP server 的连接方式。
-type Transport string
-
-const (
-	TransportStdio          Transport = "stdio"
-	TransportStreamableHTTP Transport = "streamable_http"
 )
 
 // Config 提供单个连接的运行时参数。调用方可通过 HTTPClient 注入认证能力；
 // 持久化配置和凭据管理不属于本包。
 type Config struct {
-	Transport  Transport
-	Command    string
-	Args       []string
+	clientcfg.TransportSettings
 	Env        map[string]string
-	Endpoint   string
 	HTTPClient *http.Client
 }
 
@@ -55,27 +43,20 @@ func Connect(ctx context.Context, config Config) (*Client, error) {
 }
 
 func newTransport(config Config) (mcp.Transport, error) {
+	if err := config.Validate(config.Env); err != nil {
+		return nil, err
+	}
 	switch config.Transport {
-	case TransportStdio:
-		if strings.TrimSpace(config.Command) == "" {
-			return nil, fmt.Errorf("stdio MCP server requires a command")
-		}
+	case clientcfg.TransportStdio:
 		cmd := exec.Command(config.Command, config.Args...)
 		if len(config.Env) > 0 {
 			cmd.Env = os.Environ()
 			for key, value := range config.Env {
-				if key == "" || strings.ContainsAny(key, "=\x00") || strings.ContainsRune(value, '\x00') {
-					return nil, fmt.Errorf("invalid stdio MCP environment variable")
-				}
 				cmd.Env = append(cmd.Env, key+"="+value)
 			}
 		}
 		return &mcp.CommandTransport{Command: cmd}, nil
-	case TransportStreamableHTTP:
-		endpoint, err := url.Parse(config.Endpoint)
-		if err != nil || endpoint.Host == "" || (endpoint.Scheme != "http" && endpoint.Scheme != "https") {
-			return nil, fmt.Errorf("streamable HTTP MCP server requires an http(s) endpoint")
-		}
+	case clientcfg.TransportStreamableHTTP:
 		return &mcp.StreamableClientTransport{
 			Endpoint:   config.Endpoint,
 			HTTPClient: config.HTTPClient,

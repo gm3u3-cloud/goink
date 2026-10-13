@@ -34,6 +34,9 @@ func (a *App) UpdateDataDir(newPath string) error {
 	}
 
 	// 关闭旧数据库
+	if err := a.stopMCP(a.ctx); err != nil {
+		return fmt.Errorf("停止 MCP 服务失败: %w", err)
+	}
 	if a.db != nil {
 		if err := storage.Close(a.db); err != nil {
 			return fmt.Errorf("关闭旧数据库失败: %w", err)

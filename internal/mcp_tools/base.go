@@ -298,7 +298,8 @@ func (r *Registry) Execute(ctx context.Context, name string, rawArgs json.RawMes
 	}
 
 	tc.RawArgs = rawArgs
-	if tc.DB != nil {
+	// run_mcp 只分派调用，实际目标进入 Execute 时再计数。
+	if tc.DB != nil && name != "run_mcp" {
 		activity.NewStore(tc.DB, tc.LoggerOrDefault()).AddActivity(ctx, activity.ActivityDelta{ToolCalls: 1})
 	}
 

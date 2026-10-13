@@ -810,7 +810,7 @@ const editDescription = `编辑小说文件（章节正文、大纲、卷纲、�
 
 // ReadArgs 是 read 工具的参数。
 type ReadArgs struct {
-	Path         string `json:"path" jsonschema:"required,description=要读取的文件路径。章节正文：chapters/id_{章节id}.md（主格式）或 chapters/{卷id}/id_{章节id}.md（等价容错写法）；章节大纲：outlines/id_{章节id}.md 或 outlines/{卷id}/id_{章节id}.md；卷纲：volumes/id_{卷id}.md；故事状态 goink.md；小说级技能 skills/<name>.md；用户级技能 ~/.goink/skills/<name>.md；内置技能 /builtin/skills/<name>.md（只读）" validate:"required"`
+	Path         string `json:"path" jsonschema:"required,description=要读取的文件路径。章节正文：chapters/id_{章节id}.md（主格式）或 chapters/{卷id}/id_{章节id}.md（等价容错写法）；章节大纲：outlines/id_{章节id}.md 或 outlines/{卷id}/id_{章节id}.md；卷纲：volumes/id_{卷id}.md；故事状态 goink.md；小说级技能 skills/<name>.md；用户级技能 ~/.goink/skills/<name>.md；内置技能 /builtin/skills/<name>.md（只读）；拓展工具目录 mcp/index.md；工具说明与参数 schema mcp/schemas/<tool_name>.json（虚拟只读路径）" validate:"required"`
 	IncludeLines *bool  `json:"include_lines" jsonschema:"default=true,description=是否包含行号前缀（如 123|）。默认 true，用于精确引用和行范围编辑。传 false 获取纯文本"`
 	StartLine    int    `json:"start_line" jsonschema:"default=1,description=起始行号 1-based 含此行，必须 <= end_line" validate:"omitempty,min=1"`
 	EndLine      int    `json:"end_line" jsonschema:"default=2000,description=结束行号 1-based 含此行，超出自动截到文末。不传或传 0 均按默认 2000 处理" validate:"omitempty,min=0"`
@@ -819,7 +819,9 @@ type ReadArgs struct {
 // ReadTool 读取文件内容（章节正文或故事状态 goink.md）。
 // 默认含行号前缀（123|），LLM 传 include_lines=false 获取纯文本。
 // start_line/end_line 支持行范围读取，用于翻页和精确引用。
-type ReadTool struct{}
+type ReadTool struct {
+	registry *Registry
+}
 
 func (t *ReadTool) Name() string           { return "read" }
 func (t *ReadTool) Description() string    { return readDescription }
@@ -831,6 +833,22 @@ func (t *ReadTool) NewArgs() any                { return &ReadArgs{} }
 
 func (t *ReadTool) Execute(ctx context.Context, args any, tc ToolContext) (*ToolResult, error) {
 	a := args.(*ReadArgs)
+
+	if strings.HasPrefix(a.Path, "mcp/") {
+		content, schema, err := t.registry.readCatalog(a.Path)
+		if err != nil {
+			if isBusinessError(err) {
+				return &ToolResult{Success: false, Error: err.Error()}, nil
+			}
+			return nil, err
+		}
+		if schema {
+			return &ToolResult{Success: true, Data: map[string]any{
+				"path": a.Path, "content": content,
+			}}, nil
+		}
+		return renderReadResult(a, a.Path, a.Path, content)
+	}
 
 	// builtin skill 走 store 内存
 	if strings.HasPrefix(a.Path, "/builtin/skills/") {
@@ -993,7 +1011,11 @@ func (t *ReadTool) readBuiltinSkill(a *ReadArgs, tc ToolContext) (*ToolResult, e
 
 // ── 工具描述 ──────────────────────────────────────────────
 
-const readDescription = `读取小说文件、卷纲或技能文件。
+const readDescription = `读取小说文件、卷纲、技能文件或拓展工具目录。
+
+工具目录（虚拟只读内容，不对应磁盘文件）：
+- mcp/index.md：拓展工具名称、简短说明和 schema 路径
+- mcp/schemas/<tool_name>.json：工具完整说明及 inputSchema，tool_name 与 run_mcp 的参数一致
 
 特性：
 - 默认添加行号前缀，方便后续 edit 工具进行 line_range_replace 和 search_replace
@@ -1004,6 +1026,6 @@ const readDescription = `读取小说文件、卷纲或技能文件。
 
 // RegisterRWTools 注册读写工具。
 func RegisterRWTools(r *Registry) {
-	r.Register(&ReadTool{})
+	r.Register(&ReadTool{registry: r})
 	r.Register(&EditTool{})
 }

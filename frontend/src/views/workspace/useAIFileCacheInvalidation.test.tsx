@@ -12,6 +12,7 @@ import {
   contentKeys,
   maxChapterKeys,
   skillKeys,
+  volumeKeys,
 } from "@/lib/queryKeys";
 import { useAIFileCacheInvalidation } from "./useAIFileCacheInvalidation";
 import { useEditorTabsStore } from "@/components/content/useEditorTabsStore";
@@ -52,6 +53,26 @@ beforeEach(() => {
 });
 
 describe("useAIFileCacheInvalidation", () => {
+  it("建卷后只刷新当前小说的卷与章节目录，不刷新卷纲正文", () => {
+    const { qc } = setup();
+    const path = "volumes/id_2.md";
+    qc.setQueryData(volumeKeys.list(1), []);
+    qc.setQueryData(volumeKeys.list(2), []);
+    qc.setQueryData(chapterKeys.list(1), []);
+    qc.setQueryData(chapterKeys.list(2), []);
+    qc.setQueryData(contentKeys.detail(1, path), "卷纲草稿");
+
+    act(() => onFileChanged?.({ novel_id: 1, path, metadata_only: true }));
+
+    expect(qc.getQueryState(volumeKeys.list(1))?.isInvalidated).toBe(true);
+    expect(qc.getQueryState(chapterKeys.list(1))?.isInvalidated).toBe(true);
+    expect(qc.getQueryState(volumeKeys.list(2))?.isInvalidated).toBe(false);
+    expect(qc.getQueryState(chapterKeys.list(2))?.isInvalidated).toBe(false);
+    expect(qc.getQueryState(contentKeys.detail(1, path))?.isInvalidated).toBe(
+      false,
+    );
+  });
+
   it("只改标题时刷新元数据，保留正文缓存和未保存草稿状态", async () => {
     const { qc } = setup();
     const path = "outlines/id_3.md";

@@ -30,6 +30,7 @@
 - 返回给 LLM 的内容优先使用易读 Markdown，而不是原始 JSON；图结构优先返回邻接表。
 - 需要被其他工具引用的 ID 使用 `[args_json_tag:X]` 格式，例如 `[entry_id:5]`；不需要引用的 ID 不重复输出。
 - CRUD 工具使用 `create_`、`update_`、`get_` 前缀，禁止用 `add_`、`delete_`、`list_`。
+- `place_volume` 与 Volume Store 的放置语义一致，单次创建或移动一个卷，作为命名及批量创建约定的例外。
 - 查询工具以外的工具不要重复返回 LLM 刚传入的字段；update 成功时说明修改成功即可。
 
 ## create 与事务

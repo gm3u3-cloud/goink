@@ -6,6 +6,7 @@ import {
   contentKeys,
   maxChapterKeys,
   skillKeys,
+  volumeKeys,
 } from "@/lib/queryKeys";
 import { reportAIFileChange } from "@/components/content/aiFileChanges";
 
@@ -31,6 +32,10 @@ export function useAIFileCacheInvalidation() {
         return;
 
       if (data.metadata_only === true) {
+        if (filePath.startsWith("volumes/")) {
+          void qc.invalidateQueries({ queryKey: volumeKeys.list(novelId) });
+          void qc.invalidateQueries({ queryKey: chapterKeys.list(novelId) });
+        }
         if (
           filePath.startsWith("chapters/") ||
           filePath.startsWith("outlines/")
