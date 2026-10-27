@@ -182,6 +182,7 @@ export default function InitView({ error: startupError }: Props) {
               [
                 { key: "zh-CN", label: "中文", desc: "简体中文" },
                 { key: "en", label: "English", desc: "English" },
+                { key: "ru", label: "Русский", desc: "Русский" },
               ] as const
             ).map((opt) => {
               const selected =

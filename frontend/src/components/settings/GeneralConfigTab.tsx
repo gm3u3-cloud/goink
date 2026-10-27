@@ -215,6 +215,16 @@ export default function GeneralConfigTab() {
           >
             English
           </button>
+          <button
+            onClick={() => i18n.changeLanguage("ru")}
+            className={`h-7 px-3 rounded-md text-xs transition-colors ${
+              i18n.language === "ru"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Русский
+          </button>
         </div>
       </div>
 
