@@ -1,6 +1,13 @@
 .PHONY: dev build frontend frontend-dev frontend-build clean deps package lint lint-frontend lint-go
 
 APP_NAME  := goink
+# Wails -o writes the literal name given; on Windows the .exe suffix must be
+# explicit or Inno Setup's [Files] source (bin\goink.exe) is not found.
+ifeq ($(OS),Windows_NT)
+BINARY_NAME := $(APP_NAME).exe
+else
+BINARY_NAME := $(APP_NAME)
+endif
 VERSION   ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 BUILD_DIR := build
 # 立即求值，在 deps、frontend 和 Windows 版本资源改写之前捕获源码状态。
@@ -39,7 +46,7 @@ build: deps frontend
 	VERSION_NUM=$$(V=$$(echo "$(VERSION)" | sed 's/^v//' | sed 's/-.*//'); if echo "$$V" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$$'; then echo "$$V.0"; else echo "0.0.0.0"; fi) && \
 	jq --arg v "$$VERSION_NUM" '.fixed.file_version = $$v | .fixed.product_version = $$v | .info."0000".FileVersion = $$v | .info."0000".ProductVersion = $$v' build/windows/info.json > build/windows/info.json.tmp && \
 	mv build/windows/info.json.tmp build/windows/info.json && \
-	wails build -tags webkit2_41 -o $(APP_NAME) -ldflags "$(LDFLAGS)"
+	wails build -tags webkit2_41 -o $(BINARY_NAME) -ldflags "$(LDFLAGS)"
 
 # 纯前端开发（浏览器模式，后端不可用）
 frontend-dev:
