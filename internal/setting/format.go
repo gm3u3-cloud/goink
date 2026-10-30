@@ -28,7 +28,7 @@ func FormatSettings(items []SettingItem) (string, int) {
 	}
 
 	var b strings.Builder
-	b.WriteString("【设定】\n")
+	b.WriteString("Settings\n")
 	used, _ := llm.CountTokens(b.String())
 
 	written := 0
@@ -46,7 +46,7 @@ func FormatSettings(items []SettingItem) (string, int) {
 	}
 
 	if budgetExceeded {
-		fmt.Fprintf(&b, "\n⚠️ 设定总量超过 %d token 软上限，已保留最新 %d 条，被截断 %d 条。请优先用 upsert_setting 合并已有条目（基于 setting_id 更新 content，把多条设定合并为一条）而非新建，避免预算持续膨胀。\n",
+		fmt.Fprintf(&b, "\n⚠️ Total settings exceed the %d-token soft limit. The %d most recent entries are kept and %d were truncated. Prefer merging existing entries with upsert_setting (update content by setting_id, merging multiple settings into one) over creating new ones, to avoid the budget growing.\n",
 			SettingsTokenBudget, written, len(items)-written)
 		return b.String(), len(items) - written
 	}
@@ -62,7 +62,7 @@ func CountSettingsTokens(items []SettingItem) (int, error) {
 		return 0, nil
 	}
 	var b strings.Builder
-	b.WriteString("【设定】\n")
+	b.WriteString("Settings\n")
 	for _, item := range items {
 		fmt.Fprintf(&b, "- [setting_id:%d | %s] %s\n", item.ID, item.Category, item.Content)
 	}

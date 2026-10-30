@@ -129,7 +129,7 @@ func (a *Agent) RunSubAgent(ctx context.Context, parentOpts RunOptions, req mcp_
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			// 用户取消：返回明确文案（与 flushInterruptedTools 一致），供 run_subagent 存入 ToolResult.Error 供历史回放显示
-			return result.FinalText, fmt.Errorf("%s", "操作被中断")
+			return result.FinalText, fmt.Errorf("%s", "Операция прервана")
 		}
 		// 友好化 error，与 EventError 的 ErrMsg=FriendlyError(event.Error) 保持一致
 		// 供 run_subagent 工具存入 ToolResult.Error，历史回放与实时流式显示一致
@@ -558,7 +558,7 @@ func (a *Agent) Run(ctx context.Context, opts RunOptions) (AgentLoopResult, erro
 		if isStuckLoop(patterns, toolOutputs, loopCount) {
 			// 命中死循环：直接中断对话（不再靠提醒继续）
 			interrupted = true
-			interruptErr = &LoopInterrupt{Reason: "检测到重复调用循环，已中断对话"}
+			interruptErr = &LoopInterrupt{Reason: "Обнаружен цикл повторяющихся вызовов, диалог прерван"}
 			emit(AgentEvent{
 				TurnID: opts.TurnID, Type: EventToolCall, Phase: "loop_detected", Timestamp: time.Now(),
 			})
@@ -580,7 +580,7 @@ func (a *Agent) Run(ctx context.Context, opts RunOptions) (AgentLoopResult, erro
 	}
 	if !normalEnd {
 		// MaxTurns 耗尽：循环条件退出，非正常 break，走 system_interrupted
-		return AgentLoopResult{FinalText: responseBuffer.String(), ThinkingContent: thinkingBuffer.String(), TurnCount: loopCount}, &MaxTurnsInterrupt{Reason: "已达最大轮数，对话结束"}
+		return AgentLoopResult{FinalText: responseBuffer.String(), ThinkingContent: thinkingBuffer.String(), TurnCount: loopCount}, &MaxTurnsInterrupt{Reason: "Достигнуто максимальное число раундов, диалог завершён"}
 	}
 	return AgentLoopResult{FinalText: responseBuffer.String(), ThinkingContent: thinkingBuffer.String(), TurnCount: loopCount}, nil
 }
@@ -603,7 +603,7 @@ func (a *Agent) appendMsg(role, content, thinkingContent string, extra map[strin
 	}
 	a.logger.Debug("appendMsg", "role", role, "agentType", opts.AgentType, "subTaskID", opts.SubTaskID, "turnID", opts.TurnID)
 	if err := a.db.Create(msg).Error; err != nil {
-		a.logger.Error("持久化消息失败", "role", role, "turnID", opts.TurnID, "err", err)
+		a.logger.Error("failed to persist message", "role", role, "turnID", opts.TurnID, "err", err)
 	}
 
 	apiFormat := msg.ToAPIFormat(a.logger)
@@ -628,7 +628,7 @@ func sumRunningTokens(tokens map[string]int) int {
 // 格式：<system-reminder> 包裹，告诉 LLM 刚才 tool call 解析失败，附带错误信息，提示转义。
 // errMsg 来自 stream.go 的 buildToolArgsInvalidMsg（已截断 200 字符）。
 func buildToolArgsReminder(errMsg string) string {
-	return fmt.Sprintf("<system-reminder>\n你刚才尝试了工具调用但是解析错误：%s\n请重新调用，注意字符串值里的双引号需要用 \\\" 转义\n</system-reminder>", errMsg)
+	return fmt.Sprintf("<system-reminder>\nYour previous tool call failed to parse: %s\nPlease call it again; remember to escape double quotes inside string values as \\\"\n</system-reminder>", errMsg)
 }
 
 // displayPhase 将 completed/failed 字符串转为 DisplayPhase。

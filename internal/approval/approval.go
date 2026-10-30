@@ -46,7 +46,7 @@ func (s *Service) SetMode(mode string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.mode = mode
-	s.logger.Info("审批模式切换", "mode", mode)
+	s.logger.Info("approval mode switched", "mode", mode)
 }
 
 // RequestApproval 工具端调用，阻塞等待用户审批或 ctx 取消。
@@ -85,7 +85,7 @@ func (s *Service) Complete(toolID string, approved bool, feedback string) error 
 	s.mu.Unlock()
 
 	if !ok {
-		return fmt.Errorf("审批请求不存在: %s", toolID)
+		return fmt.Errorf("Запрос одобрения не найден: %s", toolID)
 	}
 	ch <- Approval{Approved: approved, Feedback: feedback}
 	return nil

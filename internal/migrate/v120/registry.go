@@ -24,7 +24,7 @@ func (s step) Run(db *gorm.DB, log *slog.Logger) error { return s.run(db, log) }
 func init() {
 	engine.Register(engine.Migration{
 		Name:           migration,
-		Description:    "v1.2.0 章节号字段语义化命名：修正历史 *_id 误名并清理 novels.dir_path",
+		Description:    "v1.2.0 semantic chapter-number column names: fix legacy *_id misnames and remove novels.dir_path",
 		Destructive:    true,
 		NeedsMigration: needsMigration,
 		PreSchemaSteps: []engine.Step{

@@ -93,7 +93,7 @@ func (q *RefreshQueue) Submit(task RefreshTask) {
 	select {
 	case q.ch <- task:
 	default:
-		q.logger.Warn("向量刷新队列已满，丢弃任务", "chapter_id", task.ChapterID)
+		q.logger.Warn("vector refresh queue full, task dropped", "chapter_id", task.ChapterID)
 	}
 }
 
@@ -159,12 +159,12 @@ func (q *RefreshQueue) doRefreshWithCtx(ctx context.Context, task RefreshTask) {
 
 	ch, err := q.chStore.GetByID(ctx, nil, task.NovelID, task.ChapterID)
 	if err != nil {
-		q.logger.Warn("查章节失败，跳过向量刷新", "novel_id", task.NovelID, "chapter_id", task.ChapterID, "err", err)
+		q.logger.Warn("failed to load chapter, skipping vector refresh", "novel_id", task.NovelID, "chapter_id", task.ChapterID, "err", err)
 		return
 	}
 
 	if err := q.vs.DeleteChapterChunks(ctx, task.NovelID, task.ChapterID); err != nil {
-		q.logger.Warn("删除章节旧向量失败", "chapter_id", task.ChapterID, "err", err)
+		q.logger.Warn("failed to delete old chapter vectors", "chapter_id", task.ChapterID, "err", err)
 	}
 
 	params := ChapterChunkParams{
@@ -180,7 +180,7 @@ func (q *RefreshQueue) doRefreshWithCtx(ctx context.Context, task RefreshTask) {
 	}
 
 	if err := q.vs.IndexChunks(ctx, task.NovelID, chunks); err != nil {
-		q.logger.Error("索引章节向量失败", "chapter_id", task.ChapterID, "err", err)
+		q.logger.Error("failed to index chapter vectors", "chapter_id", task.ChapterID, "err", err)
 	}
 }
 
@@ -206,7 +206,7 @@ func (q *RefreshQueue) rebuildNovel(ctx context.Context, novelID int64, didInfer
 	if len(chapters) == 0 {
 		// 无章节：若有孤儿向量残留（如全章节被删），清空整表
 		if err := q.vs.DeleteOrphanChunks(ctx, novelID, nil); err != nil {
-			q.logger.Warn("清理孤儿向量失败", "novel_id", novelID, "err", err)
+			q.logger.Warn("failed to clean orphan vectors", "novel_id", novelID, "err", err)
 		}
 		return nil
 	}
@@ -221,7 +221,7 @@ func (q *RefreshQueue) rebuildNovel(ctx context.Context, novelID int64, didInfer
 	for _, ch := range chapters {
 		content, err := git.ReadFile(novelID, ch.FilePath)
 		if err != nil {
-			q.logger.Warn("读取章节文件失败，跳过", "chapter_id", ch.ID, "path", ch.FilePath, "err", err)
+			q.logger.Warn("failed to read chapter file, skipping", "chapter_id", ch.ID, "path", ch.FilePath, "err", err)
 			continue
 		}
 
@@ -261,7 +261,7 @@ func (q *RefreshQueue) rebuildNovel(ctx context.Context, novelID int64, didInfer
 		totalChunks += len(batch)
 	}
 
-	q.logger.Info("全量向量重建完成", "novel_id", novelID, "chapters", len(chapters), "chunks", totalChunks)
+	q.logger.Info("full vector rebuild completed", "novel_id", novelID, "chapters", len(chapters), "chunks", totalChunks)
 	return nil
 }
 
@@ -287,7 +287,7 @@ func (q *RefreshQueue) RebuildAll(ctx context.Context) error {
 
 	for _, n := range novels {
 		if err := q.rebuildNovelIfIncomplete(ctx, n.ID, &didInfer); err != nil {
-			q.logger.Warn("向量完整性检查失败，跳过", "novel_id", n.ID, "err", err)
+			q.logger.Warn("vector integrity check failed, skipping", "novel_id", n.ID, "err", err)
 			continue
 		}
 	}
@@ -304,7 +304,7 @@ func (q *RefreshQueue) rebuildNovelIfIncomplete(ctx context.Context, novelID int
 		// 无章节：写盘失败过或章节被全删时可能留下整表孤儿向量，清空。
 		// DeleteOrphanChunks 对从未创建的向量表是 no-op。
 		if err := q.vs.DeleteOrphanChunks(ctx, novelID, nil); err != nil {
-			q.logger.Warn("清理孤儿向量失败", "novel_id", novelID, "err", err)
+			q.logger.Warn("failed to clean orphan vectors", "novel_id", novelID, "err", err)
 		}
 		return nil
 	}
@@ -315,7 +315,7 @@ func (q *RefreshQueue) rebuildNovelIfIncomplete(ctx context.Context, novelID int
 	}
 	// 全空：首次全量重建（批量路径，比逐章补建少 N 次 delete/embed 调用）
 	if len(indexedIDs) == 0 {
-		q.logger.Info("向量为空，首次全量索引", "novel_id", novelID, "chapters", len(chapters))
+		q.logger.Info("vectors empty, initial full index", "novel_id", novelID, "chapters", len(chapters))
 		return q.rebuildNovel(ctx, novelID, didInfer)
 	}
 
@@ -339,9 +339,9 @@ func (q *RefreshQueue) rebuildNovelIfIncomplete(ctx context.Context, novelID int
 		validIDs = append(validIDs, id)
 	}
 	if orphanCount > 0 {
-		q.logger.Info("清理孤儿向量", "novel_id", novelID, "orphans", orphanCount)
+		q.logger.Info("cleaning orphan vectors", "novel_id", novelID, "orphans", orphanCount)
 		if err := q.vs.DeleteOrphanChunks(ctx, novelID, validIDs); err != nil {
-			q.logger.Warn("清理孤儿向量失败", "novel_id", novelID, "err", err)
+			q.logger.Warn("failed to clean orphan vectors", "novel_id", novelID, "err", err)
 		}
 	}
 
@@ -353,11 +353,11 @@ func (q *RefreshQueue) rebuildNovelIfIncomplete(ctx context.Context, novelID int
 		}
 	}
 	if len(missing) > 0 {
-		q.logger.Info("检测到缺失章节，增量补建", "novel_id", novelID, "missing", len(missing))
+		q.logger.Info("missing chapters detected, incremental rebuild", "novel_id", novelID, "missing", len(missing))
 		for _, ch := range missing {
 			*didInfer = true
 			if err := q.rebuildChapter(ctx, novelID, ch); err != nil {
-				q.logger.Warn("增量补建章节失败", "novel_id", novelID, "chapter_id", ch.ID, "err", err)
+				q.logger.Warn("failed to incrementally rebuild chapter", "novel_id", novelID, "chapter_id", ch.ID, "err", err)
 			}
 		}
 	}
@@ -370,7 +370,7 @@ func (q *RefreshQueue) compactEmbeddingMemory() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := q.vs.CompactEmbeddingMemory(ctx); err != nil {
-		q.logger.Warn("整理 ONNX CPU 内存池失败", "err", err)
+		q.logger.Warn("failed to compact ONNX CPU memory pool", "err", err)
 	}
 }
 

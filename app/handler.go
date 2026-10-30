@@ -132,7 +132,7 @@ func (a *App) OnStartup(ctx context.Context) {
 			a.setStartupState(PhaseUnconfigured, "")
 			return
 		}
-		a.logger.Error("加载配置失败", "err", err)
+		a.logger.Error("failed to load config", "err", err)
 		a.setStartupState(PhaseFailed, err.Error())
 		return
 	}
@@ -144,7 +144,7 @@ func (a *App) OnStartup(ctx context.Context) {
 // 的状态语义一致。
 func (a *App) runInit(cfg *config.AppConfig) error {
 	if err := a.initWithConfig(cfg); err != nil {
-		a.logger.Error("应用初始化失败", "err", err)
+		a.logger.Error("application initialization failed", "err", err)
 		a.setStartupState(PhaseFailed, err.Error())
 		return err
 	}
@@ -171,11 +171,11 @@ func (a *App) OnBeforeClose(ctx context.Context) bool {
 
 	switch decision {
 	case quitConfirm:
-		a.logger.Info("初始化进行中，请求前端确认是否退出")
+		a.logger.Info("initialization in progress, requesting frontend to confirm quit")
 		runtime.EventsEmit(ctx, quitConfirmEventName)
 		return true
 	case quitForce:
-		a.logger.Info("确认期间再次请求关闭窗口，直接退出")
+		a.logger.Info("close requested again during confirmation, exiting directly")
 		return false
 	default:
 		return false
@@ -184,14 +184,14 @@ func (a *App) OnBeforeClose(ctx context.Context) bool {
 
 // OnShutdown 在 Wails 窗口关闭前调用，释放资源。
 func (a *App) OnShutdown(shutdownCtx context.Context) {
-	a.logger.Info("应用关闭，释放资源")
+	a.logger.Info("shutting down, releasing resources")
 
 	// 1. 取消根上下文，通知所有运行中的 agent 停止
 	if a.cancel != nil {
 		a.cancel()
 	}
 	if err := a.stopMCP(shutdownCtx); err != nil {
-		a.logger.Error("停止 MCP 管理服务失败", "err", err)
+		a.logger.Error("failed to stop MCP services", "err", err)
 		// 在途调用可能尚未退出，保留它们的依赖，交由进程退出回收。
 		return
 	}
@@ -208,7 +208,7 @@ func (a *App) OnShutdown(shutdownCtx context.Context) {
 	// 4. 关闭数据库（放在最后，确保上述清理中的 DB 操作已完成）
 	if a.db != nil {
 		if err := storage.Close(a.db); err != nil {
-			a.logger.Error("关闭数据库失败", "err", err)
+			a.logger.Error("failed to close database", "err", err)
 		}
 	}
 }
@@ -227,7 +227,7 @@ func (a *App) Initialize(dataDir string) error {
 		return err
 	}
 	if err := config.Save(dataDir); err != nil {
-		saveErr := fmt.Errorf("保存配置失败: %w", err)
+		saveErr := fmt.Errorf("не удалось сохранить конфигурацию: %w", err)
 		a.setStartupState(PhaseUnconfigured, saveErr.Error())
 		return saveErr
 	}
@@ -237,7 +237,7 @@ func (a *App) Initialize(dataDir string) error {
 		// 回到 unconfigured 而非 failed：指针文件刚写入却读不回来，属于"配置还没
 		// 建立起来"。留在设置页让用户重选目录，比进错误页更可恢复——错误页的重试
 		// 会再读同一个文件，必然再次失败。
-		loadErr := fmt.Errorf("加载配置失败: %w", err)
+		loadErr := fmt.Errorf("не удалось загрузить конфигурацию: %w", err)
 		a.setStartupState(PhaseUnconfigured, loadErr.Error())
 		return loadErr
 	}
@@ -258,12 +258,12 @@ func (a *App) RetryStartup() error {
 		if errors.Is(err, config.ErrNotInitialized) {
 			// 指针文件在运行期被删除：回到首次配置页。否则用户会停在错误页，而
 			// 重试读的是同一个已不存在的文件，永远失败。
-			loadErr := fmt.Errorf("加载配置失败: %w", err)
+			loadErr := fmt.Errorf("не удалось загрузить конфигурацию: %w", err)
 			a.setStartupState(PhaseUnconfigured, loadErr.Error())
 			return loadErr
 		}
 		a.setStartupState(PhaseFailed, err.Error())
-		return fmt.Errorf("加载配置失败: %w", err)
+		return fmt.Errorf("не удалось загрузить конфигурацию: %w", err)
 	}
 	return a.runInit(cfg)
 }
@@ -280,22 +280,22 @@ func (a *App) initWithConfig(cfg *config.AppConfig) error {
 	// 2. 打开全局数据库
 	db, err := storage.Open(config.GlobalDBPath(), a.logger)
 	if err != nil {
-		a.logger.Error("打开数据库失败", "err", err)
-		return fmt.Errorf("打开数据库失败: %w", err)
+		a.logger.Error("failed to open database", "err", err)
+		return fmt.Errorf("failed to open database: %w", err)
 	}
 	initSucceeded := false
 	defer func() {
 		if !initSucceeded {
 			if closeErr := storage.Close(db); closeErr != nil {
-				a.logger.Warn("关闭失败初始化的数据库连接失败", "err", closeErr)
+				a.logger.Warn("failed to close database connection after failed initialization", "err", closeErr)
 			}
 		}
 	}()
 
 	// 3. 自动建表
 	if err := migrate.Run(db, a.logger); err != nil {
-		a.logger.Error("数据库迁移失败", "err", err)
-		return fmt.Errorf("数据库迁移失败: %w", err)
+		a.logger.Error("database migration failed", "err", err)
+		return fmt.Errorf("database migration failed: %w", err)
 	}
 
 	a.activity = activity.NewStore(db, a.logger)
@@ -304,14 +304,14 @@ func (a *App) initWithConfig(cfg *config.AppConfig) error {
 	// 4. 加载运行时配置
 	settings, err := config.LoadSettings(db)
 	if err != nil {
-		a.logger.Error("加载设置失败", "err", err)
-		return fmt.Errorf("加载设置失败: %w", err)
+		a.logger.Error("failed to load settings", "err", err)
+		return fmt.Errorf("failed to load settings: %w", err)
 	}
 	a.settings = settings
 
 	// 5. 注册操作日志钩子（失败降级：回滚功能不可用，其余正常）
 	if err := storage.RegisterOplogHooks(db); err != nil {
-		a.logger.Error("注册操作日志钩子失败，回滚功能将不可用", "err", err)
+		a.logger.Error("failed to register oplog hooks, rollback will be unavailable", "err", err)
 	}
 
 	// 6. 创建所有领域 store
@@ -351,7 +351,7 @@ func (a *App) initWithConfig(cfg *config.AppConfig) error {
 	)
 	s, err := skill.NewStore(a.logger, config.UserSkillsDir())
 	if err != nil {
-		a.logger.Error("初始化 skill store 失败", "err", err)
+		a.logger.Error("failed to initialize skill store", "err", err)
 	} else {
 		a.skill = s
 		// 初始化远程 skill 市场服务（基于 skillStore 和 logger）
@@ -365,7 +365,7 @@ func (a *App) initWithConfig(cfg *config.AppConfig) error {
 	// 8. 初始化 LLM 客户端
 	userConfig, err := llm.LoadUserConfig(config.LLMConfigPath())
 	if err != nil {
-		a.logger.Warn("加载 LLM 配置失败，使用空配置", "err", err)
+		a.logger.Warn("failed to load LLM config, using empty config", "err", err)
 		userConfig = &llm.UserLLMConfig{}
 	}
 	providers := llm.Merge(llm.Builtin, userConfig)
@@ -390,18 +390,18 @@ func (a *App) initWithConfig(cfg *config.AppConfig) error {
 		a.searchService.Store(svc)
 		a.agent.SetSearchService(svc)
 		if err != nil {
-			a.logger.Error("获取 Embedder 失败，向量检索不可用", "err", err)
+			a.logger.Error("failed to get embedder, vector search unavailable", "err", err)
 			return
 		}
 		sqlDB, err := a.db.DB()
 		if err != nil {
-			a.logger.Error("获取底层 SQL DB 失败，向量检索不可用", "err", err)
+			a.logger.Error("failed to get underlying SQL DB, vector search unavailable", "err", err)
 			return
 		}
 		rag.InitVectorStore(sqlDB, emb, a.logger)
 		vectorStore := rag.GetVectorStore()
 		a.vectorStore.Store(vectorStore)
-		a.logger.Info("向量存储初始化完成")
+		a.logger.Info("vector store initialized")
 
 		// 初始化搜索服务
 		svc = search.NewService(a.logger, a.character, a.location,
@@ -416,13 +416,13 @@ func (a *App) initWithConfig(cfg *config.AppConfig) error {
 		// 首次启动全量索引（已有向量则跳过）
 		rebuildCtx := context.Background()
 		if err := rag.GetRefreshQueue().RebuildAll(rebuildCtx); err != nil {
-			a.logger.Error("全量向量索引失败", "err", err)
+			a.logger.Error("full vector index rebuild failed", "err", err)
 		}
 	}()
 
 	clientService, clientConfigErr := mcpclient.NewService(clientcfg.NewStore(config.MCPClientConfigPath()), mcpclient.NewManager())
 	if clientConfigErr != nil {
-		a.logger.Error("加载 MCP Client 配置失败，Client 已停用", "err", clientConfigErr)
+		a.logger.Error("failed to load MCP client config, client disabled", "err", clientConfigErr)
 	}
 	server := mcpserver.New(a.registry, db, a.currentNovel, a.logger)
 	if err := server.SetToolContextProvider(a.mcpToolContext); err != nil {
@@ -430,17 +430,17 @@ func (a *App) initWithConfig(cfg *config.AppConfig) error {
 	}
 	serverService, serverConfigErr := mcpserver.NewService(servercfg.NewStore(config.MCPServerConfigPath()), server)
 	if serverConfigErr != nil {
-		a.logger.Error("加载 MCP 配置失败，MCP 已停用", "err", serverConfigErr)
+		a.logger.Error("failed to load MCP server config, server disabled", "err", serverConfigErr)
 	}
 	if serverConfigErr == nil {
 		if err := serverService.Restore(); err != nil {
-			a.logger.Error("恢复本地 MCP 服务失败", "err", err)
+			a.logger.Error("failed to restore local MCP server", "err", err)
 		}
 	}
 	a.mcpClientService.Store(clientService)
 	a.mcpServerService.Store(serverService)
 	a.cfg = cfg
-	a.logger.Info("应用初始化完成",
+	a.logger.Info("application initialized",
 		"data_dir", config.DataDirPath(),
 		"version", a.GetVersion(),
 		"commit_hash", a.GetBuildHash(),

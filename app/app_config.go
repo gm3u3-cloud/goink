@@ -25,21 +25,21 @@ func (a *App) GetAppConfig() map[string]any {
 // 同盘用 os.Rename（原子），跨盘用递归拷贝+进度回调，目标非空时弹确认框。
 func (a *App) UpdateDataDir(newPath string) error {
 	if newPath == "" {
-		return fmt.Errorf("数据目录路径不能为空")
+		return fmt.Errorf("Путь к каталогу данных не может быть пустым")
 	}
 
 	// 先保存新配置，失败时旧 DB 仍可用
 	if err := config.Save(newPath); err != nil {
-		return fmt.Errorf("保存配置失败: %w", err)
+		return fmt.Errorf("Не удалось сохранить конфигурацию: %w", err)
 	}
 
 	// 关闭旧数据库
 	if err := a.stopMCP(a.ctx); err != nil {
-		return fmt.Errorf("停止 MCP 服务失败: %w", err)
+		return fmt.Errorf("Не удалось остановить сервис MCP: %w", err)
 	}
 	if a.db != nil {
 		if err := storage.Close(a.db); err != nil {
-			return fmt.Errorf("关闭旧数据库失败: %w", err)
+			return fmt.Errorf("Не удалось закрыть старую базу данных: %w", err)
 		}
 		a.db = nil
 	}
@@ -47,13 +47,13 @@ func (a *App) UpdateDataDir(newPath string) error {
 	// 重新加载并初始化
 	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("加载新配置失败: %w", err)
+		return fmt.Errorf("Не удалось загрузить новую конфигурацию: %w", err)
 	}
 
 	if err := a.initWithConfig(cfg); err != nil {
-		return fmt.Errorf("重新初始化失败: %w", err)
+		return fmt.Errorf("Не удалось переинициализировать: %w", err)
 	}
-	a.logger.Info("数据目录已更改", "data_dir", config.DataDirPath())
+	a.logger.Info("data directory changed", "data_dir", config.DataDirPath())
 	return nil
 }
 

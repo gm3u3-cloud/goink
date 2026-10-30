@@ -300,7 +300,7 @@ func TestEditNewChannel_ForeignVolume(t *testing.T) {
 	if res.Success {
 		t.Fatal("expected failure for foreign volume")
 	}
-	if !contains(res.Error, "卷不存在") {
+	if !contains(res.Error, "Том не найден") {
 		t.Errorf("error = %s", res.Error)
 	}
 }
@@ -552,7 +552,7 @@ func TestVolumeOutlineRejectsUnknownVolume(t *testing.T) {
 	if res.Success {
 		t.Fatal("expected unknown volume to be rejected")
 	}
-	if !contains(res.Error, "卷不存在") {
+	if !contains(res.Error, "Том не найден") {
 		t.Errorf("error = %s, want missing volume error", res.Error)
 	}
 }

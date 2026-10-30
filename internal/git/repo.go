@@ -56,7 +56,7 @@ func New(novelID int64, gitName, gitEmail string, logger *slog.Logger) (*Repo, e
 
 	gitBin, err := platform.ResolveGit()
 	if err != nil {
-		return nil, fmt.Errorf("git: 找不到 git 可执行文件: %w", err)
+		return nil, fmt.Errorf("git: не найден исполняемый файл git: %w", err)
 	}
 
 	if gitName == "" {
@@ -197,7 +197,7 @@ func (r *Repo) RevertNoCommit(hashes []string) error {
 		_, stderr, err := r.runInDir("revert", "--no-commit", hashes[i])
 		if err != nil {
 			if _, _, abortErr := r.runInDir("revert", "--abort"); abortErr != nil {
-				return fmt.Errorf("git: revert %s: %s: %w; abort 也失败: %v", hashes[i], stderr, err, abortErr)
+				return fmt.Errorf("git: revert %s: %s: %w; abort тоже не удался: %v", hashes[i], stderr, err, abortErr)
 			}
 			return fmt.Errorf("git: revert %s: %s: %w", hashes[i], stderr, err)
 		}

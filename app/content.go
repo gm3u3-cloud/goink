@@ -63,7 +63,7 @@ func (a *App) SaveContent(input SaveContentInput) error {
 	}
 	if isSkillPath(input.Path) {
 		if _, err := skill.ParseBytes([]byte(input.Content), ""); err != nil {
-			return fmt.Errorf("skill 格式错误: %w", err)
+			return fmt.Errorf("ошибка формата skill: %w", err)
 		}
 	}
 
@@ -74,7 +74,7 @@ func (a *App) SaveContent(input SaveContentInput) error {
 		err = git.WriteFile(input.NovelID, input.Path, input.Content)
 	}
 	if errors.Is(err, git.ErrFileChanged) {
-		return fmt.Errorf("CONTENT_CONFLICT: 磁盘内容已变化，请处理冲突后再保存: %w", err)
+		return fmt.Errorf("CONTENT_CONFLICT: содержимое на диске изменилось, разрешите конфликт перед сохранением: %w", err)
 	}
 	if err != nil {
 		return err
@@ -98,7 +98,7 @@ func (a *App) SaveContent(input SaveContentInput) error {
 			Model(&chapter.Chapter{}).
 			Where("novel_id = ? AND id = ?", input.NovelID, chapterID).
 			Update("word_count", stats.WordCount).Error; err != nil {
-			a.logger.Warn("更新字数失败", "novel_id", input.NovelID, "chapter_id", chapterID, "err", err)
+			a.logger.Warn("failed to update word count", "novel_id", input.NovelID, "chapter_id", chapterID, "err", err)
 		}
 	}
 
@@ -114,14 +114,14 @@ func (a *App) validateChapterContentPath(novelID int64, filePath string) error {
 
 	ref, ok := git.ParseChapterLikePath(filePath)
 	if !ok || ref.IsNew || ref.ID <= 0 {
-		return fmt.Errorf("章节路径无效: %q", filePath)
+		return fmt.Errorf("недопустимый путь главы: %q", filePath)
 	}
 	canonical := git.ChapterPath(ref.ID)
 	if ref.IsOutline {
 		canonical = git.OutlinePath(ref.ID)
 	}
 	if filePath != canonical {
-		return fmt.Errorf("章节路径非规范格式: %q，应使用 %q", filePath, canonical)
+		return fmt.Errorf("путь главы не в каноническом формате: %q, следует использовать %q", filePath, canonical)
 	}
 	return a.ensureChapterIDsInNovel(novelID, []int64{ref.ID})
 }
@@ -137,7 +137,7 @@ func (a *App) validateVolumeContentPath(novelID int64, filePath string) error {
 
 	volumeID, ok := git.ParseVolumePath(filePath)
 	if !ok || filePath != git.VolumePath(volumeID) {
-		return fmt.Errorf("卷纲路径无效: %q", filePath)
+		return fmt.Errorf("недопустимый путь плана тома: %q", filePath)
 	}
 	_, err := a.volume.GetByID(a.ctx, nil, novelID, volumeID)
 	return err

@@ -23,7 +23,7 @@ func needsMigration(db *gorm.DB) (bool, error) {
 			continue
 		}
 		if db.Migrator().HasColumn(rename.table, rename.newColumn) {
-			return false, fmt.Errorf("检测到无法安全迁移的混合 schema：%s 同时存在 %s 和 %s；已停止迁移，请先手工备份数据库后处理", rename.table, rename.oldColumn, rename.newColumn)
+			return false, fmt.Errorf("Обнаружена смешанная схема, которую нельзя безопасно мигрировать: в %s одновременно присутствуют %s и %s; миграция остановлена. Сначала вручную создайте резервную копию базы данных", rename.table, rename.oldColumn, rename.newColumn)
 		}
 		hasLegacyRenames = true
 	}

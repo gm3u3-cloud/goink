@@ -144,5 +144,5 @@ func TestCreateReaderPerspective_RejectsForeignChapter(t *testing.T) {
 		PlantedChapterID: otherChapter.ID,
 	})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "不属于当前小说")
+	assert.Contains(t, err.Error(), "не относятся к текущему роману")
 }

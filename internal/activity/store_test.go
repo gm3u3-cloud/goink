@@ -176,9 +176,9 @@ func TestStatisticsFailuresOnlyWarn(t *testing.T) {
 	s.InitTracking(ctx)
 	s.AddActivity(ctx, ActivityDelta{ChaptersCreated: 1})
 	s.AddLLMUsage(ctx, "provider", "model", "chat", TokenUsage{TotalTokens: 10})
-	require.Contains(t, logs.String(), "初始化创作统计起点失败")
-	require.Contains(t, logs.String(), "记录每日创作统计失败")
-	require.Contains(t, logs.String(), "记录每日 Token 用量失败")
+	require.Contains(t, logs.String(), "failed to initialize tracking start")
+	require.Contains(t, logs.String(), "failed to record daily activity")
+	require.Contains(t, logs.String(), "failed to record daily token usage")
 	for _, model := range []any{&config.AppSettings{}, &DailyActivity{}, &DailyLLMUsage{}} {
 		var count int64
 		require.NoError(t, db.Model(model).Count(&count).Error)

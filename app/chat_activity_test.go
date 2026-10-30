@@ -58,13 +58,13 @@ func TestChatActivitySkipsRejectedRequests(t *testing.T) {
 	invalid := input
 	invalid.ModelID = "missing"
 	_, err := a.Chat(invalid)
-	require.ErrorContains(t, err, "模型未找到")
+	require.ErrorContains(t, err, "модель не найдена")
 	requireConversationTurns(t, a, 0)
 
 	require.NoError(t, a.db.Exec(`CREATE TRIGGER reject_user_message BEFORE INSERT ON messages
 		WHEN NEW.role = 'user' BEGIN SELECT RAISE(ABORT, 'message rejected'); END`).Error)
 	_, err = a.Chat(input)
-	require.ErrorContains(t, err, "持久化消息失败")
+	require.ErrorContains(t, err, "не удалось сохранить сообщение")
 	requireConversationTurns(t, a, 0)
 }
 

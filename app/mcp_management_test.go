@@ -95,9 +95,9 @@ func TestMCPManagementAPIAndShutdown(t *testing.T) {
 func TestMCPAPIBeforeInitialization(t *testing.T) {
 	a := &App{}
 	_, err := a.ListMCPConnections()
-	require.ErrorContains(t, err, "未初始化")
+	require.ErrorContains(t, err, "не инициализирован")
 	_, err = a.GetMCPServerSettings()
-	require.ErrorContains(t, err, "未初始化")
+	require.ErrorContains(t, err, "не инициализирован")
 }
 
 func TestMCPConfigFailureDoesNotBlockStartup(t *testing.T) {

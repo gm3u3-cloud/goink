@@ -24,36 +24,36 @@ func migrateCheckpointNovelRepositories(db *gorm.DB, log *slog.Logger) error {
 
 	var novelIDs []int64
 	if err := db.Table("novels").Order("id").Pluck("id", &novelIDs).Error; err != nil {
-		return fmt.Errorf("migrate v160: 读取 novels: %w", err)
+		return fmt.Errorf("migrate v160: чтение novels: %w", err)
 	}
 
 	var errs []error
 	for _, novelID := range novelIDs {
 		repo, err := git.New(novelID, "", "", log)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("novel %d: 打开 git 仓库: %w", novelID, err))
+			errs = append(errs, fmt.Errorf("novel %d: открытие git-репозитория: %w", novelID, err))
 			continue
 		}
 		dirty, err := repo.HasUncommitted()
 		if err != nil {
-			errs = append(errs, fmt.Errorf("novel %d: 检查 git 状态: %w", novelID, err))
+			errs = append(errs, fmt.Errorf("novel %d: проверка состояния git: %w", novelID, err))
 			continue
 		}
 		if !dirty {
 			continue
 		}
 		if err := repo.StageAll(); err != nil {
-			errs = append(errs, fmt.Errorf("novel %d: 暂存 checkpoint: %w", novelID, err))
+			errs = append(errs, fmt.Errorf("novel %d: добавление checkpoint в индекс: %w", novelID, err))
 			continue
 		}
 		if _, err := repo.Commit(checkpointCommitMessage); err != nil {
-			errs = append(errs, fmt.Errorf("novel %d: 提交 checkpoint: %w", novelID, err))
+			errs = append(errs, fmt.Errorf("novel %d: commit checkpoint: %w", novelID, err))
 			continue
 		}
-		log.Info("migrate v160: 已提交迁移前小说仓库改动", "novel_id", novelID)
+		log.Info("migrate v160: pre-migration changes in novel repository committed", "novel_id", novelID)
 	}
 	if err := errors.Join(errs...); err != nil {
-		return fmt.Errorf("migrate v160: 小说仓库 checkpoint 未全部完成: %w", err)
+		return fmt.Errorf("migrate v160: checkpoint репозиториев романов не завершён: %w", err)
 	}
 	return nil
 }

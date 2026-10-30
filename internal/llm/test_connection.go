@@ -128,7 +128,7 @@ func TestConnection(ctx context.Context, builtin map[string]Provider, input Test
 
 	candidates := expandChatURLCandidates(chatURL)
 	if len(candidates) == 0 {
-		return TestConnectionResult{}, fmt.Errorf("URL 为空")
+		return TestConnectionResult{}, fmt.Errorf("URL не указан")
 	}
 
 	payload := map[string]any{
@@ -145,7 +145,7 @@ func TestConnection(ctx context.Context, builtin map[string]Provider, input Test
 
 	body, err := json.Marshal(payload)
 	if err != nil {
-		return TestConnectionResult{}, fmt.Errorf("序列化请求失败: %w", err)
+		return TestConnectionResult{}, fmt.Errorf("Не удалось сериализовать запрос: %w", err)
 	}
 
 	headers := buildHeaders(nil, map[string]string{
@@ -167,9 +167,9 @@ func TestConnection(ctx context.Context, builtin map[string]Provider, input Test
 		if err == nil {
 			return TestConnectionResult{URL: candidate, Warning: warning}, nil
 		}
-		allErrs = append(allErrs, fmt.Sprintf("候选 %s: %v", candidate, err))
+		allErrs = append(allErrs, fmt.Sprintf("Кандидат %s: %v", candidate, err))
 	}
-	return TestConnectionResult{}, fmt.Errorf("所有候选 URL 均验证失败:\n%s", strings.Join(allErrs, "\n"))
+	return TestConnectionResult{}, fmt.Errorf("Не удалось проверить ни один URL:\n%s", strings.Join(allErrs, "\n"))
 }
 
 // probeCandidate 对单个候选 URL 发真测请求，验证 200 + text/event-stream + 有效 SSE chunk。
@@ -186,7 +186,7 @@ func TestConnection(ctx context.Context, builtin map[string]Provider, input Test
 func probeCandidate(ctx context.Context, client *http.Client, url string, body []byte, headers map[string]string) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
-		return "", fmt.Errorf("创建请求失败: %w", err)
+		return "", fmt.Errorf("Не удалось создать запрос: %w", err)
 	}
 	for k, v := range headers {
 		req.Header.Set(k, v)
@@ -194,14 +194,14 @@ func probeCandidate(ctx context.Context, client *http.Client, url string, body [
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("请求失败: %w", err)
+		return "", fmt.Errorf("Запрос не удался: %w", err)
 	}
 	defer resp.Body.Close()
 
 	// 429 视为通过：URL/Key/Model 配置都正确，只是当前请求被限流。
 	// 不继续读 SSE 流（429 通常没有有效 SSE 响应），直接返回 warning。
 	if resp.StatusCode == http.StatusTooManyRequests {
-		return "429 限流，配置有效但当前被限速", nil
+		return "429: превышен лимит запросов, конфигурация валидна, но сейчас действует ограничение", nil
 	}
 
 	if resp.StatusCode >= 400 {
@@ -214,7 +214,7 @@ func probeCandidate(ctx context.Context, client *http.Client, url string, body [
 	ct := resp.Header.Get("Content-Type")
 	if !strings.HasPrefix(ct, "text/event-stream") {
 		errBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
-		return "", fmt.Errorf("响应不是 SSE 流 (Content-Type: %s), %s", ct, summarizeErrorBody(resp.StatusCode, errBody))
+		return "", fmt.Errorf("Ответ не является SSE-потоком (Content-Type: %s), %s", ct, summarizeErrorBody(resp.StatusCode, errBody))
 	}
 
 	// 扫描 SSE 流，验证至少有一个 data: 行且 JSON 含 choices 字段。
@@ -239,9 +239,9 @@ func probeCandidate(ctx context.Context, client *http.Client, url string, body [
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return "", fmt.Errorf("读取 SSE 流失败: %w", err)
+		return "", fmt.Errorf("Не удалось прочитать SSE-поток: %w", err)
 	}
-	return "", fmt.Errorf("SSE 流中未找到有效 chunk（可能模型不可用或返回非标准格式）")
+	return "", fmt.Errorf("В SSE-потоке не найден валидный chunk (возможно, модель недоступна или возвращается нестандартный формат)")
 }
 
 // summarizeErrorBody 把 HTTP 错误响应体格式化为简洁的错误消息。
@@ -303,12 +303,12 @@ func summarizeErrorBody(statusCode int, body []byte) string {
 	// 3. HTML 错误页 → 简短标识（HTML 全文对诊断无价值）
 	// 用精确检测：含 <html/<head/<body 标签才算 HTML 错误页，避免把纯文本误判为 HTML
 	if isHTMLPage(body) {
-		return fmt.Sprintf("[%d] [HTML 错误页，可能 URL 错误或被防火墙拦]", statusCode)
+		return fmt.Sprintf("[%d] [HTML-страница ошибки, возможно, неверный URL или блокировка файрволом]", statusCode)
 	}
 	// 4. 其他格式 → 原文截断到 200 字符
 	s := strings.TrimSpace(string(body))
 	if s == "" {
-		return fmt.Sprintf("[%d] [空响应，可能 URL 错误或端点不存在]", statusCode)
+		return fmt.Sprintf("[%d] [Пустой ответ, возможно, неверный URL или endpoint не существует]", statusCode)
 	}
 	if len(s) > 200 {
 		s = s[:200] + "..."

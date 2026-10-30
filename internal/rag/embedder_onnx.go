@@ -23,12 +23,12 @@ const (
 )
 
 // BGE 模型查询时需要加指令前缀，文档不加。
-const queryInstruction = "为这个句子生成表示以用于检索相关文章："
+const queryInstruction = "Represent this sentence for searching relevant passages: "
 
 const (
 	memoryArenaShrinkKey   = "memory.enable_memory_arena_shrinkage"
 	memoryArenaShrinkValue = "cpu:0"
-	compactProbeText       = "内存整理"
+	compactProbeText       = "memory compact"
 )
 
 var (
@@ -163,7 +163,7 @@ func newOnnxEmbedder(modelsDir string, t *Tokenizer, log *slog.Logger) (*OnnxEmb
 		return nil, fmt.Errorf("rag: load model: %w", err)
 	}
 
-	log.Info("ONNX embedder 已初始化", "model", modelPath)
+	log.Info("ONNX embedder initialized", "model", modelPath)
 	return &OnnxEmbedder{
 		session:   session,
 		tokenizer: t,
@@ -180,7 +180,7 @@ func (e *OnnxEmbedder) prepare(text string) []int {
 	raw := e.tokenizer.Tokenize(text)
 	limit := bertMaxLen - 2
 	if len(raw) > limit {
-		e.log.Warn("token 序列超过模型上限，已截断", "len", len(raw), "max", limit)
+		e.log.Warn("token sequence exceeds model limit, truncated", "len", len(raw), "max", limit)
 		raw = raw[:limit]
 	}
 	ids := make([]int, len(raw)+2)
@@ -377,7 +377,7 @@ func (e *OnnxEmbedder) Compact(ctx context.Context) error {
 	if _, err := e.embedBatch(ctx, []string{compactProbeText}, options); err != nil {
 		return fmt.Errorf("rag: compact memory arena: %w", err)
 	}
-	e.log.Info("ONNX CPU 内存池已整理")
+	e.log.Info("ONNX CPU memory pool compacted")
 	return nil
 }
 

@@ -50,7 +50,7 @@ func needsMigration(db *gorm.DB) (bool, error) {
 func init() {
 	engine.Register(engine.Migration{
 		Name:            migration,
-		Description:     "v1.6.0 章节 id 化：交叉引用数据 chapter_number→chapter_id 重写、章节文件改名 chapters/id_{id}.md、删除旧 num 列",
+		Description:     "v1.6.0 chapter id refactor: rewrite cross-reference data chapter_number→chapter_id, rename chapter files to chapters/id_{id}.md, drop legacy num columns",
 		Destructive:     true,
 		NeedsMigration:  needsMigration,
 		PreSchemaSteps:  preSchemaRegistry,

@@ -36,6 +36,6 @@ func Parse(filePath string, logger *slog.Logger) (*Result, error) {
 	case ".txt", ".md", ".markdown":
 		return parseTxt(filePath)
 	default:
-		return nil, fmt.Errorf("不支持的文件格式: %s", ext)
+		return nil, fmt.Errorf("Неподдерживаемый формат файла: %s", ext)
 	}
 }

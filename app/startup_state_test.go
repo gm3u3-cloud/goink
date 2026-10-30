@@ -70,7 +70,7 @@ func TestStartupState_BeginInitializationRejectsReadySource(t *testing.T) {
 
 	err := a.beginInitialization(PhaseReady)
 
-	require.EqualError(t, err, "应用已就绪，无需再次初始化")
+	require.EqualError(t, err, "Приложение уже готово, повторная инициализация не требуется")
 	assert.Equal(t, before, a.GetStartupState(), "拒绝时不应改变状态")
 }
 

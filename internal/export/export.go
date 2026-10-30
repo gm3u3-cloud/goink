@@ -32,7 +32,7 @@ func ExportNovel(n *novel.Novel, chapters []ChapterWithContent, format, author s
 	case "txt":
 		return exportTxt(n, chapters)
 	default:
-		return nil, "", fmt.Errorf("export: 不支持的格式: %s", format)
+		return nil, "", fmt.Errorf("export: неподдерживаемый формат: %s", format)
 	}
 }
 
@@ -54,6 +54,6 @@ func extension(format string) (string, error) {
 	case "txt":
 		return ".txt", nil
 	default:
-		return "", fmt.Errorf("export: 不支持的格式: %s", format)
+		return "", fmt.Errorf("export: неподдерживаемый формат: %s", format)
 	}
 }

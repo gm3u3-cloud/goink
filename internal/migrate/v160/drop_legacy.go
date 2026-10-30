@@ -37,16 +37,16 @@ func migrateDropLegacy(db *gorm.DB, log *slog.Logger) error {
 			continue
 		}
 		if err := dropIndexesForColumn(db, legacy.table, legacy.column); err != nil {
-			return fmt.Errorf("migrate v160: 删除 %s.%s 的索引: %w", legacy.table, legacy.column, err)
+			return fmt.Errorf("migrate v160: удаление индекса %s.%s: %w", legacy.table, legacy.column, err)
 		}
 		// SQLite 的 GORM Migrator 在以字符串表名 DropColumn 时会因缺少 model schema
 		// 而 panic。Goink 的持久化数据库固定为 SQLite，直接使用其原生 DDL；table 和
 		// column 均来自上方固定清单，不含外部输入。
 		query := fmt.Sprintf("ALTER TABLE %s DROP COLUMN %s", legacy.table, legacy.column)
 		if err := db.Exec(query).Error; err != nil {
-			return fmt.Errorf("migrate v160: 删除旧列 %s.%s: %w", legacy.table, legacy.column, err)
+			return fmt.Errorf("migrate v160: удаление устаревшей колонки %s.%s: %w", legacy.table, legacy.column, err)
 		}
-		log.Info("migrate v160: 已删除旧章节号列", "table", legacy.table, "column", legacy.column)
+		log.Info("migrate v160: legacy chapter-number column dropped", "table", legacy.table, "column", legacy.column)
 	}
 	return nil
 }
@@ -57,7 +57,7 @@ func migrateDropLegacy(db *gorm.DB, log *slog.Logger) error {
 func dropIndexesForColumn(db *gorm.DB, table, column string) error {
 	indexes, err := db.Migrator().GetIndexes(table)
 	if err != nil {
-		return fmt.Errorf("列举索引: %w", err)
+		return fmt.Errorf("перечисление индексов: %w", err)
 	}
 	for _, index := range indexes {
 		for _, indexedColumn := range index.Columns() {
@@ -65,7 +65,7 @@ func dropIndexesForColumn(db *gorm.DB, table, column string) error {
 				continue
 			}
 			if err := db.Migrator().DropIndex(table, index.Name()); err != nil {
-				return fmt.Errorf("删除索引 %s: %w", index.Name(), err)
+				return fmt.Errorf("удаление индекса %s: %w", index.Name(), err)
 			}
 			break
 		}

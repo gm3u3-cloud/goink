@@ -60,7 +60,7 @@ func parseEpub(filePath string, logger *slog.Logger) (*Result, error) {
 	}
 	r, err := zip.OpenReader(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("打开 epub 文件失败: %w", err)
+		return nil, fmt.Errorf("Не удалось открыть файл epub: %w", err)
 	}
 	defer r.Close()
 
@@ -73,7 +73,7 @@ func parseEpub(filePath string, logger *slog.Logger) (*Result, error) {
 		}
 	}
 	if containerPath == "" {
-		return nil, fmt.Errorf("epub 文件中未找到 META-INF/container.xml")
+		return nil, fmt.Errorf("В файле epub не найден META-INF/container.xml")
 	}
 
 	// 2. 解析 container.xml，获取 OPF 路径
@@ -103,26 +103,26 @@ func parseEpub(filePath string, logger *slog.Logger) (*Result, error) {
 		if href == "" {
 			skippedChapters = append(skippedChapters, SkippedChapter{
 				Title:  spine.IDref,
-				Reason: "章节缺少对应文件",
+				Reason: "Для главы отсутствует файл",
 			})
 			continue
 		}
 		// 解析相对于 OPF 的路径
 		resolvedPath, err := resolvePath(opfDir, href)
 		if err != nil {
-			logger.Warn("epub: 跳过章节", "href", href, "err", err)
+			logger.Warn("epub: skipping chapter", "href", href, "err", err)
 			skippedChapters = append(skippedChapters, SkippedChapter{
 				Title:  href,
-				Reason: fmt.Sprintf("文件路径无法解析: %v", err),
+				Reason: fmt.Sprintf("Не удалось разрешить путь файла: %v", err),
 			})
 			continue
 		}
 		text, err := extractHTMLText(r, resolvedPath)
 		if err != nil {
-			logger.Warn("epub: 跳过章节", "path", resolvedPath, "err", err)
+			logger.Warn("epub: skipping chapter", "path", resolvedPath, "err", err)
 			skippedChapters = append(skippedChapters, SkippedChapter{
 				Title:  resolvedPath,
-				Reason: fmt.Sprintf("文件内容无法读取: %v", err),
+				Reason: fmt.Sprintf("Не удалось прочитать содержимое файла: %v", err),
 			})
 			continue
 		}
@@ -131,7 +131,7 @@ func parseEpub(filePath string, logger *slog.Logger) (*Result, error) {
 		if text == "" && title == "" {
 			skippedChapters = append(skippedChapters, SkippedChapter{
 				Title:  resolvedPath,
-				Reason: "标题和内容都为空",
+				Reason: "Заголовок и содержимое пусты",
 			})
 			continue
 		}
@@ -142,12 +142,12 @@ func parseEpub(filePath string, logger *slog.Logger) (*Result, error) {
 	}
 
 	if len(chapters) == 0 {
-		return nil, fmt.Errorf("epub 文件中未提取到可读章节")
+		return nil, fmt.Errorf("В файле epub не удалось извлечь ни одной главы")
 	}
 
 	for i := range chapters {
 		if chapters[i].Title == "" {
-			chapters[i].Title = fmt.Sprintf("第%d章", i+1)
+			chapters[i].Title = fmt.Sprintf("Глава %d", i+1)
 		}
 	}
 
@@ -161,21 +161,21 @@ func parseEpub(filePath string, logger *slog.Logger) (*Result, error) {
 func parseContainerXML(r *zip.ReadCloser, path string) (string, error) {
 	f, err := r.Open(path)
 	if err != nil {
-		return "", fmt.Errorf("读取 container.xml 失败: %w", err)
+		return "", fmt.Errorf("Не удалось прочитать container.xml: %w", err)
 	}
 	defer f.Close()
 
 	data, err := io.ReadAll(f)
 	if err != nil {
-		return "", fmt.Errorf("读取 container.xml 失败: %w", err)
+		return "", fmt.Errorf("Не удалось прочитать container.xml: %w", err)
 	}
 
 	var c container
 	if err := xml.Unmarshal(data, &c); err != nil {
-		return "", fmt.Errorf("解析 container.xml 失败: %w", err)
+		return "", fmt.Errorf("Не удалось разобрать container.xml: %w", err)
 	}
 	if len(c.Rootfiles) == 0 {
-		return "", fmt.Errorf("container.xml 中未找到 rootfile")
+		return "", fmt.Errorf("В container.xml не найден rootfile")
 	}
 	// Prefer standard EPUB media-type; fall back to first rootfile.
 	for _, rf := range c.Rootfiles {
@@ -189,18 +189,18 @@ func parseContainerXML(r *zip.ReadCloser, path string) (string, error) {
 func parseOPF(r *zip.ReadCloser, path string) (*opf, error) {
 	f, err := r.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("读取 OPF 文件失败: %w", err)
+		return nil, fmt.Errorf("Не удалось прочитать OPF-файл: %w", err)
 	}
 	defer f.Close()
 
 	data, err := io.ReadAll(f)
 	if err != nil {
-		return nil, fmt.Errorf("读取 OPF 文件失败: %w", err)
+		return nil, fmt.Errorf("Не удалось прочитать OPF-файл: %w", err)
 	}
 
 	var o opf
 	if err := xml.Unmarshal(data, &o); err != nil {
-		return nil, fmt.Errorf("解析 OPF 文件失败: %w", err)
+		return nil, fmt.Errorf("Не удалось разобрать OPF-файл: %w", err)
 	}
 	return &o, nil
 }

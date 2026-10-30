@@ -44,7 +44,7 @@ func (a *App) GetReaderPerspectives(novelID int64) ([]reader.ReaderPerspective, 
 // CreateReaderPerspective 创建一条读者认知条目。
 func (a *App) CreateReaderPerspective(novelID int64, input CreateReaderPerspectiveInput) (*reader.ReaderPerspective, error) {
 	if input.Type == "" || input.Content == "" || input.PlantedChapterID == 0 {
-		return nil, fmt.Errorf("类型、内容和种下章节不能为空")
+		return nil, fmt.Errorf("Тип, содержимое и глава внедрения не могут быть пустыми")
 	}
 	chapterIDs := []int64{input.PlantedChapterID}
 	if input.RevealedChapterID != nil {

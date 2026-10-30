@@ -68,10 +68,10 @@ func (s *Service) CreateDefault(ctx context.Context, novelID int64, title string
 // Place 创建或移动章节，并将其放入目标章节组的指定位置。
 func (s *Service) Place(ctx context.Context, input PlaceInput) (*Chapter, error) {
 	if input.SourceChapterID == nil && input.Title == nil {
-		return nil, fmt.Errorf("创建章节时必须提供标题")
+		return nil, fmt.Errorf("При создании главы нужно указать заголовок")
 	}
 	if input.SourceChapterID != nil && input.Title != nil {
-		return nil, fmt.Errorf("移动章节时不能提供标题")
+		return nil, fmt.Errorf("При перемещении главы нельзя указывать заголовок")
 	}
 
 	var placed *Chapter
@@ -137,7 +137,7 @@ func (s *Service) Delete(ctx context.Context, novelID, chapterID int64) (*Delete
 	if s.chunkCleaner != nil {
 		if cleaner := s.chunkCleaner(); cleaner != nil {
 			if err := cleaner.DeleteChapterChunks(ctx, novelID, chapterID); err != nil {
-				s.logger.Warn("删除章节向量失败", "novel_id", novelID, "chapter_id", chapterID, "err", err)
+				s.logger.Warn("failed to delete chapter vectors", "novel_id", novelID, "chapter_id", chapterID, "err", err)
 			}
 		}
 	}

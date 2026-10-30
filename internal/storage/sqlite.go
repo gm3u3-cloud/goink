@@ -24,23 +24,23 @@ func Open(dsn string, log *slog.Logger) (*gorm.DB, error) {
 		Logger: &gormSlogAdapter{log: log},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("打开 SQLite 失败: %w", err)
+		return nil, fmt.Errorf("failed to open SQLite: %w", err)
 	}
 
 	// 配置连接池
 	sqlDB, err := db.DB()
 	if err != nil {
-		return nil, fmt.Errorf("storage: 获取 sql.DB 失败: %w", err)
+		return nil, fmt.Errorf("storage: failed to get sql.DB: %w", err)
 	}
 	sqlDB.SetMaxOpenConns(1)            // SQLite 写串行，单连接最安全
 	sqlDB.SetMaxIdleConns(1)            // 至少保留一个空闲连接
 	sqlDB.SetConnMaxLifetime(time.Hour) // 连接最长存活 1 小时
 
 	if err := enableWAL(sqlDB); err != nil {
-		return nil, fmt.Errorf("storage: 启用 WAL 失败: %w", err)
+		return nil, fmt.Errorf("storage: failed to enable WAL: %w", err)
 	}
 
-	log.Info("SQLite 已打开", "dsn", dsn)
+	log.Info("SQLite opened", "dsn", dsn)
 	return db, nil
 }
 
@@ -51,7 +51,7 @@ func enableWAL(db *sql.DB) error {
 		return err
 	}
 	if journal != "wal" {
-		return fmt.Errorf("期望 journal_mode=wal，实际为 %s", journal)
+		return fmt.Errorf("expected journal_mode=wal, got %s", journal)
 	}
 	return nil
 }
@@ -60,13 +60,13 @@ func enableWAL(db *sql.DB) error {
 func Close(db *gorm.DB) error {
 	sqlDB, err := db.DB()
 	if err != nil {
-		return fmt.Errorf("storage: 获取 sql.DB 失败: %w", err)
+		return fmt.Errorf("storage: failed to get sql.DB: %w", err)
 	}
 
 	sqlite_vec.Cancel()
 
 	if err := sqlDB.Close(); err != nil {
-		return fmt.Errorf("storage: 关闭数据库失败: %w", err)
+		return fmt.Errorf("storage: failed to close database: %w", err)
 	}
 	return nil
 }
@@ -75,10 +75,10 @@ func Close(db *gorm.DB) error {
 func Ping(ctx context.Context, db *gorm.DB) error {
 	sqlDB, err := db.DB()
 	if err != nil {
-		return fmt.Errorf("storage: 获取 sql.DB 失败: %w", err)
+		return fmt.Errorf("storage: failed to get sql.DB: %w", err)
 	}
 	if err := sqlDB.PingContext(ctx); err != nil {
-		return fmt.Errorf("storage: ping 失败: %w", err)
+		return fmt.Errorf("storage: ping failed: %w", err)
 	}
 	return nil
 }
@@ -109,14 +109,14 @@ func (a *gormSlogAdapter) Trace(_ context.Context, begin time.Time, fc func() (s
 	elapsed := time.Since(begin)
 	sql, rows := fc()
 	attrs := []any{
-		"耗时", elapsed,
-		"行数", rows,
+		"elapsed", elapsed,
+		"rows", rows,
 		"sql", sql,
 	}
 	if err != nil {
-		attrs = append(attrs, "错误", err)
-		a.log.Warn("GORM 查询异常", attrs...)
+		attrs = append(attrs, "error", err)
+		a.log.Warn("GORM query error", attrs...)
 		return
 	}
-	a.log.Debug("GORM 查询", attrs...)
+	a.log.Debug("GORM query", attrs...)
 }

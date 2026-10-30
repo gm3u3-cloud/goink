@@ -225,8 +225,8 @@ func TestBuildChapterChunks_NoSummary(t *testing.T) {
 	for _, c := range chunks {
 		if c.ChunkType == "chapter_brief" {
 			briefFound = true
-			if !strings.Contains(c.Content, "第2章") {
-				t.Errorf("expected default title '第2章' in brief: %q", c.Content)
+			if !strings.Contains(c.Content, "Chapter 2") {
+				t.Errorf("expected default title 'Chapter 2' in brief: %q", c.Content)
 			}
 		}
 	}

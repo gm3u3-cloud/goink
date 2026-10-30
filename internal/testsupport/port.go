@@ -22,6 +22,6 @@ func FreeLocalPort(t *testing.T, minPort, maxPort int) int {
 			return port
 		}
 	}
-	t.Fatal("指定范围内没有空闲端口")
+	t.Fatal("no free port in the specified range")
 	return 0
 }

@@ -38,7 +38,7 @@ func (a *App) CheckUpdate(skipDismiss bool) (*update.CheckResult, error) {
 	if saveErr := a.updateSettings(func(s *config.AppSettings) {
 		s.LastUpdateCheckAt = time.Now()
 	}); saveErr != nil {
-		a.logger.Warn("update: 保存上次检查时间失败", "err", saveErr)
+		a.logger.Warn("update: failed to save last check time", "err", saveErr)
 	}
 
 	// 自动检查场景下，检查用户是否已忽略过该版本

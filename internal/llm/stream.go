@@ -125,10 +125,10 @@ func (c *Client) ChatStream(
 				isTimeout = true
 			}
 
-			msg := "网络连接失败，请检查网络后重试"
+			msg := "Сбой сети: проверьте соединение и повторите"
 			retryable := true
 			if isTimeout {
-				msg = "服务器响应超时（首字节超过 10m），请稍后重试"
+				msg = "Тайм-аут ответа сервера (более 10 мин до первого байта), повторите позже"
 				c.logger.Warn("llm first byte timeout", "err", err, "url", req.URL.String())
 			} else {
 				// 非超时网络错误：区分永久性（DNS NXDOMAIN / 连接拒绝）与瞬时性（EOF / reset）
@@ -137,7 +137,7 @@ func (c *Client) ChatStream(
 				if (errors.As(err, &dnsErr) && dnsErr.IsNotFound) ||
 					(errors.As(err, &opErr) && errors.Is(opErr.Err, syscall.ECONNREFUSED)) {
 					retryable = false
-					msg = "网络连接被拒绝或域名无法解析，请检查网络配置"
+					msg = "Соединение отклонено или домен не разрешается, проверьте сетевые настройки"
 				}
 				c.logger.Warn("llm network error", "err", err, "url", req.URL.String(), "retryable", retryable)
 			}
@@ -548,7 +548,7 @@ func (c *Client) parseSSE(ch chan<- StreamEvent, resp *http.Response) {
 			c.logger.Warn("empty sse response", "diag", diag)
 			ch <- StreamEvent{Type: EventError, Error: &APIError{
 				StatusCode: 0,
-				Message:    "流式响应为空，服务商可能不支持流式请求或返回了非标准格式",
+				Message:    "Поточный ответ пуст: возможно, провайдер не поддерживает стриминг или вернул нестандартный формат",
 				Retryable:  true,
 			}}
 		}
@@ -560,9 +560,9 @@ func (c *Client) parseSSE(ch chan<- StreamEvent, resp *http.Response) {
 // 截断到 200 字符，避免 reminder 过长。
 func buildToolArgsInvalidMsg(errs []string) string {
 	const maxLen = 200
-	prefix := fmt.Sprintf("tool arguments 解析失败（%d 个）", len(errs))
+	prefix := fmt.Sprintf("tool arguments parse failed (%d)", len(errs))
 	detail := strings.Join(errs, "; ")
-	msg := prefix + "：" + detail
+	msg := prefix + ": " + detail
 	if len(msg) > maxLen {
 		msg = msg[:maxLen] + "..."
 	}

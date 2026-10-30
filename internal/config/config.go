@@ -13,7 +13,7 @@ import (
 )
 
 // ErrNotInitialized 表示指针文件不存在，应用尚未完成首次初始化。没初始化弹出来初始化界面，如果初始化了但是还是出错就谈配置错误恢复
-var ErrNotInitialized = errors.New("指针文件不存在，应用未初始化")
+var ErrNotInitialized = errors.New("файл-указатель не найден, приложение не инициализировано")
 
 var (
 	globalCfg *AppConfig
@@ -105,7 +105,7 @@ func ModelsDir() string {
 func configDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return "", fmt.Errorf("获取用户目录失败: %w", err)
+		return "", fmt.Errorf("не удалось получить домашний каталог: %w", err)
 	}
 	return filepath.Join(home, ".goink"), nil
 }
@@ -132,18 +132,18 @@ func Load() (*AppConfig, error) {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, fmt.Errorf("%w: %s", ErrNotInitialized, path)
 		}
-		return nil, fmt.Errorf("读取配置文件失败: %w", err)
+		return nil, fmt.Errorf("не удалось прочитать файл конфигурации: %w", err)
 	}
 
 	cfg := &AppConfig{}
 	if err := json.Unmarshal(data, cfg); err != nil {
-		return nil, fmt.Errorf("解析配置文件失败: %w", err)
+		return nil, fmt.Errorf("не удалось разобрать файл конфигурации: %w", err)
 	}
 
 	// 确保平台数据目录存在
 	dataDir := platform.DataDir()
 	if err := os.MkdirAll(dataDir, 0700); err != nil {
-		return nil, fmt.Errorf("创建数据目录 %s 失败: %w", dataDir, err)
+		return nil, fmt.Errorf("не удалось создать каталог данных %s: %w", dataDir, err)
 	}
 	return cfg, nil
 }
@@ -168,7 +168,7 @@ func Save(dataDir string) error {
 	var err error
 	dataDir, err = filepath.Abs(dataDir)
 	if err != nil {
-		return fmt.Errorf("解析数据目录绝对路径失败: %w", err)
+		return fmt.Errorf("не удалось разрешить абсолютный путь каталога данных: %w", err)
 	}
 
 	dir, err := configDir()
@@ -176,17 +176,17 @@ func Save(dataDir string) error {
 		return err
 	}
 	if err := os.MkdirAll(dir, 0700); err != nil {
-		return fmt.Errorf("创建配置目录失败: %w", err)
+		return fmt.Errorf("не удалось создать каталог конфигурации: %w", err)
 	}
 
 	path := filepath.Join(dir, "config.json")
 	cfg := AppConfig{DataDir: dataDir}
 	raw, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
-		return fmt.Errorf("序列化配置失败: %w", err)
+		return fmt.Errorf("не удалось сериализовать конфигурацию: %w", err)
 	}
 	if err := os.WriteFile(path, raw, 0600); err != nil {
-		return fmt.Errorf("写入配置文件失败: %w", err)
+		return fmt.Errorf("не удалось записать файл конфигурации: %w", err)
 	}
 	return nil
 }

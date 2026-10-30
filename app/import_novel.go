@@ -49,13 +49,13 @@ func (a *App) emitImportProgress(stage, message string, current, total, percent 
 // PickAndImportNovel 打开文件选择对话框，然后导入选中的小说文件。
 func (a *App) PickAndImportNovel() (*ImportNovelResult, error) {
 	filePath, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
-		Title: "导入小说",
+		Title: "Импорт романа",
 		Filters: []runtime.FileFilter{
-			{DisplayName: "电子书 (*.epub, *.txt, *.md)", Pattern: "*.epub;*.txt;*.md;*.markdown"},
+			{DisplayName: "Электронные книги (*.epub, *.txt, *.md)", Pattern: "*.epub;*.txt;*.md;*.markdown"},
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("选择文件失败: %w", err)
+		return nil, fmt.Errorf("Не удалось выбрать файл: %w", err)
 	}
 	if filePath == "" {
 		return nil, nil // 用户取消

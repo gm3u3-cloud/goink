@@ -35,9 +35,9 @@ func main() {
 
 	if lib, err := platform.ResolveOnnxLib(); err == nil {
 		ort.SetSharedLibraryPath(lib)
-		log.Info("ONNX 运行库已设置", "path", lib)
+		log.Info("ONNX runtime library set", "path", lib)
 	} else {
-		log.Warn("未找到 ONNX Runtime 库，向量检索将不可用", "err", err)
+		log.Warn("ONNX Runtime library not found; vector search will be unavailable", "err", err)
 	}
 
 	wapp := app.New(log)
@@ -81,7 +81,7 @@ func main() {
 		},
 	})
 	if err != nil {
-		log.Error("应用退出", "err", err)
+		log.Error("application exited with an error", "err", err)
 		os.Exit(1)
 	}
 }

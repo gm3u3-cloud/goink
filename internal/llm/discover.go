@@ -19,7 +19,7 @@ func DiscoverModels(ctx context.Context, builtin map[string]Provider, providerNa
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, modelsURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("创建请求失败: %w", err)
+		return nil, fmt.Errorf("Не удалось создать запрос: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	// 按 provider 名匹配 builtin provider，应用其 BuildHeaders
@@ -34,21 +34,21 @@ func DiscoverModels(ctx context.Context, builtin map[string]Provider, providerNa
 	client := &http.Client{Timeout: 15 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("请求失败: %w", err)
+		return nil, fmt.Errorf("Запрос не удался: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
 		errBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
-		return nil, fmt.Errorf("自动发现模型失败: %s", summarizeErrorBody(resp.StatusCode, errBody))
+		return nil, fmt.Errorf("Не удалось автоматически обнаружить модели: %s", summarizeErrorBody(resp.StatusCode, errBody))
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("读取响应失败: %w", err)
+		return nil, fmt.Errorf("Не удалось прочитать ответ: %w", err)
 	}
 	if isHTMLPage(body) {
-		return nil, fmt.Errorf("该端点不支持自动发现（服务端返回了网页而非 JSON）")
+		return nil, fmt.Errorf("Этот endpoint не поддерживает автообнаружение (сервер вернул веб-страницу вместо JSON)")
 	}
 
 	var result struct {
@@ -61,7 +61,7 @@ func DiscoverModels(ctx context.Context, builtin map[string]Provider, providerNa
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("解析模型列表失败（该端点可能不支持 /models）: %w", err)
+		return nil, fmt.Errorf("Не удалось разобрать список моделей (возможно, этот endpoint не поддерживает /models): %w", err)
 	}
 
 	models := make([]ModelInfo, 0, len(result.Data))

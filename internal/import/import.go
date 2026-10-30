@@ -31,12 +31,12 @@ type ProgressCallback func(stage, message string, current, total, percent int, n
 
 // Import 执行完整的小说导入流程：解析文件 → 创建 Novel → 写入章节 → git 提交。
 func Import(ctx context.Context, logger *slog.Logger, db *gorm.DB, filePath string, gitName, gitEmail string, onProgress ProgressCallback) (*ImportResult, error) {
-	onProgress("parse", "正在解析文件", 0, 0, 0, 0)
+	onProgress("parse", "Разбор файла", 0, 0, 0, 0)
 
 	result, err := Parse(filePath, logger)
 	if err != nil {
-		onProgress("error", "导入解析失败，已停止导入", 0, 0, 0, 0)
-		return nil, fmt.Errorf("导入解析失败: %w", err)
+		onProgress("error", "Ошибка разбора файла, импорт остановлен", 0, 0, 0, 0)
+		return nil, fmt.Errorf("Ошибка разбора файла: %w", err)
 	}
 
 	// 正则分割结果不合理，直接返回 NeedsLLM 标记，不创建 Novel
@@ -51,7 +51,7 @@ func Import(ctx context.Context, logger *slog.Logger, db *gorm.DB, filePath stri
 
 	title := result.Title
 	if title == "" {
-		title = "未命名"
+		title = "Без названия"
 	}
 
 	return doImport(ctx, logger, db, result, title, filePath, gitName, gitEmail, onProgress)
@@ -64,7 +64,7 @@ func ImportWithResult(ctx context.Context, logger *slog.Logger, db *gorm.DB, res
 	if title == "" {
 		title = inferTitle(filePath)
 		if title == "" {
-			title = "未命名"
+			title = "Без названия"
 		}
 	}
 
@@ -80,37 +80,37 @@ func ImportWithResult(ctx context.Context, logger *slog.Logger, db *gorm.DB, res
 //  3. git commit（不可逆但极低失败率，放在文件成功之后）
 func doImport(ctx context.Context, logger *slog.Logger, db *gorm.DB, result *Result, title, filePath, gitName, gitEmail string, onProgress ProgressCallback) (*ImportResult, error) {
 	chapterCount := len(result.Chapters)
-	onProgress("create_novel", "正在创建作品", 0, chapterCount, 10, 0)
+	onProgress("create_novel", "Создание произведения", 0, chapterCount, 10, 0)
 
 	n := novel.Novel{
 		Title:       title,
-		Description: fmt.Sprintf("从 %s 导入，共 %d 章", filePath, chapterCount),
+		Description: fmt.Sprintf("Импортировано из %s, всего %d гл.", filePath, chapterCount),
 	}
 
 	// ── Step 1: 创建 Novel 记录（拿 ID，文件路径依赖此 ID） ──
 	// 后续步骤失败时 cleanupImport 会删除 Novel 记录和文件。
 
 	if err := db.WithContext(ctx).Create(&n).Error; err != nil {
-		onProgress("error", "创建小说失败", 0, chapterCount, 0, 0)
-		return nil, fmt.Errorf("创建小说失败: %w", err)
+		onProgress("error", "Не удалось создать произведение", 0, chapterCount, 0, 0)
+		return nil, fmt.Errorf("Не удалось создать произведение: %w", err)
 	}
 
 	repo, err := git.New(n.ID, gitName, gitEmail, logger)
 	if err != nil {
 		cleanupImport(db, ctx, logger, n.ID)
-		onProgress("error", "初始化小说仓库失败", 0, chapterCount, 0, n.ID)
-		return nil, fmt.Errorf("初始化小说仓库失败: %w", err)
+		onProgress("error", "Не удалось инициализировать репозиторий произведения", 0, chapterCount, 0, n.ID)
+		return nil, fmt.Errorf("Не удалось инициализировать репозиторий произведения: %w", err)
 	}
 
 	if err := git.WriteFile(n.ID, git.GoinkPath(), ""); err != nil {
 		cleanupImport(db, ctx, logger, n.ID)
-		onProgress("error", "创建 goink.md 失败", 0, chapterCount, 0, n.ID)
-		return nil, fmt.Errorf("创建 goink.md 失败: %w", err)
+		onProgress("error", "Не удалось создать goink.md", 0, chapterCount, 0, n.ID)
+		return nil, fmt.Errorf("Не удалось создать goink.md: %w", err)
 	}
 
 	// ── Step 2: DB 事务写入 Chapters（原子操作，拿 id） ──
 	// 章节文件以 id 命名（chapters/id_{id}.md），必须先建记录拿到 id 再写文件。
-	onProgress("saving_metadata", "正在保存章节元数据", 0, chapterCount, 12, n.ID)
+	onProgress("saving_metadata", "Сохранение метаданных глав", 0, chapterCount, 12, n.ID)
 	chapters := make([]chapter.Chapter, 0, chapterCount)
 	if err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		for i, ch := range result.Chapters {
@@ -122,7 +122,7 @@ func doImport(ctx context.Context, logger *slog.Logger, db *gorm.DB, result *Res
 				WordCount: text.ComputeStats(ch.Content).WordCount,
 			}
 			if err := tx.Create(&chap).Error; err != nil {
-				return fmt.Errorf("创建第%d章元数据失败: %w", chapNum, err)
+				return fmt.Errorf("Не удалось создать метаданные главы %d: %w", chapNum, err)
 			}
 			chapters = append(chapters, chap)
 		}
@@ -130,22 +130,22 @@ func doImport(ctx context.Context, logger *slog.Logger, db *gorm.DB, result *Res
 	}); err != nil {
 		// DB 写入失败，完整清理：删除 Novel 记录 + 文件目录
 		cleanupImport(db, ctx, logger, n.ID)
-		onProgress("error", "导入失败，已撤销本次导入产生的数据和文件", 0, chapterCount, 0, n.ID)
+		onProgress("error", "Импорт не удался, созданные данные и файлы отменены", 0, chapterCount, 0, n.ID)
 		return nil, err
 	}
 
 	// ── Step 3: 写章节文件（id 命名） + git add（可逆，不 commit） ──
-	onProgress("write_chapters", "正在写入章节", 0, chapterCount, 15, n.ID)
+	onProgress("write_chapters", "Запись глав", 0, chapterCount, 15, n.ID)
 	for i, ch := range result.Chapters {
 		chapNum := i + 1
 		if err := git.WriteFile(n.ID, git.ChapterPath(chapters[i].ID), ch.Content); err != nil {
 			cleanupImport(db, ctx, logger, n.ID)
-			onProgress("error", fmt.Sprintf("写入第%d章失败", chapNum), chapNum, chapterCount, 0, n.ID)
-			return nil, fmt.Errorf("写入第%d章失败: %w", chapNum, err)
+			onProgress("error", fmt.Sprintf("Не удалось записать главу %d", chapNum), chapNum, chapterCount, 0, n.ID)
+			return nil, fmt.Errorf("Не удалось записать главу %d: %w", chapNum, err)
 		}
 		onProgress(
 			"write_chapters",
-			fmt.Sprintf("正在写入第 %d/%d 章", chapNum, chapterCount),
+			fmt.Sprintf("Запись главы %d/%d", chapNum, chapterCount),
 			chapNum,
 			chapterCount,
 			importProgressPercent(chapNum, chapterCount),
@@ -153,11 +153,11 @@ func doImport(ctx context.Context, logger *slog.Logger, db *gorm.DB, result *Res
 		)
 	}
 
-	onProgress("commit", "正在暂存导入文件", chapterCount, chapterCount, 90, n.ID)
+	onProgress("commit", "Добавление импортированных файлов в git", chapterCount, chapterCount, 90, n.ID)
 	if err := repo.StageAll(); err != nil {
 		cleanupImport(db, ctx, logger, n.ID)
-		onProgress("error", "暂存导入文件失败", 0, chapterCount, 0, n.ID)
-		return nil, fmt.Errorf("暂存导入文件失败: %w", err)
+		onProgress("error", "Не удалось добавить импортированные файлы в git", 0, chapterCount, 0, n.ID)
+		return nil, fmt.Errorf("Не удалось добавить импортированные файлы в git: %w", err)
 	}
 
 	// ── Step 4: git commit（不可逆但极低失败率） ──
@@ -165,11 +165,11 @@ func doImport(ctx context.Context, logger *slog.Logger, db *gorm.DB, result *Res
 	if _, err := repo.Commit(fmt.Sprintf("import novel: %s", title)); err != nil {
 		// 不回滚 DB：数据完整，只是缺 git 初始提交
 		// 下次任何文件变更都会触发新的 commit，数据不会丢失
-		logger.Error("导入提交 git commit 失败，数据已保存但缺少版本记录，下次编辑将自动提交",
+		logger.Error("import: git commit failed, data saved but version record missing; next edit will commit automatically",
 			"novel_id", n.ID, "err", err)
-		onProgress("done", fmt.Sprintf("已导入《%s》，共 %d 章（版本记录待下次编辑自动提交）", title, chapterCount), chapterCount, chapterCount, 100, n.ID)
+		onProgress("done", fmt.Sprintf("Импортировано «%s», всего %d гл. (версия будет зафиксирована при следующем редактировании)", title, chapterCount), chapterCount, chapterCount, 100, n.ID)
 	} else {
-		onProgress("done", fmt.Sprintf("已导入《%s》，共 %d 章", title, chapterCount), chapterCount, chapterCount, 100, n.ID)
+		onProgress("done", fmt.Sprintf("Импортировано «%s», всего %d гл.", title, chapterCount), chapterCount, chapterCount, 100, n.ID)
 	}
 
 	return &ImportResult{
@@ -185,15 +185,15 @@ func doImport(ctx context.Context, logger *slog.Logger, db *gorm.DB, result *Res
 func cleanupImport(db *gorm.DB, ctx context.Context, logger *slog.Logger, novelID int64) {
 	// 删除文件目录（含 .git 仓库）
 	if err := os.RemoveAll(config.NovelDirPath(novelID)); err != nil {
-		logger.Error("清理导入失败后的小说目录失败", "novel_id", novelID, "err", err)
+		logger.Error("failed to remove novel directory after failed import", "novel_id", novelID, "err", err)
 	}
 	// 删除 Chapters 记录（DB 建记录先于写文件，文件失败时记录已存在，需一并清理）
 	if err := db.WithContext(ctx).Where("novel_id = ?", novelID).Delete(&chapter.Chapter{}).Error; err != nil {
-		logger.Error("清理导入失败后的 Chapters 记录失败", "novel_id", novelID, "err", err)
+		logger.Error("failed to delete chapter records after failed import", "novel_id", novelID, "err", err)
 	}
 	// 删除 Novel 记录
 	if err := db.WithContext(ctx).Delete(&novel.Novel{}, novelID).Error; err != nil {
-		logger.Error("清理导入失败后的 Novel 记录失败", "novel_id", novelID, "err", err)
+		logger.Error("failed to delete novel record after failed import", "novel_id", novelID, "err", err)
 	}
 }
 

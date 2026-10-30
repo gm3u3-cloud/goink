@@ -98,15 +98,15 @@ func (a *App) SaveGitConfig(name, email string) error {
 	for _, n := range result.Items {
 		repo, repoErr := git.New(n.ID, name, email, a.logger)
 		if repoErr != nil {
-			errs = append(errs, fmt.Sprintf("小说 %d: %v", n.ID, repoErr))
+			errs = append(errs, fmt.Sprintf("роман %d: %v", n.ID, repoErr))
 			continue
 		}
 		if err := repo.SetGitConfig(name, email); err != nil {
-			errs = append(errs, fmt.Sprintf("小说 %d: %v", n.ID, err))
+			errs = append(errs, fmt.Sprintf("роман %d: %v", n.ID, err))
 		}
 	}
 	if len(errs) > 0 {
-		return fmt.Errorf("部分小说配置同步失败:\n%s", strings.Join(errs, "\n"))
+		return fmt.Errorf("Не удалось синхронизировать конфигурацию части романов:\n%s", strings.Join(errs, "\n"))
 	}
 	return nil
 }
@@ -125,7 +125,7 @@ func (a *App) SaveAvatar(data []byte) error {
 func (a *App) RebuildNovelIndex(novelID int64) error {
 	rq := rag.GetRefreshQueue()
 	if rq == nil {
-		return fmt.Errorf("向量索引服务未初始化")
+		return fmt.Errorf("Сервис векторного индекса не инициализирован")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()

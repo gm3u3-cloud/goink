@@ -30,11 +30,11 @@ func (a *App) mcpToolContext(ctx context.Context) (context.Context, mcp_tools.To
 		SkillStore: a.skill, SearchService: a.searchService.Load(),
 		WebSearch: func(ctx context.Context, query string) (*llm.WebSearchResult, error) {
 			if a.llmClient == nil {
-				return nil, errors.New("LLM 客户端未初始化")
+				return nil, errors.New("LLM client not initialized")
 			}
 			provider, ok := a.llmClient.Providers()["deepseek"]
 			if !ok || provider.APIKey == "" {
-				return nil, errors.New("DeepSeek API key 未配置")
+				return nil, errors.New("DeepSeek API key not configured")
 			}
 			return llm.SearchWeb(ctx, provider.APIKey, "", query)
 		},

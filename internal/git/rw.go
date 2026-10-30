@@ -195,7 +195,7 @@ func ResolvePath(path string, novelID int64) (string, error) {
 	if strings.HasPrefix(path, "~/.goink/") {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			return "", fmt.Errorf("git: 获取用户目录失败: %w", err)
+			return "", fmt.Errorf("git: не удалось получить пользовательский каталог: %w", err)
 		}
 		base := filepath.Join(home, ".goink")
 		rel := strings.TrimPrefix(path, "~/.goink/")

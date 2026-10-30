@@ -98,7 +98,7 @@ func (c *Client) CallTool(
 			return nil, err
 		}
 		if lastErr == nil {
-			lastErr = fmt.Errorf("LLM 未调用工具 %s", toolName)
+			lastErr = fmt.Errorf("LLM не вызвал инструмент %s", toolName)
 		}
 		allErrs = append(allErrs, lastErr)
 	}

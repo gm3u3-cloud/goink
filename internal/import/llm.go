@@ -13,23 +13,23 @@ import (
 type GenerateTextFunc func(ctx context.Context, providerName string, messages []map[string]any, model string) (string, error)
 
 // chapterAnalysisPrompt 是 LLM 分析章节格式的系统提示。
-const chapterAnalysisPrompt = `你是一个小说章节格式识别专家。用户将提供一部小说的前 150 行文本，请分析其中的章节标题格式，并输出一个 Go 正则表达式用于匹配所有章节标题行。
+const chapterAnalysisPrompt = `You are an expert in identifying novel chapter formatting. The user will provide the first 150 lines of a novel. Analyze the chapter heading format and output a single Go regular expression that matches all chapter heading lines.
 
-要求：
-1. 只输出正则字符串本身，不要添加任何解释、代码块标记或引号
-2. 使用 (?m) 开头启用多行模式
-3. 使用 ^ 匹配行首
-4. 正则应匹配章节标题行的行首部分
-5. 示例输出：(?m)^(?:#{1,6}\s+)?(?:[ 　\t]*)第[零〇一二三四五六七八九十百千两\d]+章
-6. 如果无法识别任何章节格式，输出 NONE
+Requirements:
+1. Output only the regex string itself, with no explanations, code block markers, or quotes
+2. Start with (?m) to enable multiline mode
+3. Use ^ to match the start of a line
+4. The regex should match the leading part of chapter heading lines
+5. Example output: (?m)^(?:#{1,6}\s+)?(?:[ 　\t]*)第[零〇一二三四五六七八九十百千两\d]+章
+6. If no chapter format can be identified, output NONE
 
-常见章节格式：
-- "第X章 标题"、"第X卷 标题"（中文数字或阿拉伯数字）
-- "序章"、"楔子"、"引子"、"番外"、"终章"、"后记"
-- "Chapter N"、"Part N"
-- 纯数字行（如单独一行的 "1"、"2"）
-- "卷X"、"第X节"、"第X回"
-- 特殊符号开头的章节标记（如 "☆"、"★"、"◆" 等）`
+Common chapter formats:
+- "第X章 title", "第X卷 title" (Chinese numerals or Arabic digits)
+- "序章" (prologue), "楔子" (preamble), "引子" (introduction), "番外" (side story), "终章" (final chapter), "后记" (epilogue)
+- "Chapter N", "Part N"
+- Bare number lines (a line containing only "1", "2", etc.)
+- "卷X", "第X节", "第X回"
+- Chapter markers starting with special symbols (e.g., "☆", "★", "◆")`
 
 // AnalyzeWithLLM 使用 LLM 分析小说文件的章节格式。
 // 读取文件前 150 行，让 LLM 生成正则，编译后全文匹配分割。
@@ -56,13 +56,13 @@ func AnalyzeWithLLM(ctx context.Context, filePath string, providerName string, m
 
 	llmOutput, err := generateFn(ctx, providerName, messages, modelID)
 	if err != nil {
-		return nil, fmt.Errorf("AI 分析失败: %w", err)
+		return nil, fmt.Errorf("Ошибка анализа ИИ: %w", err)
 	}
 
 	// 4. 清理 LLM 输出
 	llmPattern := cleanLLMPatternOutput(llmOutput)
 	if llmPattern == "" || llmPattern == "NONE" {
-		return nil, fmt.Errorf("AI 无法识别章节格式")
+		return nil, fmt.Errorf("ИИ не смог определить формат глав")
 	}
 
 	// 5. 用 LLM 正则分割全文
@@ -114,7 +114,7 @@ func ParseWithLLMPattern(filePath string, llmPattern string) (*Result, error) {
 	// 1. 编译 LLM 返回的正则
 	re, err := regexp.Compile(llmPattern)
 	if err != nil {
-		return nil, fmt.Errorf("LLM 正则编译失败: %w", err)
+		return nil, fmt.Errorf("Не удалось скомпилировать регулярное выражение LLM: %w", err)
 	}
 
 	// 2. 全文匹配
@@ -145,25 +145,25 @@ func ParseWithLLMPattern(filePath string, llmPattern string) (*Result, error) {
 
 	// 3. 匹配数不足
 	if len(candidates) <= 1 {
-		return nil, fmt.Errorf("LLM 正则仅匹配到 %d 个章节标题，无法有效分割", len(candidates))
+		return nil, fmt.Errorf("Регулярное выражение LLM находит только %d заголовков глав, корректное разделение невозможно", len(candidates))
 	}
 
 	// 4. 间距验证
 	candidates = filterByGap(candidates, content)
 	if len(candidates) <= 1 {
-		return nil, fmt.Errorf("LLM 正则间距过滤后仅剩 %d 个匹配点，无法有效分割", len(candidates))
+		return nil, fmt.Errorf("После фильтрации по интервалам у регулярного выражения LLM осталось только %d точек совпадения, корректное разделение невозможно", len(candidates))
 	}
 
 	// 5. 分割
 	chapters := splitByPositions(content, candidates)
 	if len(chapters) == 0 {
-		return nil, fmt.Errorf("LLM 正则分割未能生成章节")
+		return nil, fmt.Errorf("Разделение по регулярному выражению LLM не дало ни одной главы")
 	}
 
 	// 6. 文件大小估算验证
 	totalChars := utf8.RuneCountInString(content)
 	if !isReasonableChapterCount(len(chapters), totalChars) {
-		return nil, fmt.Errorf("LLM 正则分割结果不合理：找到 %d 章，但文件约 %d 字，估算应约 %d 章",
+		return nil, fmt.Errorf("Некорректный результат разделения по регулярному выражению LLM: найдено %d глав, но в файле около %d символов, ожидалось примерно %d глав",
 			len(chapters), totalChars, totalChars/3000)
 	}
 

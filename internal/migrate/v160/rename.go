@@ -38,23 +38,23 @@ func migrateRenameFiles(db *gorm.DB, log *slog.Logger) error {
 
 	// 1. sort_order 初始化 = chapter_number
 	if err := db.Exec("UPDATE chapters SET sort_order = chapter_number WHERE sort_order = 0").Error; err != nil {
-		return fmt.Errorf("migrate v160: 初始化 sort_order: %w", err)
+		return fmt.Errorf("migrate v160: инициализация sort_order: %w", err)
 	}
 
 	// 遍历全部 novel（novels 表仅存元数据，目录即 config.NovelDirPath(novelID)）
 	var novelIDs []int64
 	if err := db.Table("novels").Order("id").Pluck("id", &novelIDs).Error; err != nil {
-		return fmt.Errorf("migrate v160: 读取 novels: %w", err)
+		return fmt.Errorf("migrate v160: чтение novels: %w", err)
 	}
 	var errs []error
 	for _, novelID := range novelIDs {
 		if err := migrateNovelFiles(db, log, novelID); err != nil {
-			log.Warn("migrate v160: 该 novel 文件迁移失败（继续其他 novel）", "novel_id", novelID, "err", err)
+			log.Warn("migrate v160: file migration failed for this novel (continuing with other novels)", "novel_id", novelID, "err", err)
 			errs = append(errs, fmt.Errorf("novel %d: %w", novelID, err))
 		}
 	}
 	if err := errors.Join(errs...); err != nil {
-		return fmt.Errorf("migrate v160: 文件迁移未全部完成: %w", err)
+		return fmt.Errorf("migrate v160: файловая миграция не завершена: %w", err)
 	}
 	return nil
 }
@@ -68,22 +68,22 @@ func migrateNovelFiles(db *gorm.DB, log *slog.Logger, novelID int64) error {
 	volumesDir := filepath.Join(dir, "volumes")
 	if info, err := os.Stat(volumesDir); err == nil {
 		if !info.IsDir() {
-			return fmt.Errorf("migrate v160: volumes 路径不是目录: %s", volumesDir)
+			return fmt.Errorf("migrate v160: путь volumes не является каталогом: %s", volumesDir)
 		}
 	} else if errors.Is(err, os.ErrNotExist) {
 		if err := os.MkdirAll(volumesDir, 0o755); err != nil {
-			return fmt.Errorf("migrate v160: 创建 volumes/ 目录: %w", err)
+			return fmt.Errorf("migrate v160: создание каталога volumes/: %w", err)
 		}
 	} else {
-		return fmt.Errorf("migrate v160: 检查 volumes/ 目录: %w", err)
+		return fmt.Errorf("migrate v160: проверка каталога volumes/: %w", err)
 	}
 	gitkeep := filepath.Join(volumesDir, ".gitkeep")
 	if _, err := os.Stat(gitkeep); errors.Is(err, os.ErrNotExist) {
 		if err := os.WriteFile(filepath.Join(volumesDir, ".gitkeep"), nil, 0o644); err != nil {
-			return fmt.Errorf("migrate v160: 写入 volumes/.gitkeep: %w", err)
+			return fmt.Errorf("migrate v160: запись volumes/.gitkeep: %w", err)
 		}
 	} else if err != nil {
-		return fmt.Errorf("migrate v160: 检查 volumes/.gitkeep: %w", err)
+		return fmt.Errorf("migrate v160: проверка volumes/.gitkeep: %w", err)
 	}
 
 	// 3. 章节/大纲文件 rename：{num:03d} → id_{id}（源按旧 num 命名，目标按新 id 命名）
@@ -94,33 +94,33 @@ func migrateNovelFiles(db *gorm.DB, log *slog.Logger, novelID int64) error {
 	var rows []chRow
 	if err := db.Table("chapters").Select("id, chapter_number").
 		Where("novel_id = ?", novelID).Order("id").Scan(&rows).Error; err != nil {
-		return fmt.Errorf("migrate v160: 读取 chapters: %w", err)
+		return fmt.Errorf("migrate v160: чтение chapters: %w", err)
 	}
 	var errs []error
 	for _, r := range rows {
 		// 正文：chapters/001.md → chapters/id_1.md
 		if err := renameChapterFile(dir, chapterNumPath(r.ChapterNumber), chapterIDPath(r.ID)); err != nil {
-			log.Warn("migrate v160: 章节文件 rename 失败", "novel_id", novelID, "id", r.ID, "err", err)
-			errs = append(errs, fmt.Errorf("章节 id=%d: %w", r.ID, err))
+			log.Warn("migrate v160: failed to rename chapter file", "novel_id", novelID, "id", r.ID, "err", err)
+			errs = append(errs, fmt.Errorf("глава id=%d: %w", r.ID, err))
 		}
 		// 大纲：outlines/001.md → outlines/id_1.md
 		if err := renameChapterFile(dir, outlineNumPath(r.ChapterNumber), outlineIDPath(r.ID)); err != nil {
-			log.Warn("migrate v160: 大纲文件 rename 失败", "novel_id", novelID, "id", r.ID, "err", err)
-			errs = append(errs, fmt.Errorf("大纲 id=%d: %w", r.ID, err))
+			log.Warn("migrate v160: failed to rename outline file", "novel_id", novelID, "id", r.ID, "err", err)
+			errs = append(errs, fmt.Errorf("план id=%d: %w", r.ID, err))
 		}
 	}
 	if err := errors.Join(errs...); err != nil {
-		return fmt.Errorf("migrate v160: 章节文件未全部完成: %w", err)
+		return fmt.Errorf("migrate v160: переименование файлов глав не завершено: %w", err)
 	}
 
 	// 4. 按 novel git commit（工作区有变更才提交）
 	repo, err := git.New(novelID, "", "", log)
 	if err != nil {
-		return fmt.Errorf("migrate v160: 打开 novel git 仓库: %w", err)
+		return fmt.Errorf("migrate v160: открытие git-репозитория романа: %w", err)
 	}
 	uncommitted, err := repo.HasUncommitted()
 	if err != nil {
-		return fmt.Errorf("migrate v160: 检查 git 状态: %w", err)
+		return fmt.Errorf("migrate v160: проверка состояния git: %w", err)
 	}
 	if !uncommitted {
 		return nil
@@ -131,7 +131,7 @@ func migrateNovelFiles(db *gorm.DB, log *slog.Logger, novelID int64) error {
 	if _, err := repo.Commit("migrate: rename chapter files to id-based names"); err != nil {
 		return fmt.Errorf("migrate v160: git commit: %w", err)
 	}
-	log.Info("migrate v160: 章节文件 rename 完成", "novel_id", novelID)
+	log.Info("migrate v160: chapter file rename complete", "novel_id", novelID)
 	return nil
 }
 
@@ -162,7 +162,7 @@ func renameChapterFile(dir, srcRel, dstRel string) error {
 		return nil // 源不存在 → 该章节无正文/大纲文件
 	}
 	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
-		return fmt.Errorf("migrate v160: 创建目标目录: %w", err)
+		return fmt.Errorf("migrate v160: создание целевого каталога: %w", err)
 	}
 	if err := os.Rename(src, dst); err != nil {
 		return fmt.Errorf("migrate v160: rename %s → %s: %w", srcRel, dstRel, err)

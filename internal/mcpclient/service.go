@@ -80,7 +80,7 @@ func (s *Service) SaveConnection(input ConnectionInput) (ConnectionView, error) 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.closed {
-		return ConnectionView{}, errors.New("MCP 管理服务已关闭")
+		return ConnectionView{}, errors.New("Служба управления MCP остановлена")
 	}
 	next := cloneState(s.state)
 	index := -1
@@ -89,7 +89,7 @@ func (s *Service) SaveConnection(input ConnectionInput) (ConnectionView, error) 
 	} else {
 		index = connectionIndex(next, input.ID)
 		if index < 0 {
-			return ConnectionView{}, errors.New("MCP 连接不存在")
+			return ConnectionView{}, errors.New("MCP-соединение не найдено")
 		}
 	}
 	settings := input.ConnectionSettings
@@ -120,7 +120,7 @@ func (s *Service) DeleteConnection(id string) error {
 	next := cloneState(s.state)
 	index := connectionIndex(next, id)
 	if index < 0 {
-		return errors.New("MCP 连接不存在")
+		return errors.New("MCP-соединение не найдено")
 	}
 	next.Connections = append(next.Connections[:index], next.Connections[index+1:]...)
 	delete(next.Credentials, id)
@@ -137,7 +137,7 @@ func (s *Service) SetConnectionEnabled(id string, enabled bool) error {
 
 func (s *Service) SetToolAllowed(id, tool string, allowed bool) error {
 	if strings.TrimSpace(tool) == "" {
-		return errors.New("工具名称不能为空")
+		return errors.New("Имя инструмента не может быть пустым")
 	}
 	return s.updateConnection(id, func(c *clientcfg.Connection) {
 		if c.AllowedTools == nil {
@@ -157,7 +157,7 @@ func (s *Service) updateConnection(id string, update func(*clientcfg.Connection)
 	next := cloneState(s.state)
 	index := connectionIndex(next, id)
 	if index < 0 {
-		return errors.New("MCP 连接不存在")
+		return errors.New("MCP-соединение не найдено")
 	}
 	update(&next.Connections[index])
 	if err := s.save(next); err != nil {
@@ -179,7 +179,7 @@ func (s *Service) Tools(id string) ([]ToolView, error) {
 	defer s.mu.Unlock()
 	index := connectionIndex(s.state, id)
 	if index < 0 {
-		return nil, errors.New("MCP 连接不存在")
+		return nil, errors.New("MCP-соединение не найдено")
 	}
 	views := []ToolView{}
 	for _, tool := range s.client.Tools(id) {
@@ -197,7 +197,7 @@ func (s *Service) Close(ctx context.Context) error {
 
 func (s *Service) save(next clientcfg.State) error {
 	if s.closed {
-		return errors.New("MCP 管理服务已关闭")
+		return errors.New("Служба управления MCP остановлена")
 	}
 	if s.loadErr != nil {
 		return s.loadErr

@@ -23,7 +23,7 @@ func (a *App) ensureChapterIDsInNovel(novelID int64, ids []int64) error {
 	for i, id := range missing {
 		values[i] = fmt.Sprint(id)
 	}
-	return fmt.Errorf("章节 %s 不存在或不属于当前小说", strings.Join(values, "、"))
+	return fmt.Errorf("Главы %s не существуют или не относятся к текущему роману", strings.Join(values, ", "))
 }
 
 // CreateChapterInput 是创建章节的入参。

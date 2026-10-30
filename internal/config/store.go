@@ -33,12 +33,12 @@ func (AppSettings) TableName() string { return "app_config" }
 func LoadSettings(db *gorm.DB) (*AppSettings, error) {
 	// 确保有且只有一行（id=1）
 	if err := db.FirstOrCreate(&AppSettings{}, AppSettings{ID: 1}).Error; err != nil {
-		return nil, fmt.Errorf("读取应用配置失败: %w", err)
+		return nil, fmt.Errorf("не удалось прочитать настройки приложения: %w", err)
 	}
 
 	var s AppSettings
 	if err := db.First(&s, 1).Error; err != nil {
-		return nil, fmt.Errorf("读取应用配置失败: %w", err)
+		return nil, fmt.Errorf("не удалось прочитать настройки приложения: %w", err)
 	}
 	return &s, nil
 }
@@ -47,7 +47,7 @@ func LoadSettings(db *gorm.DB) (*AppSettings, error) {
 func SaveSettings(db *gorm.DB, s *AppSettings) error {
 	s.ID = 1 // 确保只更新同一行
 	if err := db.Save(s).Error; err != nil {
-		return fmt.Errorf("保存应用配置失败: %w", err)
+		return fmt.Errorf("не удалось сохранить настройки приложения: %w", err)
 	}
 	return nil
 }

@@ -12,13 +12,13 @@ import (
 )
 
 // ErrNotFound 卷不存在，或不属于该小说。
-var ErrNotFound = errors.New("卷不存在（或不属于当前小说）")
+var ErrNotFound = errors.New("Том не найден (или не относится к текущему роману)")
 
 // ErrNameTaken 同一小说内卷名重复。
-var ErrNameTaken = errors.New("卷名已存在")
+var ErrNameTaken = errors.New("Том с таким именем уже существует")
 
 // ErrHasChapters 卷下仍有章节，不可删除。
-var ErrHasChapters = errors.New("卷下仍有章节，请先移动或删除这些章节")
+var ErrHasChapters = errors.New("В томе остаются главы — сначала переместите или удалите эти главы")
 
 // chapterTable 是章节表名。用字面量而非 import chapter 包，
 // 避免 volume → chapter 依赖成环（chapter 侧将来要调用本包分配 sort_order）。
@@ -51,10 +51,10 @@ func (s *Store) pick(tx *gorm.DB) *gorm.DB {
 // 最终顺序会在同一事务内以两阶段写入落库，避免卷顺序唯一索引的中间态冲突。
 func (s *Store) Place(ctx context.Context, tx *gorm.DB, input PlaceInput) (*Volume, error) {
 	if input.SourceVolumeID == nil && input.Name == nil {
-		return nil, fmt.Errorf("创建卷时必须提供名称")
+		return nil, fmt.Errorf("При создании тома нужно указать название")
 	}
 	if input.SourceVolumeID != nil && input.Name != nil {
-		return nil, fmt.Errorf("移动卷时不能提供名称")
+		return nil, fmt.Errorf("При перемещении тома нельзя указывать название")
 	}
 
 	db := s.pick(tx)

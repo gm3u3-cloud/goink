@@ -875,8 +875,8 @@ func TestFinalSkill_MockLLM(t *testing.T) {
 	if !strings.Contains(raw, "逆袭模式") {
 		t.Errorf("final skill should contain 逆袭模式, got:\n%s", raw)
 	}
-	if !strings.Contains(raw, "套路模板") {
-		t.Errorf("final skill should contain 套路模板 category")
+	if !strings.Contains(raw, "pattern-template") {
+		t.Errorf("final skill should contain pattern-template category")
 	}
 }
 

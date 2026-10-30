@@ -117,7 +117,7 @@ func BuildChapterChunks(params ChapterChunkParams, t *Tokenizer) []Chunk {
 	summary := trimSpace(params.Summary)
 	title := trimSpace(params.ChapterTitle)
 	if title == "" && params.ReadingNumber > 0 {
-		title = fmt.Sprintf("第%d章", params.ReadingNumber)
+		title = fmt.Sprintf("Chapter %d", params.ReadingNumber)
 	}
 
 	baseMeta := map[string]any{

@@ -693,10 +693,10 @@ func TestInferTitle_Comprehensive(t *testing.T) {
 		{"/path/to/小说名.txt", "小说名"},
 		{"C:\\Users\\test\\book.txt", "book"},
 		{"noext", "noext"},
-		{".hidden", "未命名"}, // 点开头的文件名：最后一个点是扩展名分隔符，基名为空
+		{".hidden", "Без названия"}, // 点开头的文件名：最后一个点是扩展名分隔符，基名为空
 		{"a.b.c.txt", "a.b.c"},
 		{"结尾下划线_.txt", "结尾下划线"},
-		{"", "未命名"},
+		{"", "Без названия"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.input, func(t *testing.T) {

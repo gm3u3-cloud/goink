@@ -41,9 +41,9 @@ func (s *VectorStore) ensureTable(ctx context.Context, novelID int64) error {
 	// 迁移：旧表无 start_position 列时重建。列不存在和查询出错需区分处理。
 	hasCol, colErr := tableHasColumn(ctx, s.db, tableName, "start_position")
 	if colErr != nil {
-		s.log.Warn("rag: 检查列失败，跳过迁移", "table", tableName, "err", colErr)
+		s.log.Warn("rag: column check failed, skipping migration", "table", tableName, "err", colErr)
 	} else if !hasCol {
-		s.log.Info("rag: 旧表缺少 start_position 列，重建中", "table", tableName)
+		s.log.Info("rag: legacy table missing start_position column, rebuilding", "table", tableName)
 		if _, err := s.db.ExecContext(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %s", tableName)); err != nil {
 			return fmt.Errorf("rag: drop old vec table %s: %w", tableName, err)
 		}
@@ -52,7 +52,7 @@ func (s *VectorStore) ensureTable(ctx context.Context, novelID int64) error {
 	// vec0 虚拟表不支持改列名，只能重建为新 schema（chapter_id 列）。
 	// 向量是派生索引，丢失后由 RebuildAll 覆盖度检查自动重建，无需数据搬迁。
 	if hasOld, _ := tableHasColumn(ctx, s.db, tableName, "chapter_number"); hasOld {
-		s.log.Warn("rag: 旧表仍含 chapter_number 列，重建为新 schema", "table", tableName)
+		s.log.Warn("rag: legacy table still has chapter_number column, rebuilding with new schema", "table", tableName)
 		if _, err := s.db.ExecContext(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %s", tableName)); err != nil {
 			return fmt.Errorf("rag: drop legacy vec table %s: %w", tableName, err)
 		}
@@ -83,7 +83,7 @@ func (s *VectorStore) tableExists(ctx context.Context, novelID int64) (bool, err
 	if err := s.db.QueryRowContext(ctx,
 		"SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?",
 		s.tableName(novelID)).Scan(&n); err != nil {
-		return false, fmt.Errorf("rag: 检查向量表是否存在: %w", err)
+		return false, fmt.Errorf("rag: не удалось проверить наличие таблицы векторов: %w", err)
 	}
 	return n > 0, nil
 }
@@ -134,7 +134,7 @@ func (s *VectorStore) IndexChunks(ctx context.Context, novelID int64, chunks []C
 		return fmt.Errorf("rag: commit tx: %w", err)
 	}
 
-	s.log.Info("向量索引完成", "novel_id", novelID, "chunks", len(chunks))
+	s.log.Info("vector index completed", "novel_id", novelID, "chunks", len(chunks))
 	return nil
 }
 
@@ -232,7 +232,7 @@ func (s *VectorStore) Search(ctx context.Context, novelID int64, query string, t
 		return nil, fmt.Errorf("rag: iterate results: %w", err)
 	}
 
-	s.log.Info("向量检索完成", "novel_id", novelID, "query_len", len([]rune(query)), "results", len(results))
+	s.log.Info("vector search completed", "novel_id", novelID, "query_len", len([]rune(query)), "results", len(results))
 	return results, nil
 }
 
@@ -247,7 +247,7 @@ func (s *VectorStore) DeleteChapterChunks(ctx context.Context, novelID int64, ch
 	if err != nil {
 		return fmt.Errorf("rag: delete chapter %d chunks: %w", chapterID, err)
 	}
-	s.log.Info("已删除章节向量", "novel_id", novelID, "chapter_id", chapterID)
+	s.log.Info("chapter vectors deleted", "novel_id", novelID, "chapter_id", chapterID)
 	return nil
 }
 
@@ -336,7 +336,7 @@ func (s *VectorStore) DeleteNovel(ctx context.Context, novelID int64) error {
 		return fmt.Errorf("rag: drop table for novel %d: %w", novelID, err)
 	}
 	s.ensuredOnce.Delete(novelID)
-	s.log.Info("已删除小说向量表", "novel_id", novelID)
+	s.log.Info("novel vector table dropped", "novel_id", novelID)
 	return nil
 }
 

@@ -101,7 +101,7 @@ func (a *App) DeleteSession(sessionID string) error {
 		return fmt.Errorf("app: session store not initialized")
 	}
 	if a.agent.IsRunning(sessionID) {
-		return fmt.Errorf("对话进行中，无法删除该会话，请等待对话完成或先停止")
+		return fmt.Errorf("Диалог в процессе, нельзя удалить этот сеанс. Дождитесь его завершения или остановите его")
 	}
 	if err := a.session.Delete(a.ctx, sessionID); err != nil {
 		a.logger.Error("failed to delete session", "session_id", sessionID, "err", err)

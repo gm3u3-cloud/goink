@@ -40,10 +40,10 @@ func exportEpub(n *novel.Novel, chapters []ChapterWithContent, author string) ([
 		ch := cc.Chapter
 		var buf bytes.Buffer
 		if err := md.Convert([]byte(cc.Content), &buf); err != nil {
-			return nil, "", fmt.Errorf("epub: 第%d章 markdown 转换失败: %w", ch.ReadingNumber, err)
+			return nil, "", fmt.Errorf("epub: не удалось преобразовать markdown главы %d: %w", ch.ReadingNumber, err)
 		}
 
-		title := fmt.Sprintf("第%d章 %s", ch.ReadingNumber, ch.Title)
+		title := fmt.Sprintf("Глава %d %s", ch.ReadingNumber, ch.Title)
 		sectionBody := fmt.Sprintf(`<html>
 <head><style>%s</style></head>
 <body><h1>%s</h1>
@@ -51,13 +51,13 @@ func exportEpub(n *novel.Novel, chapters []ChapterWithContent, author string) ([
 </html>`, epubCSS, title, buf.String())
 
 		if _, err := e.AddSection(sectionBody, title, title, ""); err != nil {
-			return nil, "", fmt.Errorf("epub: 添加章节失败: %w", err)
+			return nil, "", fmt.Errorf("epub: не удалось добавить главу: %w", err)
 		}
 	}
 
 	var out bytes.Buffer
 	if _, err := e.WriteTo(&out); err != nil {
-		return nil, "", fmt.Errorf("epub: 写入失败: %w", err)
+		return nil, "", fmt.Errorf("epub: не удалось записать: %w", err)
 	}
 
 	filename, err := DefaultFilename(n, "epub")

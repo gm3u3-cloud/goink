@@ -43,7 +43,7 @@ func (s *Store) InitTracking(ctx context.Context) {
 		}},
 	}).Create(&settings).Error
 	if err != nil {
-		s.logger.Warn("初始化创作统计起点失败", "err", err)
+		s.logger.Warn("failed to initialize tracking start", "err", err)
 	}
 }
 
@@ -55,7 +55,7 @@ func (s *Store) AddActivity(ctx context.Context, delta ActivityDelta) {
 	}
 	if !nonNegative(delta.NovelsCreated, delta.ChaptersCreated, delta.CharactersCreated,
 		delta.LocationsCreated, delta.CreativeSeconds, delta.ConversationTurns, delta.ToolCalls) {
-		s.logger.Warn("忽略负数创作统计增量")
+		s.logger.Warn("ignoring negative activity delta")
 		return
 	}
 	record := DailyActivity{Date: s.now().Format(time.DateOnly), ActivityDelta: delta}
@@ -72,7 +72,7 @@ func (s *Store) AddActivity(ctx context.Context, delta ActivityDelta) {
 		}),
 	}).Create(&record).Error
 	if err != nil {
-		s.logger.Warn("记录每日创作统计失败", "date", record.Date, "err", err)
+		s.logger.Warn("failed to record daily activity", "date", record.Date, "err", err)
 	}
 }
 
@@ -81,7 +81,7 @@ func (s *Store) AddActivity(ctx context.Context, delta ActivityDelta) {
 func (s *Store) AddLLMUsage(ctx context.Context, provider, model, purpose string, usage TokenUsage) {
 	if !nonNegative(usage.InputTokens, usage.OutputTokens, usage.TotalTokens,
 		usage.CacheHitTokens, usage.CacheMissTokens, usage.ReasoningTokens) {
-		s.logger.Warn("忽略负数 Token 统计增量", "provider", provider, "model", model)
+		s.logger.Warn("ignoring negative token usage delta", "provider", provider, "model", model)
 		return
 	}
 	record := DailyLLMUsage{
@@ -105,7 +105,7 @@ func (s *Store) AddLLMUsage(ctx context.Context, provider, model, purpose string
 		}),
 	}).Create(&record).Error
 	if err != nil {
-		s.logger.Warn("记录每日 Token 用量失败", "date", record.Date, "provider", provider, "model", model, "err", err)
+		s.logger.Warn("failed to record daily token usage", "date", record.Date, "provider", provider, "model", model, "err", err)
 	}
 }
 

@@ -46,13 +46,13 @@ func backupBeforeMigrate(db *gorm.DB, log *slog.Logger, migration string) error 
 	db.Model(&engine.MigrateState{}).Where("migration = ?", migration).Count(&total)
 	db.Model(&engine.MigrateState{}).Where("migration = ? AND status = ?", migration, "done").Count(&done)
 	if total > 0 && total == done {
-		log.Info("迁移已完成，跳过备份", "migration", migration)
+		log.Info("migration already completed, skipping backup", "migration", migration)
 		return nil
 	}
 
 	// DB 不存在（无数据库文件）→ 无需备份
 	if _, err := os.Stat(config.GlobalDBPath()); err != nil {
-		log.Info("无数据库文件，跳过备份")
+		log.Info("no database file, skipping backup")
 		return nil
 	}
 
@@ -61,7 +61,7 @@ func backupBeforeMigrate(db *gorm.DB, log *slog.Logger, migration string) error 
 
 	// 完整备份已存在 → 跳过（迁移名目录天然幂等）
 	if _, err := os.Stat(dest); err == nil {
-		log.Info("备份已存在，跳过", "backup", dest)
+		log.Info("backup already exists, skipping", "backup", dest)
 		return nil
 	}
 
@@ -99,7 +99,7 @@ func backupBeforeMigrate(db *gorm.DB, log *slog.Logger, migration string) error 
 		return fmt.Errorf("backup: rename to %s: %w", dest, err)
 	}
 
-	log.Info("迁移前备份完成", "backup", dest)
+	log.Info("pre-migration backup complete", "backup", dest)
 	return nil
 }
 
@@ -203,7 +203,7 @@ func waitForSQLiteBackupRetry(ctx context.Context, attempt int) error {
 // removeTmp 删除临时备份目录，失败仅告警（残留会被下次启动 cleanupStaleTempBackups 清理）。
 func removeTmp(log *slog.Logger, tmp string) {
 	if err := os.RemoveAll(tmp); err != nil {
-		log.Warn("清理临时备份目录失败（残留下次启动清理）", "path", tmp, "err", err)
+		log.Warn("failed to clean up temporary backup directory (leftover will be cleaned on next start)", "path", tmp, "err", err)
 	}
 }
 
@@ -218,10 +218,10 @@ func cleanupStaleTempBackups(backupRoot, name string, log *slog.Logger) {
 		if e.IsDir() && strings.HasPrefix(e.Name(), prefix) {
 			p := filepath.Join(backupRoot, e.Name())
 			if err := os.RemoveAll(p); err != nil {
-				log.Warn("清理残留临时备份失败", "path", p, "err", err)
+				log.Warn("failed to clean up leftover temporary backup", "path", p, "err", err)
 				continue
 			}
-			log.Info("清理残留临时备份", "path", p)
+			log.Info("cleaned up leftover temporary backup", "path", p)
 		}
 	}
 }

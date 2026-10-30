@@ -31,7 +31,7 @@ func FormatPreferences(items []PreferenceItem) (string, int) {
 	global, novelPrefs := splitByGlobal(items)
 
 	var b strings.Builder
-	b.WriteString("【偏好】\n")
+	b.WriteString("Preferences\n")
 	used, _ := llm.CountTokens(b.String())
 
 	totalWritten := 0
@@ -41,8 +41,8 @@ func FormatPreferences(items []PreferenceItem) (string, int) {
 		name  string
 		items []PreferenceItem
 	}{
-		{"全局偏好（所有小说生效）", global},
-		{"本小说专属偏好", novelPrefs},
+		{"Global preferences (apply to all novels)", global},
+		{"Novel-specific preferences", novelPrefs},
 	} {
 		if len(group.items) == 0 || budgetExceeded {
 			continue
@@ -71,7 +71,7 @@ func FormatPreferences(items []PreferenceItem) (string, int) {
 	}
 
 	if truncated := len(items) - totalWritten; truncated > 0 {
-		fmt.Fprintf(&b, "\n⚠️ 偏好总量超过 %d token 软上限，已保留最新 %d 条，被截断 %d 条。请优先用 upsert_preference 合并已有条目（基于 id 更新 content，把多条偏好合并为一条）而非新建，避免预算持续膨胀。\n",
+		fmt.Fprintf(&b, "\n⚠️ Total preferences exceed the %d-token soft limit. The %d most recent entries are kept and %d were truncated. Prefer merging existing entries with upsert_preference (update content by id, merging multiple preferences into one) over creating new ones, to avoid the budget growing.\n",
 			PreferencesTokenBudget, totalWritten, truncated)
 		return b.String(), truncated
 	}
@@ -87,16 +87,16 @@ func CountPreferencesTokens(items []PreferenceItem) (int, error) {
 		return 0, nil
 	}
 	var b strings.Builder
-	b.WriteString("【偏好】\n")
+	b.WriteString("Preferences\n")
 	global, novelPrefs := splitByGlobal(items)
 	if len(global) > 0 {
-		b.WriteString("\n#### 全局偏好（所有小说生效）\n")
+		b.WriteString("\n#### Global preferences (apply to all novels)\n")
 		for _, item := range global {
 			fmt.Fprintf(&b, "- [preference_id:%d | %s] %s\n", item.ID, item.Category, item.Content)
 		}
 	}
 	if len(novelPrefs) > 0 {
-		b.WriteString("\n#### 本小说专属偏好\n")
+		b.WriteString("\n#### Novel-specific preferences\n")
 		for _, item := range novelPrefs {
 			fmt.Fprintf(&b, "- [preference_id:%d | %s] %s\n", item.ID, item.Category, item.Content)
 		}

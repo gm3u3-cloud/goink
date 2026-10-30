@@ -55,7 +55,7 @@ type CreateStoryArcInput struct {
 // CreateStoryArc 创建一条叙事弧线。
 func (a *App) CreateStoryArc(novelID int64, input CreateStoryArcInput) (*storyarc.StoryArc, error) {
 	if input.Name == "" || input.ArcType == "" {
-		return nil, fmt.Errorf("弧线名称和类型不能为空")
+		return nil, fmt.Errorf("Имя и тип дуги сюжета не могут быть пустыми")
 	}
 	arc := storyarc.StoryArc{
 		NovelID:     novelID,
@@ -133,7 +133,7 @@ type CreateArcNodeInput struct {
 // CreateArcNode 创建弧线节点。
 func (a *App) CreateArcNode(novelID int64, input CreateArcNodeInput) (*storyarc.ArcNode, error) {
 	if input.Title == "" || input.StoryArcID == 0 || input.TargetReadingNumber == 0 {
-		return nil, fmt.Errorf("节点标题、所属弧线、目标章节不能为空")
+		return nil, fmt.Errorf("Название узла, связанная дуга и целевая глава не могут быть пустыми")
 	}
 	node := storyarc.ArcNode{
 		NovelID:             novelID,

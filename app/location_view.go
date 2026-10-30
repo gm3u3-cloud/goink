@@ -44,7 +44,7 @@ type CreateLocationInput struct {
 // CreateLocation 创建一个地点。
 func (a *App) CreateLocation(novelID int64, input CreateLocationInput) (*location.Location, error) {
 	if input.Name == "" {
-		return nil, fmt.Errorf("地点名称不能为空")
+		return nil, fmt.Errorf("Название места не может быть пустым")
 	}
 	loc := location.Location{
 		NovelID:          novelID,

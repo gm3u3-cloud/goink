@@ -82,7 +82,7 @@ func (a *Agent) updateUsage(ctx context.Context, apiUsage map[string]any, runnin
 
 	if b, err := json.Marshal(usage); err == nil {
 		if err := a.session.UpdateSessionUsage(ctx, opts.SessionID, string(b)); err != nil {
-			a.logger.Warn("持久化 usage 失败", "err", err)
+			a.logger.Warn("failed to persist usage", "err", err)
 		}
 	}
 

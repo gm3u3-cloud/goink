@@ -72,7 +72,7 @@ func (a *App) beginInitialization(from StartupPhase) error {
 	// 重跑一遍 initWithConfig（重开数据库、重跑迁移）。检查放在锁外：from 是调用方
 	// 传入的参数，不读共享状态，无需持锁。
 	if from == PhaseReady {
-		return errors.New("应用已就绪，无需再次初始化")
+		return errors.New("Приложение уже готово, повторная инициализация не требуется")
 	}
 
 	a.startupMu.Lock()
@@ -80,9 +80,9 @@ func (a *App) beginInitialization(from StartupPhase) error {
 	if current != from {
 		a.startupMu.Unlock()
 		if current == PhaseInitializing {
-			return errors.New("应用正在初始化，请稍候")
+			return errors.New("Приложение инициализируется, подождите")
 		}
-		return fmt.Errorf("当前启动状态为 %q，不能开始初始化", current)
+		return fmt.Errorf("Текущее состояние запуска: %q, инициализация невозможна", current)
 	}
 	snapshot := a.setStartupStateLocked(PhaseInitializing, "")
 	ready := a.frontendReady

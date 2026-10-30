@@ -46,7 +46,7 @@ func TestCreateCharacter_EmptyName(t *testing.T) {
 		Name: "",
 	})
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "角色名称不能为空")
+	assert.Contains(t, err.Error(), "Имя персонажа не может быть пустым")
 }
 
 func TestGetCharacters_AfterCreate(t *testing.T) {

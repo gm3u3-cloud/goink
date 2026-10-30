@@ -43,7 +43,7 @@ func (a *App) Chat(input ChatInput) (*ChatResult, error) {
 	// 1. 验证模型（最早失败，不污染 DB）
 	model, ok := a.llmClient.ProviderModel(input.ProviderName, input.ModelID)
 	if !ok {
-		return nil, fmt.Errorf("模型未找到: %s/%s", input.ProviderName, input.ModelID)
+		return nil, fmt.Errorf("модель не найдена: %s/%s", input.ProviderName, input.ModelID)
 	}
 
 	ctx, cancel := context.WithCancel(a.ctx)
@@ -52,7 +52,7 @@ func (a *App) Chat(input ChatInput) (*ChatResult, error) {
 	// 2. 加载或创建 Session
 	sess, isNew, err := a.loadOrCreateSession(ctx, input)
 	if err != nil {
-		return nil, fmt.Errorf("session 初始化失败: %w", err)
+		return nil, fmt.Errorf("не удалось инициализировать сессию: %w", err)
 	}
 
 	a.agent.Cancel(sess.SessionID)
@@ -71,14 +71,14 @@ func (a *App) Chat(input ChatInput) (*ChatResult, error) {
 	// 4. 获取下一个 turn ID
 	turnID, err := a.session.NextTurn(ctx, sess.SessionID)
 	if err != nil {
-		return nil, fmt.Errorf("获取 turn ID 失败: %w", err)
+		return nil, fmt.Errorf("не удалось получить turn ID: %w", err)
 	}
 
 	// 5. 打开 git 仓库，提交用户在对话间隙的手动编辑
 	s := a.settingsSnapshot()
 	repo, repoErr := git.New(input.NovelID, s.GitName, s.GitEmail, a.logger)
 	if repoErr != nil {
-		a.logger.Warn("auto-commit: 打开 git 仓库失败，跳过本轮自动提交", "err", repoErr)
+		a.logger.Warn("auto-commit: failed to open git repo, skipping auto-commit for this turn", "err", repoErr)
 	} else {
 		a.commitUserChanges(repo, turnID, sess.SessionID)
 		defer a.commitAIChanges(repo, turnID, sess.SessionID, model.Name)
@@ -105,7 +105,7 @@ func (a *App) Chat(input ChatInput) (*ChatResult, error) {
 		var buildErr error
 		sysMsgs, buildErr = agentcfg.BuildSystemMessages(ctx, a.db, input.NovelID, a.skill)
 		if buildErr != nil {
-			a.logger.Warn("构建 system 消息部分失败", "novel_id", input.NovelID, "err", buildErr)
+			a.logger.Warn("failed to build part of system messages", "novel_id", input.NovelID, "err", buildErr)
 		}
 	}
 	userMsg := &session.Message{
@@ -140,7 +140,7 @@ func (a *App) Chat(input ChatInput) (*ChatResult, error) {
 		}
 		return tx.Create(userMsg).Error
 	}); err != nil {
-		return nil, fmt.Errorf("持久化消息失败: %w", err)
+		return nil, fmt.Errorf("не удалось сохранить сообщение: %w", err)
 	}
 	if a.activity != nil {
 		a.activity.AddActivity(ctx, activity.ActivityDelta{ConversationTurns: 1})
@@ -153,7 +153,7 @@ func (a *App) Chat(input ChatInput) (*ChatResult, error) {
 	// 8. 构建消息列表：全部来自 DB（含系统消息/历史/用户消息）
 	messages, err := a.loadAPIMessages(ctx, sess.SessionID, sess.ActiveVersion)
 	if err != nil {
-		return nil, fmt.Errorf("加载 API 消息失败: %w", err)
+		return nil, fmt.Errorf("не удалось загрузить API-сообщения: %w", err)
 	}
 
 	// 9. 运行 Agent 循环
@@ -178,7 +178,7 @@ func (a *App) Chat(input ChatInput) (*ChatResult, error) {
 
 	// 10. 最终回复已由 agent.Run() 内部 appendMsg 持久化，此处不重复存储
 	if runErr != nil {
-		a.logger.Error("对话失败", "err", runErr)
+		a.logger.Error("conversation failed", "err", runErr)
 		eventType := session.EventSystemInterrupted
 		if errors.Is(runErr, context.Canceled) {
 			eventType = session.EventUserStopped
@@ -339,14 +339,14 @@ func (a *App) generateTitle(sessionID, userMessage, providerName, modelID string
 	messages := []map[string]any{
 		{
 			"role":    "system",
-			"content": "基于用户消息，生成一个不超过10个字的对话标题。只需输出标题文本，不要添加引号、标点或者额外解释。",
+			"content": "Based on the user message, generate a short conversation title of no more than 10 words. Output only the title text, without quotes, punctuation, or extra explanation.",
 		},
 		{"role": "user", "content": userMessage},
 	}
 
 	title, err := a.llmClient.GenerateText(ctx, providerName, messages, modelID)
 	if err != nil {
-		a.logger.Warn("自动生成标题失败", "err", err)
+		a.logger.Warn("failed to auto-generate title", "err", err)
 		return
 	}
 
@@ -359,7 +359,7 @@ func (a *App) generateTitle(sessionID, userMessage, providerName, modelID string
 	}
 
 	if err := a.session.UpdateSessionMeta(a.ctx, sessionID, title, "", ""); err != nil {
-		a.logger.Warn("更新标题失败", "err", err)
+		a.logger.Warn("failed to update title", "err", err)
 		return
 	}
 
@@ -402,31 +402,31 @@ type CompressResult struct {
 // CompressContext 手动触发上下文压缩。仅在无进行中 turn 时允许。
 func (a *App) CompressContext(input CompressInput) (*CompressResult, error) {
 	if a.agent.IsRunning(input.SessionID) {
-		return nil, fmt.Errorf("对话进行中，无法手动压缩上下文，请等待当前对话完成")
+		return nil, fmt.Errorf("идёт разговор, ручное сжатие контекста недоступно, дождитесь окончания текущего разговора")
 	}
 
 	// 1. 加载 Session
 	var sess session.Session
 	if err := a.session.DB.Where("session_id = ?", input.SessionID).First(&sess).Error; err != nil {
-		return nil, fmt.Errorf("session 不存在: %w", err)
+		return nil, fmt.Errorf("сессия не найдена: %w", err)
 	}
 
 	// 2. 查找模型
 	model, ok := a.llmClient.ProviderModel(input.ProviderName, input.ModelID)
 	if !ok {
-		return nil, fmt.Errorf("模型未找到: %s/%s", input.ProviderName, input.ModelID)
+		return nil, fmt.Errorf("модель не найдена: %s/%s", input.ProviderName, input.ModelID)
 	}
 
 	// 3. 获取下一个 turn ID（手动压缩独立成一个 turn）
 	turnID, err := a.session.NextTurn(context.Background(), sess.SessionID)
 	if err != nil {
-		return nil, fmt.Errorf("获取 turn ID 失败: %w", err)
+		return nil, fmt.Errorf("не удалось получить turn ID: %w", err)
 	}
 
 	// 4. 构建消息列表：全部来自 DB
 	messages, err := a.loadAPIMessages(context.Background(), sess.SessionID, sess.ActiveVersion)
 	if err != nil {
-		return nil, fmt.Errorf("加载 API 消息失败: %w", err)
+		return nil, fmt.Errorf("не удалось загрузить API-сообщения: %w", err)
 	}
 
 	// 5. 创建上下文（含 cancel，支持打断）
@@ -462,7 +462,7 @@ func (a *App) CompressContext(input CompressInput) (*CompressResult, error) {
 func (a *App) commitUserChanges(repo *git.Repo, turnID int, sessionID string) {
 	has, err := repo.HasUncommitted()
 	if err != nil {
-		a.logger.Warn("auto-commit: 检查未提交变更失败", "err", err)
+		a.logger.Warn("auto-commit: failed to check uncommitted changes", "err", err)
 		return
 	}
 	if !has {
@@ -478,7 +478,7 @@ func (a *App) commitUserChanges(repo *git.Repo, turnID int, sessionID string) {
 func (a *App) commitAIChanges(repo *git.Repo, turnID int, sessionID string, modelName string) {
 	has, err := repo.HasUncommitted()
 	if err != nil {
-		a.logger.Warn("auto-commit: 检查未提交变更失败", "err", err)
+		a.logger.Warn("auto-commit: failed to check uncommitted changes", "err", err)
 		return
 	}
 	if !has {
@@ -492,13 +492,13 @@ func (a *App) commitAIChanges(repo *git.Repo, turnID int, sessionID string, mode
 // doCommit 执行 git add + commit，并将 hash 写入 turn_commits 表。
 func (a *App) doCommit(repo *git.Repo, turnID int, sessionID, commitType, msg string) {
 	if err := repo.StageAll(); err != nil {
-		a.logger.Warn("auto-commit: git add 失败", "err", err)
+		a.logger.Warn("auto-commit: git add failed", "err", err)
 		return
 	}
 
 	hash, err := repo.Commit(msg)
 	if err != nil {
-		a.logger.Warn("auto-commit: git commit 失败", "err", err)
+		a.logger.Warn("auto-commit: git commit failed", "err", err)
 		return
 	}
 
@@ -509,9 +509,9 @@ func (a *App) doCommit(repo *git.Repo, turnID int, sessionID, commitType, msg st
 		CommitHash: hash,
 	}
 	if err := a.db.Create(tc).Error; err != nil {
-		a.logger.Warn("auto-commit: 写入 turn_commits 失败", "err", err)
+		a.logger.Warn("auto-commit: failed to write turn_commits", "err", err)
 		return
 	}
 
-	a.logger.Info("auto-commit: 提交成功", "turn", turnID, "type", commitType, "hash", hash[:7])
+	a.logger.Info("auto-commit: commit succeeded", "turn", turnID, "type", commitType, "hash", hash[:7])
 }

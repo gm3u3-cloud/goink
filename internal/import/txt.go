@@ -80,7 +80,7 @@ func parseTxt(filePath string) (*Result, error) {
 		return nil, err
 	}
 	if strings.TrimSpace(content) == "" {
-		return nil, fmt.Errorf("文件内容为空")
+		return nil, fmt.Errorf("Содержимое файла пусто")
 	}
 
 	title := inferTitle(filePath)
@@ -216,7 +216,7 @@ func parseTxt(filePath string) (*Result, error) {
 func readFileContent(filePath string) (string, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return "", fmt.Errorf("读取文件失败: %w", err)
+		return "", fmt.Errorf("Не удалось прочитать файл: %w", err)
 	}
 	content, err := DecodeText(data)
 	if err != nil {
@@ -235,7 +235,7 @@ func DecodeText(data []byte) (string, error) {
 	}
 	decoded, err := simplifiedchinese.GB18030.NewDecoder().Bytes(data)
 	if err != nil {
-		return "", fmt.Errorf("文本编码不是 UTF-8，按 GB18030 解码也失败: %w", err)
+		return "", fmt.Errorf("Кодировка текста не UTF-8, декодирование GB18030 также не удалось: %w", err)
 	}
 	return string(decoded), nil
 }
@@ -264,7 +264,7 @@ func inferTitle(filePath string) string {
 	name = strings.TrimSuffix(name, "_")
 
 	if name == "" {
-		name = "未命名"
+		name = "Без названия"
 	}
 	return name
 }
@@ -380,7 +380,7 @@ func splitByPositions(content string, positions []matchLine) []Chapter {
 		chapTitle = stripChapterPrefix(chapTitle)
 
 		if chapTitle == "" {
-			chapTitle = fmt.Sprintf("第%d章", i+1)
+			chapTitle = fmt.Sprintf("Глава %d", i+1)
 		}
 
 		chapters = append(chapters, Chapter{

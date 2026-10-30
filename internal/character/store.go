@@ -40,7 +40,7 @@ func (s *Store) ListByNovel(ctx context.Context, novelID int64, opts ListByNovel
 	q := s.DB.WithContext(ctx).Model(&Character{}).Where("novel_id = ?", novelID)
 	if opts.GroupID != nil {
 		if *opts.GroupID < 0 {
-			return nil, fmt.Errorf("分组 ID 不能为负数")
+			return nil, fmt.Errorf("ID группы не может быть отрицательным")
 		}
 		members := s.DB.WithContext(ctx).Model(&GroupMember{}).
 			Select("character_id").Where("novel_id = ?", novelID)

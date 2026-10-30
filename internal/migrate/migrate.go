@@ -37,18 +37,18 @@ func Run(db *gorm.DB, log *slog.Logger) error {
 	// 跳过历史迁移；migrate_state 和 SQLite 内部表不计入业务表。
 	isNewDatabase, err := isNewDatabase(db)
 	if err != nil {
-		return fmt.Errorf("migrate: 检查数据库是否为新库: %w", err)
+		return fmt.Errorf("migrate: проверка, новая ли база данных: %w", err)
 	}
 
 	// 0. 先建 migrate_state 表：backup 的"本迁移组 done 判断"依赖它存在；
 	//    只建这一张表，不触发业务表 schema 变化，保证后续计划仍面对原始 schema。
 	if err := db.AutoMigrate(&engine.MigrateState{}); err != nil {
-		return fmt.Errorf("migrate: migrate_state 表: %w", err)
+		return fmt.Errorf("migrate: таблица migrate_state: %w", err)
 	}
 
 	plans, err := engine.BuildPlans(db, log, isNewDatabase, engine.Registry)
 	if err != nil {
-		return fmt.Errorf("migrate: 生成迁移计划: %w", err)
+		return fmt.Errorf("migrate: формирование плана миграции: %w", err)
 	}
 	// 对无需执行的迁移，计划一经原始 schema 判定便立即登记 done。后续的
 	// AutoMigrate 可能暂时制造新旧列共存；必须在此之前持久化判定结果，才能让
@@ -64,7 +64,7 @@ func Run(db *gorm.DB, log *slog.Logger) error {
 			continue
 		}
 		if err := backupBeforeMigrate(db, log, plan.Migration.Name); err != nil {
-			return fmt.Errorf("migrate: 破坏性迁移前备份失败，迁移未执行 (%s): %w", plan.Migration.Name, err)
+			return fmt.Errorf("migrate: резервное копирование перед разрушающей миграцией не выполнено, миграция не запущена (%s): %w", plan.Migration.Name, err)
 		}
 	}
 	for _, plan := range plans {
@@ -114,7 +114,7 @@ func Run(db *gorm.DB, log *slog.Logger) error {
 	// 变化前登记完成，避免中断后把当前 migration 的中间 schema 误判为历史 schema。
 	for _, plan := range plans {
 		if plan.Action == engine.PlanRun {
-			log.Info("执行迁移", "migration", plan.Migration.Name, "description", plan.Migration.Description)
+			log.Info("running migration", "migration", plan.Migration.Name, "description", plan.Migration.Description)
 			if err := engine.RunSteps(db, log, plan.Migration.Name, plan.Migration.PostSchemaSteps); err != nil {
 				return err
 			}
@@ -126,10 +126,10 @@ func Run(db *gorm.DB, log *slog.Logger) error {
 	// 因同名不补建当前 chapter_id 的索引，drop-legacy 删除旧列时便会一并删掉它。
 	// 所有迁移步骤完成后再次按当前 model 对齐，补回这类被历史 DDL 遮蔽或删除的索引。
 	if err := db.AutoMigrate(models...); err != nil {
-		return fmt.Errorf("migrate: 迁移后 schema 对齐: %w", err)
+		return fmt.Errorf("migrate: приведение схемы в соответствие после миграции: %w", err)
 	}
 
-	log.Info("数据库迁移完成", "tables", len(models))
+	log.Info("database migration complete", "tables", len(models))
 	return nil
 }
 
@@ -141,7 +141,7 @@ func markPlannedDone(db *gorm.DB, log *slog.Logger, plans []engine.Plan) error {
 			continue
 		}
 		if err := engine.MarkStepsDone(db, log, plan.Migration.Name, plan.Migration.AllSteps()); err != nil {
-			return fmt.Errorf("migrate: 登记无需执行的迁移 %s: %w", plan.Migration.Name, err)
+			return fmt.Errorf("migrate: отметка миграции, не требующей выполнения, %s: %w", plan.Migration.Name, err)
 		}
 	}
 	return nil

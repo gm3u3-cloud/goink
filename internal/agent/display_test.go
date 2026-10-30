@@ -25,18 +25,18 @@ func TestBuildDisplay_UsesChapterIDAndReadingNumber(t *testing.T) {
 	a := &Agent{chapterStore: chapter.NewStore(db, slog.New(slog.NewTextHandler(io.Discard, nil)))}
 
 	got := a.buildDisplay(ctx, "read", map[string]any{"path": "chapters/id_42.md"}, mcp_tools.PhaseCompleted, 1)
-	if got.DisplayText != "查看 第1章 开篇" {
-		t.Errorf("display text = %q, want %q", got.DisplayText, "查看 第1章 开篇")
+	if got.DisplayText != "Просмотр Глава 1 开篇" {
+		t.Errorf("display text = %q, want %q", got.DisplayText, "Просмотр Глава 1 开篇")
 	}
 
 	got = a.buildDisplay(ctx, "edit", map[string]any{"chapter_id": float64(7)}, mcp_tools.PhaseCompleted, 1)
-	if got.DisplayText != "编辑 第2章 后续" {
-		t.Errorf("display text = %q, want %q", got.DisplayText, "编辑 第2章 后续")
+	if got.DisplayText != "Редактирование Глава 2 后续" {
+		t.Errorf("display text = %q, want %q", got.DisplayText, "Редактирование Глава 2 后续")
 	}
 
 	got = a.buildDisplay(ctx, "read", map[string]any{"path": "outlines/8/id_42.md"}, mcp_tools.PhaseCompleted, 1)
-	if got.DisplayText != "查看 第1章 开篇大纲" {
-		t.Errorf("display text = %q, want %q", got.DisplayText, "查看 第1章 开篇大纲")
+	if got.DisplayText != "Просмотр Глава 1 开篇план" {
+		t.Errorf("display text = %q, want %q", got.DisplayText, "Просмотр Глава 1 开篇план")
 	}
 }
 
@@ -44,8 +44,8 @@ func TestBuildDisplay_ChapterLookupFallbackUsesID(t *testing.T) {
 	a := &Agent{chapterStore: chapter.NewStore(newDisplayTestDB(t), slog.New(slog.NewTextHandler(io.Discard, nil)))}
 
 	got := a.buildDisplay(context.Background(), "read", map[string]any{"chapter_id": int64(42)}, mcp_tools.PhaseCompleted, 1)
-	if got.DisplayText != "查看 章节（ID: 42）" {
-		t.Errorf("display text = %q, want %q", got.DisplayText, "查看 章节（ID: 42）")
+	if got.DisplayText != "Просмотр Глава (ID: 42)" {
+		t.Errorf("display text = %q, want %q", got.DisplayText, "Просмотр Глава (ID: 42)")
 	}
 }
 
@@ -81,14 +81,14 @@ func TestBuildDisplayRunMCP(t *testing.T) {
 		phase  mcp_tools.DisplayPhase
 		want   string
 	}{
-		{"get_volumes", mcp_tools.PhaseExecuting, "正在查看分卷"},
-		{"get_volumes", mcp_tools.PhaseCompleted, "查看分卷"},
-		{"get_volumes", mcp_tools.PhaseFailed, "查看分卷"},
-		{"place_volume", mcp_tools.PhaseCompleted, "创建或移动分卷"},
-		{"update_volume", mcp_tools.PhaseCompleted, "重命名分卷"},
-		{"unknown_extension", mcp_tools.PhaseCompleted, "调用 unknown_extension"},
-		{"run_mcp", mcp_tools.PhaseFailed, "调用按需工具"},
-		{"", mcp_tools.PhaseSelected, "正在调用按需工具"},
+		{"get_volumes", mcp_tools.PhaseExecuting, "Идёт Список томов"},
+		{"get_volumes", mcp_tools.PhaseCompleted, "Список томов"},
+		{"get_volumes", mcp_tools.PhaseFailed, "Список томов"},
+		{"place_volume", mcp_tools.PhaseCompleted, "Создать или переместить том"},
+		{"update_volume", mcp_tools.PhaseCompleted, "Переименовать том"},
+		{"unknown_extension", mcp_tools.PhaseCompleted, "Вызов unknown_extension"},
+		{"run_mcp", mcp_tools.PhaseFailed, "Вызов инструмента по запросу"},
+		{"", mcp_tools.PhaseSelected, "Идёт Вызов инструмента по запросу"},
 	} {
 		got := a.buildDisplay(context.Background(), "run_mcp", map[string]any{"tool_name": tt.target}, tt.phase, 1)
 		if got.DisplayText != tt.want {

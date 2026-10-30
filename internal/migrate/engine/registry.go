@@ -62,7 +62,7 @@ func BuildPlans(db *gorm.DB, log *slog.Logger, isNewDatabase bool, registry []Mi
 		if len(states) > 0 {
 			allDone, unknownSteps := allStepsDone(states, steps)
 			if len(unknownSteps) > 0 {
-				log.Warn("迁移状态含已废弃或未知步骤，已忽略",
+				log.Warn("migration state contains deprecated or unknown steps, ignored",
 					"migration", migration.Name, "steps", unknownSteps)
 			}
 			if allDone {

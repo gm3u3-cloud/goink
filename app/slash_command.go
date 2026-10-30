@@ -42,13 +42,13 @@ func (a *App) resolveSlashCommand(novelID int64, name string) (inject string, lo
 	switch sk.Mode {
 	case "always":
 		// always 已在会话开头注入，/ 触发时只给出提示
-		content := "用户通过 /" + sk.Name + " 提醒你注意常驻技能「" + sk.Name + "」，其完整内容已在本次对话开头注入，请严格遵循。"
+		content := "The user used /" + sk.Name + " to remind you about the always-on skill \"" + sk.Name + "\". Its full content was injected at the start of this conversation; follow it strictly."
 		return "<system-reminder>\n" + content + "\n</system-reminder>", sk.Name
 	case "manual":
-		content := "用户启用了快捷指令「" + sk.Name + "」。请根据该指令的内容和用户需求进行工作。\n\n---\n" + sk.Content + "\n---"
+		content := "The user enabled the quick command \"" + sk.Name + "\". Work according to the content of this command and the user's needs.\n\n---\n" + sk.Content + "\n---"
 		return "<system-reminder>\n" + content + "\n</system-reminder>", sk.Name
 	default: // auto
-		content := "用户启用了技能「" + sk.Name + "」。请根据该技能的定义和用户需求进行工作。\n\n---\n" + sk.RawContent + "\n---"
+		content := "The user enabled the skill \"" + sk.Name + "\". Work according to the definition of this skill and the user's needs.\n\n---\n" + sk.RawContent + "\n---"
 		return "<system-reminder>\n" + content + "\n</system-reminder>", sk.Name
 	}
 }

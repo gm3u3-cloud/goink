@@ -25,29 +25,29 @@ type TransportSettings struct {
 func (c TransportSettings) Validate(env map[string]string) error {
 	for key, value := range env {
 		if key == "" || strings.ContainsAny(key, "=\x00") || strings.ContainsRune(value, '\x00') {
-			return errors.New("MCP 环境变量格式无效")
+			return errors.New("Неверный формат переменной окружения MCP")
 		}
 	}
 	switch c.Transport {
 	case TransportStdio:
 		if strings.TrimSpace(c.Command) == "" || strings.ContainsRune(c.Command, '\x00') || c.Endpoint != "" {
-			return errors.New("stdio MCP 连接需要命令，不能包含 HTTP 地址")
+			return errors.New("stdio MCP-соединение требует команду и не может содержать HTTP-адрес")
 		}
 		for _, arg := range c.Args {
 			if strings.ContainsRune(arg, '\x00') {
-				return errors.New("MCP 命令参数格式无效")
+				return errors.New("Неверный формат аргументов команды MCP")
 			}
 		}
 	case TransportStreamableHTTP:
 		endpoint, err := url.Parse(c.Endpoint)
 		if err != nil || endpoint.Hostname() == "" || (endpoint.Scheme != "http" && endpoint.Scheme != "https") {
-			return errors.New("HTTP MCP 连接需要有效的 http(s) 地址")
+			return errors.New("HTTP MCP-соединение требует валидный http(s)-адрес")
 		}
 		if c.Command != "" || len(c.Args) > 0 || len(env) > 0 {
-			return errors.New("HTTP MCP 连接不能包含 stdio 命令或环境变量")
+			return errors.New("HTTP MCP-соединение не может содержать stdio-команду или переменные окружения")
 		}
 	default:
-		return errors.New("不支持的 MCP 传输方式")
+		return errors.New("Неподдерживаемый способ передачи MCP")
 	}
 	return nil
 }
@@ -66,26 +66,26 @@ type Connection struct {
 
 func (c Connection) Validate(secret Secrets) error {
 	if c.ID == "" {
-		return errors.New("MCP 连接 ID 不能为空")
+		return errors.New("ID MCP-соединения не может быть пустым")
 	}
 	if strings.TrimSpace(c.Name) == "" || len(c.Name) > 200 {
-		return errors.New("MCP server 名称不能为空或超过 200 字节")
+		return errors.New("Имя MCP-сервера не может быть пустым или превышать 200 байт")
 	}
 	if err := c.TransportSettings.Validate(secret.Env); err != nil {
 		return err
 	}
 	if strings.ContainsAny(secret.BearerToken, "\r\n\x00") {
-		return errors.New("MCP 认证令牌格式无效")
+		return errors.New("Неверный формат токена аутентификации MCP")
 	}
 	switch c.Transport {
 	case TransportStdio:
 		if secret.BearerToken != "" {
-			return errors.New("stdio 连接不能包含 HTTP 令牌")
+			return errors.New("stdio-соединение не может содержать HTTP-токен")
 		}
 	case TransportStreamableHTTP:
 		endpoint, err := url.Parse(c.Endpoint)
 		if err != nil || endpoint.User != nil || endpoint.RawQuery != "" || endpoint.Fragment != "" {
-			return errors.New("HTTP MCP 连接需要有效的 http(s) 地址；认证信息请使用独立凭据字段，不要放入 URL")
+			return errors.New("HTTP MCP-соединение требует валидный http(s)-адрес; для данных аутентификации используйте отдельное поле, а не URL")
 		}
 	}
 	return nil
@@ -115,7 +115,7 @@ func (s State) Validate() error {
 			return err
 		}
 		if seen[c.ID] {
-			return errors.New("MCP 连接 ID 重复")
+			return errors.New("Дублированный ID MCP-соединения")
 		}
 		seen[c.ID] = true
 	}

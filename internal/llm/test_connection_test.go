@@ -249,7 +249,7 @@ func TestTestConnection_AllCandidatesFail(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when all candidates fail, got nil")
 	}
-	if !strings.Contains(err.Error(), "均验证失败") {
+	if !strings.Contains(err.Error(), "Не удалось проверить ни один URL") {
 		t.Errorf("error should mention all candidates failed, got: %v", err)
 	}
 }
@@ -399,7 +399,7 @@ func TestSummarizeErrorBody(t *testing.T) {
 			name:       "html error page",
 			statusCode: 404,
 			body:       `<html><head><title>404 Not Found</title></head><body>openresty</body></html>`,
-			want:       "[404] [HTML 错误页，可能 URL 错误或被防火墙拦]",
+			want:       "[404] [HTML-страница ошибки, возможно, неверный URL или блокировка файрволом]",
 		},
 		{
 			name:       "plain text error",
@@ -423,13 +423,13 @@ func TestSummarizeErrorBody(t *testing.T) {
 			name:       "empty body",
 			statusCode: 404,
 			body:       ``,
-			want:       "[404] [空响应，可能 URL 错误或端点不存在]",
+			want:       "[404] [Пустой ответ, возможно, неверный URL или endpoint не существует]",
 		},
 		{
 			name:       "whitespace only body",
 			statusCode: 500,
 			body:       `   `,
-			want:       "[500] [空响应，可能 URL 错误或端点不存在]",
+			want:       "[500] [Пустой ответ, возможно, неверный URL или endpoint не существует]",
 		},
 	}
 	for _, tt := range tests {

@@ -49,7 +49,7 @@ func TestCreateLocation_EmptyName(t *testing.T) {
 		Name: "",
 	})
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "地点名称不能为空")
+	assert.Contains(t, err.Error(), "Название места не может быть пустым")
 }
 
 func TestGetLocations_AfterCreate(t *testing.T) {

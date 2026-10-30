@@ -41,7 +41,7 @@ func RequireGit(t *testing.T) string {
 
 	gitBin, err := exec.LookPath("git")
 	if err != nil {
-		t.Skip("系统无 git，跳过")
+		t.Skip("no system git, skipping")
 	}
 	return gitBin
 }

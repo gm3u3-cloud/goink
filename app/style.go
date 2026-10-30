@@ -120,7 +120,7 @@ func (a *App) ComputeStyleStats(input ComputeStyleStatsInput) (*style.Stats, err
 		return nil, fmt.Errorf("compute style stats: %w", err)
 	}
 	if len(samples) == 0 {
-		return nil, fmt.Errorf("没有选中的素材")
+		return nil, fmt.Errorf("Нет выбранных образцов")
 	}
 	stats := style.ComputeStats(samples)
 	return &stats, nil
@@ -138,16 +138,16 @@ type ExtractStyleInput struct {
 // ExtractStyle 从选中的素材中提取写作风格，生成仿写 skill。
 func (a *App) ExtractStyle(input ExtractStyleInput) (*style.ExtractResult, error) {
 	if a.llmClient == nil {
-		return nil, fmt.Errorf("LLM 客户端未初始化")
+		return nil, fmt.Errorf("Клиент LLM не инициализирован")
 	}
 	if len(input.SampleIDs) == 0 {
-		return nil, fmt.Errorf("请选择至少一段素材")
+		return nil, fmt.Errorf("Выберите как минимум один образец")
 	}
 
 	// 批量加载选中素材
 	samples, err := a.style.GetByIDs(a.ctx, input.SampleIDs)
 	if err != nil {
-		return nil, fmt.Errorf("加载素材失败: %w", err)
+		return nil, fmt.Errorf("Не удалось загрузить образцы: %w", err)
 	}
 
 	// 取消逻辑由 app 层管理

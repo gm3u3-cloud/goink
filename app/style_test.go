@@ -184,6 +184,6 @@ func TestComputeStyleStats_NoSamples(t *testing.T) {
 	stats, err := app.ComputeStyleStats(ComputeStyleStatsInput{SampleIDs: []int64{999999}})
 	assert.Nil(t, stats)
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "没有选中的素材")
+		assert.Contains(t, err.Error(), "Нет выбранных образцов")
 	}
 }

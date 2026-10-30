@@ -50,19 +50,19 @@ func TestExportMarkdown(t *testing.T) {
 	if !strings.Contains(s, "# 测试书名") {
 		t.Error("missing title heading")
 	}
-	if !strings.Contains(s, "## 目录") {
+	if !strings.Contains(s, "## Содержание") {
 		t.Error("missing TOC heading")
 	}
-	if !strings.Contains(s, "第1章 开头") {
+	if !strings.Contains(s, "Глава 1 开头") {
 		t.Error("missing chapter 1")
 	}
-	if !strings.Contains(s, "第2章 发展") {
+	if !strings.Contains(s, "Глава 2 发展") {
 		t.Error("missing chapter 2")
 	}
 	if !strings.Contains(s, "这是第一章的正文内容") {
 		t.Error("missing chapter 1 content")
 	}
-	if !strings.Contains(s, "**类型**: 玄幻") {
+	if !strings.Contains(s, "**Жанр**: 玄幻") {
 		t.Error("missing genre")
 	}
 }
@@ -76,8 +76,8 @@ func TestExportMarkdown_ChapterWithoutTitle(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := string(data)
-	if !strings.Contains(s, "第3章 第3章") {
-		t.Error("expected fallback title '第3章'")
+	if !strings.Contains(s, "Глава 3 Глава 3") {
+		t.Error("expected fallback title 'Глава 3'")
 	}
 }
 
@@ -96,7 +96,7 @@ func TestExportTxt(t *testing.T) {
 	if !strings.Contains(s, "测试书名") {
 		t.Error("missing title")
 	}
-	if !strings.Contains(s, "第1章 开头") {
+	if !strings.Contains(s, "Глава 1 开头") {
 		t.Error("missing chapter 1 heading")
 	}
 	if !strings.Contains(s, "这是第一章的正文内容") {
@@ -224,12 +224,12 @@ func TestExportEpub_Content(t *testing.T) {
 	}
 
 	// 校验第1章的具体内容
-	ch1Name := fmt.Sprintf("EPUB/xhtml/%s", "第1章 开头")
+	ch1Name := fmt.Sprintf("EPUB/xhtml/%s", "Глава 1 开头")
 	ch1, ok := sections[ch1Name]
 	if !ok {
 		t.Fatalf("missing section %s", ch1Name)
 	}
-	if !strings.Contains(ch1, "<h1>第1章 开头</h1>") {
+	if !strings.Contains(ch1, "<h1>Глава 1 开头</h1>") {
 		t.Error("chapter 1 heading missing or incorrect")
 	}
 	if !strings.Contains(ch1, "这是第一章的正文内容") {

@@ -27,7 +27,7 @@ func (a *Agent) flushInterruptedTools(ctx context.Context, stream <-chan llm.Str
 					name:         name,
 					id:           id,
 					rawArgs:      rawArgs,
-					result:       &mcp_tools.ToolResult{Success: false, Error: "操作被中断"},
+					result:       &mcp_tools.ToolResult{Success: false, Error: "Операция прервана"},
 					displayText:  display.DisplayText,
 					activityKind: display.ActivityKind,
 				})
@@ -104,13 +104,13 @@ func (t *interruptTracker) recordFailure(name string, kind mcp_tools.ErrKind) (b
 	t.globalStreak++
 
 	if t.systemFailCnt[name] >= 5 {
-		return true, &ToolFailureInterrupt{Reason: fmt.Sprintf("工具 %s 连续系统错误 %d 次，已中断对话", name, t.systemFailCnt[name])}
+		return true, &ToolFailureInterrupt{Reason: fmt.Sprintf("Инструмент %s: %d системных ошибок подряд, диалог прерван", name, t.systemFailCnt[name])}
 	}
 	if t.argsFailCnt[name] >= 5 {
-		return true, &ToolFailureInterrupt{Reason: fmt.Sprintf("工具 %s 连续参数错误 %d 次，已中断对话", name, t.argsFailCnt[name])}
+		return true, &ToolFailureInterrupt{Reason: fmt.Sprintf("Инструмент %s: %d ошибок аргументов подряд, диалог прерван", name, t.argsFailCnt[name])}
 	}
 	if t.globalStreak >= 10 {
-		return true, &ToolFailureInterrupt{Reason: fmt.Sprintf("连续失败 %d 次，已中断对话", t.globalStreak)}
+		return true, &ToolFailureInterrupt{Reason: fmt.Sprintf("Прерывание после %d провальных вызовов подряд", t.globalStreak)}
 	}
 	return false, nil
 }

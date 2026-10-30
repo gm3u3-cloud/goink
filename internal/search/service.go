@@ -459,7 +459,7 @@ func (s *Service) ensureContentCache(novelID int64) {
 
 	chapters, err := s.chapStore.ListAllByNovel(context.Background(), nil, novelID)
 	if err != nil {
-		s.logger.Warn("搜索缓存: 获取章节列表失败", "novel_id", novelID, "err", err)
+		s.logger.Warn("search cache: failed to list chapters", "novel_id", novelID, "err", err)
 		return
 	}
 
@@ -473,7 +473,7 @@ func (s *Service) ensureContentCache(novelID int64) {
 	}
 
 	s.cache[novelID] = chapMap
-	s.logger.Debug("搜索缓存: 已加载章节内容", "novel_id", novelID, "chapters", len(chapMap))
+	s.logger.Debug("search cache: chapter content loaded", "novel_id", novelID, "chapters", len(chapMap))
 }
 
 // UpdateCachedChapter 在章节保存后更新缓存中的对应章节内容。
@@ -507,7 +507,7 @@ func (s *Service) searchRAG(ctx context.Context, novelID int64, query string) []
 
 	ragResults, err := s.vectorStore.Search(ctx, novelID, query, fetchK, nil)
 	if err != nil {
-		s.logger.Warn("搜索: RAG 检索失败", "novel_id", novelID, "err", err)
+		s.logger.Warn("search: RAG retrieval failed", "novel_id", novelID, "err", err)
 		return nil
 	}
 

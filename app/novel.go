@@ -64,18 +64,18 @@ func (a *App) CreateNovel(input CreateNovelInput) (*novel.Novel, error) {
 
 	st := a.settingsSnapshot()
 	if _, err := git.New(n.ID, st.GitName, st.GitEmail, a.logger); err != nil {
-		a.logger.Error("创建小说失败: git 初始化失败", "novelID", n.ID, "title", n.Title, "error", err)
+		a.logger.Error("failed to create novel: git initialization failed", "novelID", n.ID, "title", n.Title, "error", err)
 		a.novel.DB.WithContext(a.ctx).Delete(&n) // 回滚孤儿 DB 记录
 		return nil, fmt.Errorf("failed to init novel repo: %w", err)
 	}
 
 	// 为新小说创建 goink.md 空文件
 	if err := git.WriteFile(n.ID, git.GoinkPath(), ""); err != nil {
-		a.logger.Error("创建小说失败: goink.md 写入失败", "novelID", n.ID, "error", err)
+		a.logger.Error("failed to create novel: failed to write goink.md", "novelID", n.ID, "error", err)
 		return nil, fmt.Errorf("failed to create goink.md: %w", err)
 	}
 
-	a.logger.Info("小说创建成功", "novelID", n.ID, "title", n.Title)
+	a.logger.Info("novel created", "novelID", n.ID, "title", n.Title)
 	if a.activity != nil {
 		a.activity.AddActivity(a.ctx, activity.ActivityDelta{NovelsCreated: 1})
 	}
@@ -87,12 +87,12 @@ func (a *App) SetActiveNovel(input SetActiveNovelInput) error {
 	a.activeNovelMu.Lock()
 	defer a.activeNovelMu.Unlock()
 	if input.NovelID < 0 {
-		return fmt.Errorf("小说 ID 不能为负数")
+		return fmt.Errorf("ID романа не может быть отрицательным")
 	}
 	if input.NovelID > 0 {
 		var item novel.Novel
 		if err := a.novel.DB.WithContext(a.ctx).First(&item, input.NovelID).Error; err != nil {
-			return fmt.Errorf("读取待切换小说: %w", err)
+			return fmt.Errorf("не удалось прочитать роман для переключения: %w", err)
 		}
 	}
 	a.settingsMu.Lock()
@@ -100,10 +100,10 @@ func (a *App) SetActiveNovel(input SetActiveNovelInput) error {
 	result := a.db.WithContext(a.ctx).Model(&config.AppSettings{}).
 		Where("id = ?", 1).Update("last_novel_id", input.NovelID)
 	if result.Error != nil {
-		return fmt.Errorf("保存当前小说失败: %w", result.Error)
+		return fmt.Errorf("не удалось сохранить текущий роман: %w", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("保存当前小说失败: 应用配置不存在")
+		return fmt.Errorf("не удалось сохранить текущий роман: конфигурация приложения отсутствует")
 	}
 	a.settings.LastNovelID = input.NovelID
 	a.activeNovelID.Store(input.NovelID)
@@ -200,7 +200,7 @@ func (a *App) DeleteNovel(novelID int64) error {
 	// 残留向量也不会污染新小说（novels.id 是 AUTOINCREMENT，单调分配、不复用）。
 	if vectorStore := a.vectorStore.Load(); vectorStore != nil {
 		if err := vectorStore.DeleteNovel(a.ctx, novelID); err != nil {
-			a.logger.Warn("删除小说向量表失败", "novel_id", novelID, "err", err)
+			a.logger.Warn("failed to delete novel vector table", "novel_id", novelID, "err", err)
 		}
 	}
 
@@ -263,14 +263,14 @@ func (a *App) ExportNovel(novelID int64, format string) error {
 	}
 
 	filters := map[string][]runtime.FileFilter{
-		"epub":     {{DisplayName: "EPUB 电子书 (*.epub)", Pattern: "*.epub"}},
-		"markdown": {{DisplayName: "Markdown 文件 (*.md)", Pattern: "*.md"}},
-		"txt":      {{DisplayName: "文本文件 (*.txt)", Pattern: "*.txt"}},
+		"epub":     {{DisplayName: "EPUB электронная книга (*.epub)", Pattern: "*.epub"}},
+		"markdown": {{DisplayName: "Markdown-файл (*.md)", Pattern: "*.md"}},
+		"txt":      {{DisplayName: "Текстовый файл (*.txt)", Pattern: "*.txt"}},
 	}
 
 	savePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		DefaultFilename:      filename,
-		Title:                "导出小说",
+		Title:                "Экспорт романа",
 		Filters:              filters[format],
 		CanCreateDirectories: true,
 	})
@@ -286,14 +286,14 @@ func (a *App) ExportNovel(novelID int64, format string) error {
 		return fmt.Errorf("export novel: %w", err)
 	}
 	if len(chapters) == 0 {
-		return fmt.Errorf("export novel: 没有可导出的章节")
+		return fmt.Errorf("export novel: нет глав для экспорта")
 	}
 
 	var cc []export.ChapterWithContent
 	for _, ch := range chapters {
 		content, err := git.ReadFile(novelID, git.ChapterPath(ch.ID))
 		if err != nil {
-			return fmt.Errorf("export novel: 读取第%d章失败: %w", ch.ReadingNumber, err)
+			return fmt.Errorf("export novel: не удалось прочитать главу %d: %w", ch.ReadingNumber, err)
 		}
 		cc = append(cc, export.ChapterWithContent{Chapter: ch, Content: content})
 	}
@@ -304,7 +304,7 @@ func (a *App) ExportNovel(novelID int64, format string) error {
 	}
 
 	if err := os.WriteFile(savePath, data, 0644); err != nil {
-		return fmt.Errorf("export novel: 写入文件失败: %w", err)
+		return fmt.Errorf("export novel: не удалось записать файл: %w", err)
 	}
 	return nil
 }

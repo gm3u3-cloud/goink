@@ -35,7 +35,7 @@ func (a *App) DeleteVolume(novelID, volumeID int64) error {
 			return fmt.Errorf("delete volume: %w", err)
 		}
 		if err := git.RemoveFile(novelID, git.VolumePath(volumeID)); err != nil {
-			return fmt.Errorf("卷已删除，但清理卷纲失败: %w", err)
+			return fmt.Errorf("Том удалён, но не удалось удалить план тома: %w", err)
 		}
 		return nil
 	})

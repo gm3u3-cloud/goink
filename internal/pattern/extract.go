@@ -498,7 +498,7 @@ func buildSkillMarkdown(name, description, content string) string {
 	b.WriteString("---\n")
 	fmt.Fprintf(&b, "name: %s\n", name)
 	fmt.Fprintf(&b, "description: %s\n", description)
-	b.WriteString("category: 套路模板\n")
+	b.WriteString("category: pattern-template\n")
 	b.WriteString("mode: auto\n")
 	b.WriteString("author: ai\n")
 	b.WriteString("version: 1\n")

@@ -96,7 +96,7 @@ func (a *App) UpdatePreference(novelID int64, id int64, input UpdatePreferenceIn
 	}
 	// 归属校验：只能改全局偏好或当前小说的偏好
 	if !item.IsGlobal && item.NovelID != novelID {
-		return nil, fmt.Errorf("update preference: 无权修改其他小说的偏好")
+		return nil, fmt.Errorf("update preference: нет права изменять предпочтения других романов")
 	}
 	// PUT 全量覆盖
 	item.Category = input.Category

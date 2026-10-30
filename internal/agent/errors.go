@@ -35,31 +35,31 @@ func FriendlyError(err error) string {
 		// 网络错误/首字节超时：StatusCode=0，无 HTTP 状态码
 		// base 用"网络错误"区分网络场景与其他对话错误
 		if apiErr.StatusCode == 0 {
-			const base = "网络错误"
+			const base = "Ошибка сети"
 			if msg := strings.TrimSpace(apiErr.Message); msg != "" {
-				return fmt.Sprintf("%s：%s", base, msg)
+				return fmt.Sprintf("%s: %s", base, msg)
 			}
 			return base
 		}
 		var base string
 		switch apiErr.StatusCode {
 		case 401:
-			base = "API Key 无效，请在设置中检查"
+			base = "Недействительный API Key, проверьте в настройках"
 		case 403:
-			base = "API Key 无权限"
+			base = "API Key не имеет прав"
 		case 429:
-			base = "请求过于频繁，请稍后重试"
+			base = "Слишком много запросов, повторите позже"
 		default:
 			if apiErr.StatusCode >= 500 {
-				base = "AI 服务暂时不可用，请稍后重试"
+				base = "AI-сервис временно недоступен, повторите позже"
 			} else {
-				base = "对话出错，请重试"
+				base = "Ошибка диалога, повторите попытку"
 			}
 		}
 		if msg := strings.TrimSpace(apiErr.Message); msg != "" {
-			return fmt.Sprintf("%s（HTTP %d：%s）", base, apiErr.StatusCode, msg)
+			return fmt.Sprintf("%s (HTTP %d: %s)", base, apiErr.StatusCode, msg)
 		}
 		return base
 	}
-	return "对话出错，请重试"
+	return "Ошибка диалога, повторите попытку"
 }

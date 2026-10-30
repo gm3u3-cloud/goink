@@ -40,7 +40,7 @@ type CreateCharacterInput struct {
 // CreateCharacter 创建一个角色。
 func (a *App) CreateCharacter(novelID int64, input CreateCharacterInput) (*character.Character, error) {
 	if input.Name == "" {
-		return nil, fmt.Errorf("角色名称不能为空")
+		return nil, fmt.Errorf("Имя персонажа не может быть пустым")
 	}
 	char := character.Character{
 		NovelID:     novelID,

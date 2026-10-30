@@ -24,7 +24,7 @@ func migrateReadingTargets(db *gorm.DB, _ *slog.Logger) error {
 		}
 		query := fmt.Sprintf("UPDATE %s SET target_reading_number = target_chapter WHERE target_reading_number = 0 AND target_chapter > 0", target.table)
 		if err := db.Exec(query).Error; err != nil {
-			return fmt.Errorf("migrate v160: 保留 %s 的目标阅读序号: %w", target.table, err)
+			return fmt.Errorf("migrate v160: сохранение целевого номера чтения %s: %w", target.table, err)
 		}
 	}
 	return nil

@@ -17,10 +17,10 @@ type ExtractPatternProgress = pattern.Progress
 // ExtractPattern 从指定小说中提取叙事套路模式
 func (a *App) ExtractPattern(input ExtractPatternInput) (*ExtractPatternResult, error) {
 	if a.llmClient == nil {
-		return nil, fmt.Errorf("LLM 客户端未初始化")
+		return nil, fmt.Errorf("Клиент LLM не инициализирован")
 	}
 	if a.chapter == nil {
-		return nil, fmt.Errorf("章节存储未初始化")
+		return nil, fmt.Errorf("Хранилище глав не инициализировано")
 	}
 
 	ctx, cancel := context.WithCancel(a.ctx)
@@ -43,7 +43,7 @@ func (a *App) ExtractPattern(input ExtractPatternInput) (*ExtractPatternResult, 
 	}
 	result, err := extractor.Extract(ctx, input)
 	if err != nil {
-		return nil, fmt.Errorf("提取模式失败: %w", err)
+		return nil, fmt.Errorf("Не удалось извлечь паттерн: %w", err)
 	}
 	return result, nil
 }

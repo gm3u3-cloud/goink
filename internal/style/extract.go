@@ -30,7 +30,7 @@ func Extract(ctx context.Context, llmClient *llm.Client,
 		"type": "function",
 		"function": map[string]any{
 			"name":        "output_style_skill",
-			"description": "返回风格仿写技能的结构化输出。",
+			"description": "Returns the structured output of the style-imitation skill.",
 			"parameters":  mcp_tools.SchemaOf(StyleSkillOutput{}),
 		},
 	}}
@@ -46,15 +46,15 @@ func Extract(ctx context.Context, llmClient *llm.Client,
 	raw, err := llmClient.CallTool(ctx, providerName, modelID,
 		buildExtractMessages(combined.String()), tools, "output_style_skill", opts)
 	if err != nil {
-		return nil, fmt.Errorf("LLM 调用失败: %w", err)
+		return nil, fmt.Errorf("Ошибка вызова LLM: %w", err)
 	}
 
 	var out StyleSkillOutput
 	if err := json.Unmarshal(raw, &out); err != nil {
-		return nil, fmt.Errorf("解析风格技能失败: %w", err)
+		return nil, fmt.Errorf("Не удалось разобрать навык стиля: %w", err)
 	}
 	if strings.TrimSpace(out.Name) == "" || strings.TrimSpace(out.Content) == "" {
-		return nil, fmt.Errorf("LLM 返回的风格技能内容不完整")
+		return nil, fmt.Errorf("Неполное содержимое навыка стиля, возвращённое LLM")
 	}
 
 	safeName := skill.SanitizeFileName(out.Name)
@@ -72,7 +72,7 @@ func buildStyleSkillMarkdown(name, description, content string) string {
 	b.WriteString("---\n")
 	fmt.Fprintf(&b, "name: %s\n", name)
 	fmt.Fprintf(&b, "description: %s\n", description)
-	b.WriteString("category: 风格仿写\n")
+	b.WriteString("category: style-imitation\n")
 	b.WriteString("mode: auto\n")
 	b.WriteString("author: ai\n")
 	b.WriteString("version: 1\n")
@@ -85,18 +85,18 @@ func buildStyleSkillMarkdown(name, description, content string) string {
 func buildExtractMessages(sample string) []map[string]any {
 	return []map[string]any{
 		{"role": "system", "content": extractSystemPrompt},
-		{"role": "user", "content": fmt.Sprintf("文本开头为【文本统计信息】（确定性测量数据），之后为原文样本。请基于统计数据分析风格，并调用 output_style_skill 工具提交结果：\n\n%s", sample)},
+		{"role": "user", "content": fmt.Sprintf("The text begins with a 【Text statistics】block (deterministic measurements), followed by the original sample. Analyze the style based on the statistics and submit the result by calling the output_style_skill tool:\n\n%s", sample)},
 	}
 }
 
 // formatStatsForLLM 将 Stats 格式化为中文统计文本供 LLM 参考。
 func formatStatsForLLM(stats Stats) string {
-	return fmt.Sprintf(`【文本统计信息】
-总字数：%d  总字符数：%d
-句子数：%d  平均句长：%.1f 字  句长标准差：%.1f
-句长分布：短句（<15字）%.1f%%  中句（15-30字）%.1f%%  长句（>30字）%.1f%%
-标点密度：逗号 %.2f%%  句号 %.2f%%  感叹号 %.2f%%  问号 %.2f%%  引号 %.2f%%
-段落数：%d  平均段长：%.1f 字
+	return fmt.Sprintf(`【Text statistics】
+Total words: %d  Total characters: %d
+Sentences: %d  Average sentence length: %.1f chars  Sentence length std dev: %.1f
+Sentence length distribution: short (<15 chars) %.1f%%  medium (15-30 chars) %.1f%%  long (>30 chars) %.1f%%
+Punctuation density: comma %.2f%%  period %.2f%%  exclamation %.2f%%  question mark %.2f%%  quote %.2f%%
+Paragraphs: %d  Average paragraph length: %.1f chars
 `,
 		stats.TotalWords, stats.TotalChars,
 		stats.SentenceCount, stats.AvgSentLen, stats.SentLenStdDev,
@@ -105,51 +105,51 @@ func formatStatsForLLM(stats Stats) string {
 		stats.ParagraphCount, stats.AvgParaLen)
 }
 
-const extractSystemPrompt = `你是一位专业的写作风格分析师。文本开头包含【文本统计信息】——句长分布、标准差、标点密度等均为代码确定性计算，请直接引用这些数值作为分析依据。
+const extractSystemPrompt = `You are a professional writing style analyst. The text begins with a 【Text statistics】block — sentence length distribution, standard deviation, and punctuation density are all computed deterministically in code; cite these numbers directly as the basis of your analysis.
 
-从以下六个维度拆解写作风格：
+Deconstruct the writing style along the following six dimensions:
 
-1. **句式特征**：结合统计数据中的句长分布和标准差，分析长短句搭配模式与节奏特征
-2. **用词习惯**：词汇量级、口语/书面语倾向、高频词类型
-3. **修辞手法**：常用修辞类型及其使用频率
-4. **节奏控制**：结合标点密度数据分析段落组织与断句节奏
-5. **叙事视角与距离**：人称选择、叙事者与内容的距离感
-6. **氛围与语调**：情绪基调、语言温度
+1. **Sentence patterns**: Based on the sentence length distribution and standard deviation in the statistics, analyze the mixing pattern of short and long sentences and the rhythmic characteristics
+2. **Word choice**: vocabulary size, colloquial vs. formal register, types of frequent words
+3. **Rhetorical devices**: commonly used rhetorical types and their frequency
+4. **Rhythm control**: Based on the punctuation density data, analyze paragraph organization and the rhythm of sentence breaks
+5. **Narrative perspective and distance**: choice of person, the sense of distance between the narrator and the content
+6. **Atmosphere and tone**: emotional base tone, warmth of the language
 
-请调用 output_style_skill 工具提交分析结果，各字段要求：
-- name：为这个风格起一个贴切的中文名称
-- description：一句话描述适合什么写作场景，什么时候调用
-- content：风格仿写技能正文 markdown（不含 frontmatter），包含以下章节：
-# {风格名称}
+Submit your analysis by calling the output_style_skill tool. Requirements for each field:
+- name: Give this style a fitting name in Chinese
+- description: A one-sentence description of which writing scenarios it suits and when to invoke it
+- content: The body markdown of the style-imitation skill (no frontmatter), containing the following sections:
+# {style name}
 
-## 风格概述
-一句话概括整体特点。
+## Style Overview
+Summarize the overall characteristics in one sentence.
 
-## 句式特征
-基于统计数据的句长分布和标准差，分析句式特点。
+## Sentence Patterns
+Based on the sentence length distribution and standard deviation in the statistics, analyze the sentence pattern characteristics.
 
-## 用词习惯
-详细分析用词偏好、词汇选择倾向。
+## Word Choice
+Analyze word preferences and lexical choice tendencies in detail.
 
-## 修辞手法
-详细分析使用的修辞手法及其特点。
+## Rhetorical Devices
+Analyze the rhetorical devices used and their characteristics in detail.
 
-## 节奏控制
-结合标点密度数据分析段落组织、断句节奏。
+## Rhythm Control
+Based on the punctuation density data, analyze paragraph organization and the rhythm of sentence breaks.
 
-## 叙事视角与距离
-详细分析叙事者位置、与内容的距离感。
+## Narrative Perspective and Distance
+Analyze the narrator's position and the sense of distance from the content in detail.
 
-## 氛围与语调
-详细分析情绪基调、语言温度。
+## Atmosphere and Tone
+Analyze the emotional base tone and warmth of the language in detail.
 
-## 仿写要点
-提炼 3-5 条可操作的仿写指导原则，每一条应具体、可执行。
+## Imitation Key Points
+Distill 3-5 actionable imitation guidelines; each one should be concrete and executable.
 
-## 原文锚点
-从原文中挑选 4-6 个最能体现该风格的片段作为仿写范例。每个片段 80-150 字，逐字引用原文，标注该片段示范了什么技法。格式：
+## Original Anchors
+Pick 4-6 passages from the original text that best embody this style as imitation examples. Each passage is 80-150 characters, quoted verbatim from the original, with a note on what technique the passage demonstrates. Format:
 
-### 锚点 N
-> [原文片段]
+### Anchor N
+> [original passage]
 
-示范：[一句话说明这段体现了什么技法、仿写时如何运用]`
+Demonstration: [one sentence explaining what technique this passage demonstrates and how to apply it when imitating]`

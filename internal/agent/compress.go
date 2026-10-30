@@ -17,25 +17,25 @@ import (
 )
 
 const compressionPrompt = `<system-reminder>
-你是上下文压缩助手。请基于完整对话历史生成结构化摘要，用于后续对话的上下文恢复。
+You are a context compression assistant. Based on the full conversation history, generate a structured summary for context recovery in subsequent turns.
 
-## 已完成的事项
-（每个一句话，最多 15 条，从最近的开始保留。不再重复执行的事项）
+## Completed items
+(One sentence each, at most 15, starting from the most recent. Do not repeat items that were already executed.)
 
-## 进行中（断点）
-（最详细的部分：当前正在做什么、做到哪一步、下一步计划做什么。这是最重要的部分，请务必详尽）
+## In progress (breakpoint)
+(The most detailed part: what is currently being done, at which step, and what is planned next. This is the most important part — be as thorough as possible.)
 
-## 用户偏好和要求
-（从用户消息中提炼的核心写作风格、约束条件、反复强调的事项）
+## User preferences and requirements
+(The core writing style, constraints, and repeatedly emphasized points distilled from the user's messages.)
 
-## 关键决策和设定变更
-（已确认的情节走向、角色设定、世界观规则、命名等决定）
+## Key decisions and setting changes
+(Confirmed plot directions, character settings, worldbuilding rules, naming, and other decisions.)
 
-## 待办事项
-（已计划但尚未开始的任务清单）
+## To-do items
+(The list of planned tasks that have not started yet.)
 </system-reminder>`
 
-const compressionReminder = "<system-reminder>\n上下文已压缩，请根据下面的摘要继续工作。\n</system-reminder>"
+const compressionReminder = "<system-reminder>\nThe context has been compressed. Please continue working based on the summary below.\n</system-reminder>"
 
 const maxUserRetain = 15
 const minConversationTurns = 4
@@ -48,17 +48,17 @@ func (a *Agent) generateSummary(ctx context.Context, opts *RunOptions) (string, 
 
 	summary, err := a.llm.GenerateText(ctx, opts.ProviderName, msgs, opts.Model.ID)
 	if err != nil {
-		a.logger.Warn("压缩摘要生成失败，保持原上下文", "err", err)
+		a.logger.Warn("summary generation failed, keeping original context", "err", err)
 		return "", nil, fmt.Errorf("compress: LLM summary failed: %w", err)
 	}
 
 	summary = strings.TrimSpace(summary)
 	if summary == "" {
-		a.logger.Warn("压缩摘要为空，保持原上下文")
+		a.logger.Warn("summary is empty, keeping original context")
 		return "", nil, fmt.Errorf("compress: empty summary")
 	}
 
-	a.logger.Debug("压缩摘要生成成功", "summary_len", len(summary))
+	a.logger.Debug("summary generated", "summary_len", len(summary))
 	retained := retainMessages(msgs[:len(opts.Messages)])
 	return summary, retained, nil
 }
@@ -66,7 +66,7 @@ func (a *Agent) generateSummary(ctx context.Context, opts *RunOptions) (string, 
 // Compress 执行主 Agent 上下文压缩：调 LLM 生成摘要，重建 SkillCatalog/NovelState，保留近期关键消息。
 // opts 不会被修改，成功后才赋值新的 Messages / ActiveVersion / runningTokens。
 func (a *Agent) Compress(ctx context.Context, opts *RunOptions, runningTokens map[string]int) error {
-	a.logger.Info("开始上下文压缩",
+	a.logger.Info("starting context compression",
 		"session_id", opts.SessionID,
 		"turn_id", opts.TurnID,
 		"estimated_tokens", sumRunningTokens(runningTokens),
@@ -83,7 +83,7 @@ func (a *Agent) Compress(ctx context.Context, opts *RunOptions, runningTokens ma
 	// 重建系统消息（与 chat 走同一条路径 BuildSystemMessages，事务外构建）
 	sysMsgs, buildErr := agentcfg.BuildSystemMessages(ctx, a.db, opts.NovelID, a.skillStore)
 	if buildErr != nil {
-		a.logger.Warn("压缩时 system 消息构建部分失败", "novel_id", opts.NovelID, "err", buildErr)
+		a.logger.Warn("partial failure building system messages during compression", "novel_id", opts.NovelID, "err", buildErr)
 	}
 
 	// 在事务中完成版本递增 + 全部 DB 写入
@@ -109,7 +109,7 @@ func (a *Agent) Compress(ctx context.Context, opts *RunOptions, runningTokens ma
 
 	a.emitCompression(ctx, opts.TurnID, "done", summary, "")
 
-	a.logger.Info("上下文压缩完成",
+	a.logger.Info("context compression complete",
 		"session_id", opts.SessionID,
 		"new_version", newVersion,
 		"retained", len(retained),
@@ -120,7 +120,7 @@ func (a *Agent) Compress(ctx context.Context, opts *RunOptions, runningTokens ma
 
 // compressInMemory 执行子 Agent 上下文压缩：纯内存操作，AgentIdentity/NovelState 不动，仅写边界标记到 DB。
 func (a *Agent) compressInMemory(ctx context.Context, opts *RunOptions, runningTokens map[string]int) error {
-	a.logger.Info("子Agent上下文压缩",
+	a.logger.Info("sub-agent context compression",
 		"session_id", opts.SessionID,
 		"turn_id", opts.TurnID,
 		"agent_type", opts.AgentType,
@@ -172,7 +172,7 @@ func (a *Agent) compressInMemory(ctx context.Context, opts *RunOptions, runningT
 		AgentType:  opts.AgentType,
 		SubTaskID:  opts.SubTaskID,
 	}).Error; err != nil {
-		a.logger.Warn("子Agent压缩边界标记写入失败", "err", err)
+		a.logger.Warn("failed to write sub-agent compression boundary marker", "err", err)
 	}
 
 	newTokens := a.InitRunningTokens(opts.Messages)
@@ -183,7 +183,7 @@ func (a *Agent) compressInMemory(ctx context.Context, opts *RunOptions, runningT
 
 	a.emitCompression(ctx, opts.TurnID, "done", summary, opts.SubTaskID)
 
-	a.logger.Info("子Agent上下文压缩完成",
+	a.logger.Info("sub-agent context compression complete",
 		"session_id", opts.SessionID,
 		"sub_agent_version", opts.SubAgentVersion,
 		"retained", len(retained),
@@ -199,11 +199,11 @@ func (a *Agent) persistCompression(ctx context.Context, opts *RunOptions, msgs *
 	err := a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var sess session.Session
 		if err := tx.First(&sess, "session_id = ?", opts.SessionID).Error; err != nil {
-			return fmt.Errorf("查询 session 失败: %w", err)
+			return fmt.Errorf("failed to query session: %w", err)
 		}
 		sess.ActiveVersion++
 		if err := tx.Save(&sess).Error; err != nil {
-			return fmt.Errorf("递增 active_version 失败: %w", err)
+			return fmt.Errorf("failed to increment active_version: %w", err)
 		}
 		newVersion = sess.ActiveVersion
 
@@ -252,7 +252,7 @@ func (a *Agent) persistCompression(ctx context.Context, opts *RunOptions, msgs *
 		for _, m := range retained {
 			rm := apiMsgToMessage(m, opts.SessionID, opts.TurnID, newVersion)
 			if err := tx.Create(rm).Error; err != nil {
-				return fmt.Errorf("写入保留消息失败: %w", err)
+				return fmt.Errorf("failed to write retained messages: %w", err)
 			}
 		}
 		// 边界标记

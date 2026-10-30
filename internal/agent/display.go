@@ -10,43 +10,43 @@ import (
 
 // toolDisplayNames 工具名 → 中文展示名称。
 var toolDisplayNames = map[string]string{
-	"get_volumes":                     "查看分卷",
-	"place_volume":                    "创建或移动分卷",
-	"update_volume":                   "重命名分卷",
-	"get_chapter_list":                "查看章节目录",
-	"search_story_memory":             "搜索故事记忆",
-	"get_timeline":                    "查看故事时间线",
-	"create_timeline_entry":           "记录追踪条目",
-	"update_timeline_entry":           "更新追踪条目",
-	"update_chapter_plan":             "更新章节计划",
-	"get_locations":                   "查看地点信息",
-	"create_location":                 "创建新地点",
-	"update_location":                 "更新地点设定",
-	"create_location_relation":        "创建地点关系",
-	"update_location_relation":        "更新地点关系",
-	"get_characters":                  "查看角色信息",
-	"get_character_relations":         "查看人物关系",
-	"create_character":                "创建新角色",
-	"update_character":                "更新角色设定",
-	"update_character_relationship":   "更新人物关系",
-	"run_subagent":                    "调度AI子任务",
-	"run_mcp":                         "调用按需工具",
-	"search_mcp":                      "搜索拓展工具",
-	"get_reader_perspective":          "查看读者视角",
-	"create_reader_perspective_entry": "添加读者视角",
-	"update_reader_perspective_entry": "更新读者视角",
-	"get_story_arcs":                  "查看故事弧线",
-	"create_story_arc":                "创建故事弧线",
-	"update_story_arc":                "更新故事弧线",
-	"create_arc_node":                 "创建弧线节点",
-	"update_arc_node":                 "更新弧线节点",
-	"upsert_preference":               "管理创作偏好",
-	"upsert_setting":                  "管理世界观设定",
-	"delete_record":                   "删除记录",
-	"edit":                            "编辑文件内容",
-	"read":                            "读取文件内容",
-	"web_search":                      "搜索网络信息",
-	"web_fetch":                       "抓取网页内容",
+	"get_volumes":                     "Список томов",
+	"place_volume":                    "Создать или переместить том",
+	"update_volume":                   "Переименовать том",
+	"get_chapter_list":                "Список глав",
+	"search_story_memory":             "Поиск в памяти истории",
+	"get_timeline":                    "Хронология",
+	"create_timeline_entry":           "Добавить запись хронологии",
+	"update_timeline_entry":           "Изменить запись хронологии",
+	"update_chapter_plan":             "Обновить план главы",
+	"get_locations":                   "Список локаций",
+	"create_location":                 "Создать локацию",
+	"update_location":                 "Изменить локацию",
+	"create_location_relation":        "Создать связь локаций",
+	"update_location_relation":        "Изменить связь локаций",
+	"get_characters":                  "Список персонажей",
+	"get_character_relations":         "Связи персонажей",
+	"create_character":                "Создать персонажа",
+	"update_character":                "Изменить персонажа",
+	"update_character_relationship":   "Изменить связь персонажей",
+	"run_subagent":                    "Запустить подзадачу AI",
+	"run_mcp":                         "Вызов инструмента по запросу",
+	"search_mcp":                      "Поиск инструментов",
+	"get_reader_perspective":          "Восприятие читателя",
+	"create_reader_perspective_entry": "Добавить восприятие читателя",
+	"update_reader_perspective_entry": "Изменить восприятие читателя",
+	"get_story_arcs":                  "Дуги сюжета",
+	"create_story_arc":                "Создать дугу сюжета",
+	"update_story_arc":                "Изменить дугу сюжета",
+	"create_arc_node":                 "Создать узел дуги",
+	"update_arc_node":                 "Изменить узел дуги",
+	"upsert_preference":               "Управление предпочтениями",
+	"upsert_setting":                  "Управление настройками романа",
+	"delete_record":                   "Удалить запись",
+	"edit":                            "Редактирование файла",
+	"read":                            "Чтение файла",
+	"web_search":                      "Поиск в интернете",
+	"web_fetch":                       "Загрузка веб-страницы",
 }
 
 // toolActivityKinds 工具名 → 前端展示类别。
@@ -98,15 +98,15 @@ var chapterTools = map[string]bool{
 // deleteRecordTableLabels 把 delete_record 的 args.table 映射到中文展示前缀。
 // 用于 buildDisplay 中细化 "删除记录" 为 "删除角色"/"删除地点" 等。
 var deleteRecordTableLabels = map[string]string{
-	"character":                "删除角色",
-	"character_relation":       "删除角色关系",
-	"location":                 "删除地点",
-	"location_relation":        "删除地点关系",
-	"timeline_entry":           "删除时间线条目",
-	"story_arc":                "删除故事弧",
-	"arc_node":                 "删除弧节点",
-	"reader_perspective_entry": "删除读者视角条目",
-	"preference":               "删除偏好项",
+	"character":                "Удалить персонажа",
+	"character_relation":       "Удалить связь персонажей",
+	"location":                 "Удалить локацию",
+	"location_relation":        "Удалить связь локаций",
+	"timeline_entry":           "Удалить запись хронологии",
+	"story_arc":                "Удалить дугу сюжета",
+	"arc_node":                 "Удалить узел дуги",
+	"reader_perspective_entry": "Удалить восприятие читателя",
+	"preference":               "Удалить предпочтение",
 }
 
 // resultDataMergeTools 是允许把 result.Data 合并到 AgentEvent.Metadata 的工具白名单。
@@ -142,7 +142,7 @@ func (a *Agent) buildDisplay(ctx context.Context, name string, args map[string]a
 
 	if name == "run_mcp" {
 		if target, ok := args["tool_name"].(string); ok && target != "" {
-			baseText = "调用 " + target
+			baseText = "Вызов " + target
 			if label := toolDisplayNames[target]; label != "" {
 				baseText = label
 			}
@@ -158,9 +158,9 @@ func (a *Agent) buildDisplay(ctx context.Context, name string, args map[string]a
 		if at, ok := args["agent_type"].(string); ok {
 			switch at {
 			case "memory":
-				baseText = "探索故事记忆"
+				baseText = "Изучение памяти истории"
 			case "review":
-				baseText = "审核章节内容"
+				baseText = "Проверка содержания главы"
 			}
 		}
 		metadata = map[string]any{"agent_type": args["agent_type"]}
@@ -171,13 +171,13 @@ func (a *Agent) buildDisplay(ctx context.Context, name string, args map[string]a
 		if chapterID, ok := chapterID(args); ok {
 			label := a.lookupChapterBrief(ctx, novelID, chapterID)
 			if isOutlinePath(args) {
-				label += "大纲"
+				label += "план"
 			}
 			switch name {
 			case "edit":
-				baseText = "编辑 " + label
+				baseText = "Редактирование " + label
 			case "read":
-				baseText = "查看 " + label
+				baseText = "Просмотр " + label
 			}
 		}
 
@@ -185,9 +185,9 @@ func (a *Agent) buildDisplay(ctx context.Context, name string, args map[string]a
 		if path, ok := args["path"].(string); ok && path == "goink.md" {
 			switch name {
 			case "edit":
-				baseText = "编辑 故事状态"
+				baseText = "Редактирование состояния истории"
 			case "read":
-				baseText = "查看 故事状态"
+				baseText = "Просмотр состояния истории"
 			}
 		}
 
@@ -205,7 +205,7 @@ func (a *Agent) buildDisplay(ctx context.Context, name string, args map[string]a
 	// executing 阶段加 "正在" 前缀
 	isActive := phase == mcp_tools.PhaseExecuting || phase == mcp_tools.PhaseSelected
 	if isActive {
-		baseText = "正在" + baseText
+		baseText = "Идёт " + baseText
 	}
 
 	return &mcp_tools.DisplayInfo{
@@ -258,12 +258,12 @@ func isOutlinePath(args map[string]any) bool {
 func (a *Agent) lookupChapterBrief(ctx context.Context, novelID, chapterID int64) string {
 	ch, err := a.chapterStore.GetByID(ctx, nil, novelID, chapterID)
 	if err != nil {
-		return fmt.Sprintf("章节（ID: %d）", chapterID)
+		return fmt.Sprintf("Глава (ID: %d)", chapterID)
 	}
 	if ch.Title == "" {
-		return fmt.Sprintf("第%d章", ch.ReadingNumber)
+		return fmt.Sprintf("Глава %d", ch.ReadingNumber)
 	}
-	return fmt.Sprintf("第%d章 %s", ch.ReadingNumber, ch.Title)
+	return fmt.Sprintf("Глава %d %s", ch.ReadingNumber, ch.Title)
 }
 
 func buildToolDisplay(toolOutputs []toolOutput) []map[string]any {

@@ -74,7 +74,7 @@ type CreateTimelineEntryInput struct {
 // CreateTimelineEntry 创建一条伏笔或用户指令。
 func (a *App) CreateTimelineEntry(novelID int64, input CreateTimelineEntryInput) (*timeline.TimelineEntry, error) {
 	if input.Category == "" || input.Title == "" || input.TargetReadingNumber == 0 {
-		return nil, fmt.Errorf("标题、类型、目标章节不能为空")
+		return nil, fmt.Errorf("Название, тип и целевая глава не могут быть пустыми")
 	}
 	if input.SourceChapterID != nil {
 		if err := a.ensureChapterIDsInNovel(novelID, []int64{*input.SourceChapterID}); err != nil {

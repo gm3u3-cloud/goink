@@ -79,7 +79,7 @@ func (a *App) UpdateNovelSetting(novelID int64, id int64, input UpdateNovelSetti
 	}
 	// 归属校验：只能改当前小说的设定
 	if item.NovelID != novelID {
-		return nil, fmt.Errorf("update setting: 无权修改其他小说的设定")
+		return nil, fmt.Errorf("update setting: нет права изменять настройки других романов")
 	}
 	// PUT 全量覆盖
 	item.Category = input.Category

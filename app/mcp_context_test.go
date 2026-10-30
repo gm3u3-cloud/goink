@@ -40,7 +40,7 @@ func TestMCPToolContextPreservesRequestLifetimeAndLoadsDependencies(t *testing.T
 	require.Equal(t, "request", ctx.Value(key))
 	require.Same(t, svc, tc.SearchService)
 	_, err := tc.WebSearch(ctx, "查询")
-	require.ErrorContains(t, err, "API key 未配置")
+	require.ErrorContains(t, err, "DeepSeek API key not configured")
 	cancel()
 	require.ErrorIs(t, ctx.Err(), context.Canceled)
 	select {

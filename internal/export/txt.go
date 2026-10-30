@@ -18,10 +18,10 @@ func exportTxt(n *novel.Novel, chapters []ChapterWithContent) ([]byte, string, e
 		ch := cc.Chapter
 		title := ch.Title
 		if title == "" {
-			title = fmt.Sprintf("第%d章", ch.ReadingNumber)
+			title = fmt.Sprintf("Глава %d", ch.ReadingNumber)
 		}
 
-		fmt.Fprintf(&b, "第%d章 %s\n\n", ch.ReadingNumber, title)
+		fmt.Fprintf(&b, "Глава %d %s\n\n", ch.ReadingNumber, title)
 		b.WriteString(strings.TrimSpace(cc.Content))
 		b.WriteString("\n\n\n")
 	}

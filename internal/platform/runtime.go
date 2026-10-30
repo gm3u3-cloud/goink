@@ -15,11 +15,11 @@ import (
 func AppDir() (string, error) {
 	exe, err := os.Executable()
 	if err != nil {
-		return "", fmt.Errorf("platform: 获取可执行文件路径失败: %w", err)
+		return "", fmt.Errorf("platform: failed to get executable path: %w", err)
 	}
 	exe, err = filepath.EvalSymlinks(exe)
 	if err != nil {
-		return "", fmt.Errorf("platform: 解析可执行文件符号链接失败: %w", err)
+		return "", fmt.Errorf("platform: failed to resolve executable symlink: %w", err)
 	}
 	return filepath.Dir(exe), nil
 }
@@ -37,7 +37,7 @@ func ResolveGit() (string, error) {
 	// 0. 显式注入：测试指定 git 路径，优先级最高，验证失败直接报错不静默 fallback
 	if bin := os.Getenv("GOINK_GIT_BIN"); bin != "" {
 		if err := verifyGit(bin); err != nil {
-			return "", fmt.Errorf("git: GOINK_GIT_BIN 指定的 git 不可用 (%s): %w", bin, err)
+			return "", fmt.Errorf("git: git specified by GOINK_GIT_BIN is not available (%s): %w", bin, err)
 		}
 		return bin, nil
 	}
@@ -48,7 +48,7 @@ func ResolveGit() (string, error) {
 		if verifyGit(path) == nil {
 			return path, nil
 		}
-		return "", fmt.Errorf("git: GOINK_E2E_STRICT 模式下未找到 bundled git (%s)", path)
+		return "", fmt.Errorf("git: bundled git not found in GOINK_E2E_STRICT mode (%s)", path)
 	}
 
 	// 1. app 自带的 bundled git
@@ -69,7 +69,7 @@ func ResolveGit() (string, error) {
 		return path, nil
 	}
 
-	return "", fmt.Errorf("git: 找不到可用的 git 可执行文件，请安装 Git")
+	return "", fmt.Errorf("git: no usable git executable found, please install Git")
 }
 
 // dataDirBundledGitPath 返回 DataDir 下 bundled git 的路径，
@@ -116,7 +116,7 @@ func ResolveOnnxLib() (string, error) {
 		if _, err := os.Stat(p); err == nil {
 			return p, nil
 		}
-		return "", fmt.Errorf("platform: GOINK_E2E_STRICT 模式下未找到 ONNX Runtime (%s)", p)
+		return "", fmt.Errorf("platform: ONNX Runtime not found in GOINK_E2E_STRICT mode (%s)", p)
 	}
 
 	appDir, err := AppDir()
@@ -139,7 +139,7 @@ func ResolveOnnxLib() (string, error) {
 			return p, nil
 		}
 	}
-	return "", fmt.Errorf("platform: ONNX Runtime 库未找到（%s）", libName)
+	return "", fmt.Errorf("platform: ONNX Runtime library not found (%s)", libName)
 }
 
 var (

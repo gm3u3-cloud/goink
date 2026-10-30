@@ -125,12 +125,12 @@ func (m *Manager) Refresh(ctx context.Context, id string) ([]*mcp.Tool, error) {
 	}
 	list, err := e.client.ListTools(ctx)
 	if err != nil {
-		return nil, m.failed(e, ctx, "读取工具列表失败，请检查连接并重试")
+		return nil, m.failed(e, ctx, "Не удалось получить список инструментов, проверьте соединение и повторите")
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.entries[id] != e || ctx.Err() != nil {
-		return nil, errors.New("MCP 配置已变更或请求已取消")
+		return nil, errors.New("Конфигурация MCP изменена или запрос отменён")
 	}
 	e.tools = list
 	e.status = ConnectionStatus{Connected: true, ToolCount: len(list)}
@@ -162,17 +162,17 @@ func (m *Manager) CallTool(ctx context.Context, id, name string, args map[string
 	allowed := m.entries[id] == e && e.config.Enabled && e.config.AllowedTools[name]
 	m.mu.Unlock()
 	if !allowed {
-		return nil, errors.New("MCP server 或工具未启用")
+		return nil, errors.New("MCP-сервер или инструмент не включены")
 	}
 	if err := m.connect(ctx, e); err != nil {
 		return nil, err
 	}
 	result, err := e.client.CallTool(ctx, name, args)
 	if err != nil {
-		return nil, m.failed(e, ctx, "MCP 工具调用失败，请检查连接并刷新工具列表")
+		return nil, m.failed(e, ctx, "Не удалось вызвать инструмент MCP, проверьте соединение и обновите список инструментов")
 	}
 	if ctx.Err() != nil {
-		return nil, errors.New("MCP 请求已取消或超时")
+		return nil, errors.New("Запрос MCP отменён или превышено время ожидания")
 	}
 	return result, nil
 }
@@ -181,14 +181,14 @@ func (m *Manager) entry(id string) (*managedConnection, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.closed || m.entries[id] == nil {
-		return nil, errors.New("MCP 连接不存在或服务已关闭")
+		return nil, errors.New("MCP-соединение не найдено или служба остановлена")
 	}
 	return m.entries[id], nil
 }
 
 func (m *Manager) connect(ctx context.Context, e *managedConnection) error {
 	if ctx.Err() != nil {
-		return errors.New("MCP 请求已取消或超时")
+		return errors.New("Запрос MCP отменён или превышено время ожидания")
 	}
 	if e.client != nil {
 		return nil
@@ -203,7 +203,7 @@ func (m *Manager) connect(ctx context.Context, e *managedConnection) error {
 	}
 	client, err := Connect(ctx, config)
 	if err != nil {
-		return m.failed(e, ctx, "连接 MCP server 失败，请检查命令、地址和认证配置")
+		return m.failed(e, ctx, "Не удалось подключиться к MCP-серверу, проверьте команду, адрес и настройки аутентификации")
 	}
 	e.client = client
 	m.mu.Lock()
@@ -220,13 +220,13 @@ func (e *managedConnection) acquire(ctx context.Context) error {
 	case e.op <- struct{}{}:
 		return nil
 	case <-ctx.Done():
-		return errors.New("MCP 请求已取消或超时")
+		return errors.New("Запрос MCP отменён или превышено время ожидания")
 	}
 }
 
 func (m *Manager) failed(e *managedConnection, ctx context.Context, message string) error {
 	if ctx.Err() != nil {
-		message = "MCP 请求已取消或超时"
+		message = "Запрос MCP отменён или превышено время ожидания"
 	}
 	if e.client != nil {
 		_ = e.client.Close()

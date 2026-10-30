@@ -66,7 +66,7 @@ func migrateCrossRefData(db *gorm.DB, log *slog.Logger) error {
 		}
 		var rows []chRow
 		if err := db.Table("chapters").Select("id, novel_id, chapter_number").Scan(&rows).Error; err != nil {
-			return fmt.Errorf("migrate v160: 读取 chapters: %w", err)
+			return fmt.Errorf("migrate v160: чтение chapters: %w", err)
 		}
 		for _, r := range rows {
 			chapterIDByKey[chKey{novelID: r.NovelID, num: r.ChapterNumber}] = r.ID
@@ -94,7 +94,7 @@ func migrateCrossRefData(db *gorm.DB, log *slog.Logger) error {
 			q := fmt.Sprintf("SELECT id, novel_id, %s AS num FROM %s WHERE %s IS NULL AND %s > 0",
 				p.numCol, tc.table, p.idCol, p.numCol)
 			if err := db.Raw(q).Scan(&rows).Error; err != nil {
-				return fmt.Errorf("migrate v160: 读取 %s.%s: %w", tc.table, p.numCol, err)
+				return fmt.Errorf("migrate v160: чтение %s.%s: %w", tc.table, p.numCol, err)
 			}
 			if len(rows) == 0 {
 				continue
@@ -108,18 +108,18 @@ func migrateCrossRefData(db *gorm.DB, log *slog.Logger) error {
 					continue
 				}
 				if err := db.Exec(upd, id, r.ID).Error; err != nil {
-					return fmt.Errorf("migrate v160: 更新 %s.%s: %w", tc.table, p.idCol, err)
+					return fmt.Errorf("migrate v160: обновление %s.%s: %w", tc.table, p.idCol, err)
 				}
 				filled++
 			}
 			if missing > 0 {
-				log.Warn("migrate v160: 章节号反查失败，id 保持 NULL（孤儿引用）",
+				log.Warn("migrate v160: chapter number lookup failed, id kept as NULL (orphan reference)",
 					"table", tc.table, "num_col", p.numCol, "rows", missing)
 			}
 		}
 	}
 	if filled > 0 {
-		log.Info("migrate v160: 交叉引用 num→id 重写完成", "filled", filled)
+		log.Info("migrate v160: cross-reference num→id rewrite complete", "filled", filled)
 	}
 	return nil
 }

@@ -12,9 +12,9 @@ import (
 )
 
 var (
-	ErrGroupNotFound     = errors.New("分组不存在或不属于当前小说")
-	ErrGroupNameTaken    = errors.New("当前小说已存在同名分组")
-	ErrCharacterNotFound = errors.New("角色不存在或不属于当前小说")
+	ErrGroupNotFound     = errors.New("Группа не найдена или не принадлежит текущему роману")
+	ErrGroupNameTaken    = errors.New("Группа с таким именем уже существует в текущем романе")
+	ErrCharacterNotFound = errors.New("Персонаж не найден или не принадлежит текущему роману")
 )
 
 // ListGroupsOptions 是 ListGroups 的可选参数。
@@ -125,7 +125,7 @@ func (s *Store) GetGroupsByCharacterIDs(ctx context.Context, novelID int64, char
 
 func validateGroupName(tx *gorm.DB, novelID, groupID int64, name string) error {
 	if name == "" {
-		return errors.New("分组名称不能为空")
+		return errors.New("Название группы не может быть пустым")
 	}
 	var count int64
 	if err := tx.Model(&Group{}).Where("novel_id = ? AND name = ? AND id <> ?", novelID, name, groupID).Count(&count).Error; err != nil {
@@ -156,7 +156,7 @@ func (s *Store) CreateGroup(ctx context.Context, novelID int64, name, descriptio
 			return fmt.Errorf("character groups: check novel: %w", err)
 		}
 		if count == 0 {
-			return errors.New("小说不存在")
+			return errors.New("Роман не существует")
 		}
 		if err := validateGroupName(tx, novelID, 0, group.Name); err != nil {
 			return err
@@ -234,7 +234,7 @@ func uniqueIDs(ids []int64) ([]int64, error) {
 	seen := make(map[int64]bool, len(ids))
 	for _, id := range ids {
 		if id <= 0 {
-			return nil, errors.New("ID 必须为正整数")
+			return nil, errors.New("ID должен быть положительным целым числом")
 		}
 		if !seen[id] {
 			seen[id] = true
@@ -260,7 +260,7 @@ func (s *Store) UpdateGroupMemberships(ctx context.Context, novelID int64, chara
 		return err
 	}
 	if len(characters) == 0 || len(adds)+len(removes) == 0 {
-		return errors.New("必须指定角色和要加入或移出的分组")
+		return errors.New("Нужно указать персонажей и группы для добавления или удаления")
 	}
 	removeSet := make(map[int64]bool, len(removes))
 	for _, id := range removes {
@@ -268,7 +268,7 @@ func (s *Store) UpdateGroupMemberships(ctx context.Context, novelID int64, chara
 	}
 	for _, id := range adds {
 		if removeSet[id] {
-			return errors.New("同一分组不能同时加入和移出")
+			return errors.New("Нельзя одновременно добавлять и удалять одну и ту же группу")
 		}
 	}
 	return s.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {

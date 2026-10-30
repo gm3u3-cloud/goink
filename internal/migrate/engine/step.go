@@ -36,14 +36,14 @@ func RunSteps(db *gorm.DB, log *slog.Logger, migration string, steps []Step) err
 		if stepStatus(db, migration, s.Key()) == "done" {
 			continue
 		}
-		log.Info("迁移步骤开始", "migration", migration, "step", s.Key())
+		log.Info("migration step started", "migration", migration, "step", s.Key())
 		markStep(db, log, migration, s.Key(), "running", nil)
 		if err := s.Run(db, log); err != nil {
 			markStep(db, log, migration, s.Key(), "failed", err)
 			return fmt.Errorf("migrate step %s: %w", s.Key(), err)
 		}
 		markStep(db, log, migration, s.Key(), "done", nil)
-		log.Info("迁移步骤完成", "migration", migration, "step", s.Key())
+		log.Info("migration step completed", "migration", migration, "step", s.Key())
 	}
 	return nil
 }
@@ -80,7 +80,7 @@ func MarkStepsDone(db *gorm.DB, log *slog.Logger, migration string, steps []Step
 	}); err != nil {
 		return fmt.Errorf("mark migration %s done: %w", migration, err)
 	}
-	log.Info("无需迁移，步骤已登记完成", "migration", migration)
+	log.Info("no migration needed, steps marked as done", "migration", migration)
 	return nil
 }
 
@@ -117,7 +117,7 @@ func markStep(db *gorm.DB, log *slog.Logger, migration, key, status string, runE
 		st.Error = runErr.Error()
 	}
 	if err := db.Save(&st).Error; err != nil {
-		log.Warn("migrate_state 状态写入失败（下次启动将重跑该 step）",
+		log.Warn("failed to write migrate_state status (step will be re-run on next start)",
 			"migration", migration, "step", key, "status", status, "err", err)
 	}
 }

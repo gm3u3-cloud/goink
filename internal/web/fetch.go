@@ -60,10 +60,10 @@ func Fetch(rawURL string) (*FetchResult, error) {
 		Jar:     cookieJar,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			if len(via) >= 5 {
-				return fmt.Errorf("重定向次数过多")
+				return fmt.Errorf("Слишком много перенаправлений")
 			}
 			if err := validateHost(req.URL.Host); err != nil {
-				return fmt.Errorf("重定向目标不安全: %w", err)
+				return fmt.Errorf("Небезопасный адрес перенаправления: %w", err)
 			}
 			return nil
 		},
@@ -71,7 +71,7 @@ func Fetch(rawURL string) (*FetchResult, error) {
 
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
-		return nil, fmt.Errorf("创建请求失败: %w", err)
+		return nil, fmt.Errorf("Не удалось создать запрос: %w", err)
 	}
 	req.Header.Set("User-Agent", fetchUserAgent)
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
@@ -86,7 +86,7 @@ func Fetch(rawURL string) (*FetchResult, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("请求失败: %w", err)
+		return nil, fmt.Errorf("Запрос не удался: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -95,21 +95,21 @@ func Fetch(rawURL string) (*FetchResult, error) {
 	}
 
 	if isAntiCrawlHeaders(resp) {
-		return nil, fmt.Errorf("检测到反爬/CDN 防护响应头，无法抓取")
+		return nil, fmt.Errorf("Обнаружены заголовки анти-бот/CDN-защиты, страница недоступна")
 	}
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, fetchMaxBytes+1))
 	if err != nil {
-		return nil, fmt.Errorf("读取响应失败: %w", err)
+		return nil, fmt.Errorf("Не удалось прочитать ответ: %w", err)
 	}
 	if len(body) > fetchMaxBytes {
-		return nil, fmt.Errorf("网页过大，超过 %d MB", fetchMaxBytes>>20)
+		return nil, fmt.Errorf("Страница слишком большая: более %d МБ", fetchMaxBytes>>20)
 	}
 
 	// 先用 readability 提取正文区域
 	article, err := readability.FromReader(bytes.NewReader(body), u)
 	if err != nil {
-		return nil, fmt.Errorf("提取正文失败: %w", err)
+		return nil, fmt.Errorf("Не удалось извлечь текст: %w", err)
 	}
 
 	title := strings.TrimSpace(article.Title())
@@ -118,7 +118,7 @@ func Fetch(rawURL string) (*FetchResult, error) {
 	var contentBuf bytes.Buffer
 	if article.Node != nil {
 		if renderErr := article.RenderHTML(&contentBuf); renderErr != nil {
-			return nil, fmt.Errorf("渲染正文失败: %w", renderErr)
+			return nil, fmt.Errorf("Не удалось отобразить текст: %w", renderErr)
 		}
 	}
 	contentHTML := contentBuf.String()
@@ -127,7 +127,7 @@ func Fetch(rawURL string) (*FetchResult, error) {
 	if strings.TrimSpace(contentHTML) == "" {
 		doc, docErr := goquery.NewDocumentFromReader(bytes.NewReader(body))
 		if docErr != nil {
-			return nil, fmt.Errorf("解析 HTML 失败: %w", docErr)
+			return nil, fmt.Errorf("Не удалось разобрать HTML: %w", docErr)
 		}
 		contentSel := doc.Find("body")
 		if contentSel.Length() == 0 {
@@ -135,14 +135,14 @@ func Fetch(rawURL string) (*FetchResult, error) {
 		}
 		contentHTML, docErr = contentSel.Html()
 		if docErr != nil {
-			return nil, fmt.Errorf("提取正文失败: %w", docErr)
+			return nil, fmt.Errorf("Не удалось извлечь текст: %w", docErr)
 		}
 	}
 
 	converter := md.NewConverter("", true, nil)
 	text, err := converter.ConvertString(contentHTML)
 	if err != nil {
-		return nil, fmt.Errorf("转换 markdown 失败: %w", err)
+		return nil, fmt.Errorf("Не удалось преобразовать в markdown: %w", err)
 	}
 
 	text = strings.TrimSpace(text)
@@ -150,14 +150,14 @@ func Fetch(rawURL string) (*FetchResult, error) {
 	text = dataImageRegex.ReplaceAllString(text, "")
 	textLen := len([]rune(text))
 	if isEncodingGarbled(text) {
-		return nil, fmt.Errorf("网页编码异常，无法解析")
+		return nil, fmt.Errorf("Неверная кодировка страницы, не удалось разобрать")
 	}
 	if isAntiCrawl(title, textLen, len(body)) {
-		return nil, fmt.Errorf("网页可能为反爬验证页面，无法抓取有效内容")
+		return nil, fmt.Errorf("Страница, вероятно, анти-бот проверка — полезное содержимое получить невозможно")
 	}
 	if textLen > fetchMaxChars {
 		runes := []rune(text)
-		text = string(runes[:fetchMaxChars]) + "\n\n...[内容已截断]"
+		text = string(runes[:fetchMaxChars]) + "\n\n...[контент обрезан]"
 	}
 
 	return &FetchResult{
@@ -302,16 +302,16 @@ func isAntiCrawlHeaders(resp *http.Response) bool {
 func parseAndValidate(rawURL string) (*url.URL, error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
-		return nil, fmt.Errorf("URL 格式无效: %w", err)
+		return nil, fmt.Errorf("Неверный формат URL: %w", err)
 	}
 	if u.Scheme != "http" && u.Scheme != "https" {
-		return nil, fmt.Errorf("仅支持 http/https")
+		return nil, fmt.Errorf("Поддерживаются только http/https")
 	}
 	if u.Host == "" {
-		return nil, fmt.Errorf("URL 缺少主机名")
+		return nil, fmt.Errorf("В URL отсутствует имя хоста")
 	}
 	if u.User != nil {
-		return nil, fmt.Errorf("URL 不允许包含用户信息")
+		return nil, fmt.Errorf("В URL не должна содержаться учётная информация")
 	}
 	if err := validateHost(u.Host); err != nil {
 		return nil, err
@@ -333,20 +333,20 @@ func validateHost(host string) error {
 		"100.100.100.200":          true,
 	}
 	if blocked[host] {
-		return fmt.Errorf("禁止访问该地址")
+		return fmt.Errorf("Доступ к этому адресу запрещён")
 	}
 
 	ips, err := net.LookupIP(host)
 	if err != nil {
-		return fmt.Errorf("DNS 解析失败: %w", err)
+		return fmt.Errorf("Не удалось разрешить DNS: %w", err)
 	}
 	if len(ips) == 0 {
-		return fmt.Errorf("DNS 解析无结果")
+		return fmt.Errorf("DNS не вернул результатов")
 	}
 
 	for _, ip := range ips {
 		if isPrivate(ip) {
-			return fmt.Errorf("禁止访问内网地址: %s", ip)
+			return fmt.Errorf("Доступ к внутреннему адресу запрещён: %s", ip)
 		}
 	}
 

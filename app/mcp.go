@@ -16,7 +16,7 @@ import (
 func (a *App) serverMCPService() (*mcpserver.Service, error) {
 	service := a.mcpServerService.Load()
 	if service == nil {
-		return nil, fmt.Errorf("MCP 管理服务未初始化")
+		return nil, fmt.Errorf("Сервис управления MCP не инициализирован")
 	}
 	return service, nil
 }
@@ -24,7 +24,7 @@ func (a *App) serverMCPService() (*mcpserver.Service, error) {
 func (a *App) clientMCPService() (*mcpclient.Service, error) {
 	service := a.mcpClientService.Load()
 	if service == nil {
-		return nil, fmt.Errorf("MCP 管理服务未初始化")
+		return nil, fmt.Errorf("Сервис управления MCP не инициализирован")
 	}
 	return service, nil
 }
@@ -145,7 +145,7 @@ func (a *App) currentNovel(ctx context.Context) (mcpserver.CurrentNovel, error) 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return mcpserver.CurrentNovel{}, mcpserver.ErrNoCurrentNovel
 		}
-		return mcpserver.CurrentNovel{}, fmt.Errorf("读取当前小说: %w", err)
+		return mcpserver.CurrentNovel{}, fmt.Errorf("Не удалось прочитать текущий роман: %w", err)
 	}
 	return mcpserver.CurrentNovel{ID: item.ID, Title: item.Title}, nil
 }

@@ -27,7 +27,7 @@ func (s *Store) LogDelta(ctx context.Context, novelID, chapterID int64, delta in
 		return
 	}
 	if err := s.addChanges(ctx, novelID, max(delta, 0), max(-delta, 0)); err != nil {
-		s.logger.Warn("记录写作日志失败", "novel_id", novelID, "chapter_id", chapterID, "delta", delta, "err", err)
+		s.logger.Warn("failed to record writing log", "novel_id", novelID, "chapter_id", chapterID, "delta", delta, "err", err)
 	}
 }
 
@@ -37,7 +37,7 @@ func (s *Store) LogChanges(ctx context.Context, novelID, chapterID int64, added,
 		return
 	}
 	if err := s.addChanges(ctx, novelID, added, deleted); err != nil {
-		s.logger.Warn("记录写作日志失败", "novel_id", novelID, "chapter_id", chapterID, "added", added, "deleted", deleted, "err", err)
+		s.logger.Warn("failed to record writing log", "novel_id", novelID, "chapter_id", chapterID, "added", added, "deleted", deleted, "err", err)
 	}
 }
 

@@ -110,7 +110,7 @@ func TestStorePreservesJSONError(t *testing.T) {
 	_, err = NewStore(path).Load()
 	var parseErr *json.SyntaxError
 	require.ErrorAs(t, err, &parseErr)
-	require.ErrorContains(t, err, "解析 MCP 配置失败")
+	require.ErrorContains(t, err, "Не удалось разобрать конфигурацию MCP")
 }
 
 func TestStoreNormalizesDefaultsWithoutRewritingOnLoad(t *testing.T) {

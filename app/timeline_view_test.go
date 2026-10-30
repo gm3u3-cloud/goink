@@ -102,7 +102,7 @@ func TestCreateTimelineEntry_MissingFields(t *testing.T) {
 		Title:    "",
 	})
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "标题、类型、目标章节不能为空")
+	assert.Contains(t, err.Error(), "Название, тип и целевая глава не могут быть пустыми")
 }
 
 // TestGetTimelineEntries_All 验证全量查询（4b: 废弃 from/to 章节窗口，签名改单参）。
