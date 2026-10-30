@@ -11,44 +11,44 @@ func boundaryMessages(chapters []ChapterSource) []map[string]any {
 	for _, ch := range chapters {
 		title := strings.TrimSpace(ch.Title)
 		if title == "" {
-			title = fmt.Sprintf("第%d章（无标题）", ch.ReadingNumber)
+			title = fmt.Sprintf("Chapter %d (untitled)", ch.ReadingNumber)
 		}
-		fmt.Fprintf(&b, "第%d章（chapter_id: %d）：%s\n", ch.ReadingNumber, ch.ID, title)
+		fmt.Fprintf(&b, "Chapter %d (chapter_id: %d): %s\n", ch.ReadingNumber, ch.ID, title)
 	}
 	return []map[string]any{
-		{"role": "system", "content": "你是一个长篇小说结构分析师。根据章节标题推断可能的叙事阶段边界。章节号只用于理解阅读顺序；返回边界端点时必须使用对应的 chapter_id。只能通过调用 output_boundary_hints 返回结果。"},
-		{"role": "user", "content": "请找出可能的叙事阶段边界。边界是参考线索，不是最终定论。每条提示保持简短。\n\n" + b.String()},
+		{"role": "system", "content": "You are a structural analyst for long-form novels. Infer likely narrative stage boundaries from the chapter titles. Chapter numbers are only used to understand reading order; when returning boundary endpoints you must use the corresponding chapter_id. You may only return results by calling output_boundary_hints."},
+		{"role": "user", "content": "Find the possible narrative stage boundaries. Boundaries are reference clues, not final conclusions. Keep each hint concise.\n\n" + b.String()},
 	}
 }
 
 func summaryMessages(chapters []ChapterSource, boundaries []BoundaryHint) []map[string]any {
 	var b strings.Builder
 	if len(boundaries) > 0 {
-		b.WriteString("疑似阶段边界参考：\n")
+		b.WriteString("Suspected stage boundary references:\n")
 		for _, h := range boundaries {
-			fmt.Fprintf(&b, "- 第%d-%d章（chapter_id: %d-%d）：%s\n", h.StartReadingNumber, h.EndReadingNumber, h.StartChapterID, h.EndChapterID, h.Hint)
+			fmt.Fprintf(&b, "- Chapters %d-%d (chapter_id: %d-%d): %s\n", h.StartReadingNumber, h.EndReadingNumber, h.StartChapterID, h.EndChapterID, h.Hint)
 		}
 		b.WriteString("\n")
 	}
-	b.WriteString("章节列表：\n")
+	b.WriteString("Chapter list:\n")
 	for _, ch := range chapters {
 		title := strings.TrimSpace(ch.Title)
 		if title == "" {
-			title = fmt.Sprintf("第%d章（无标题）", ch.ReadingNumber)
+			title = fmt.Sprintf("Chapter %d (untitled)", ch.ReadingNumber)
 		}
-		fmt.Fprintf(&b, "\n## 第%d章（chapter_id: %d）：%s\n", ch.ReadingNumber, ch.ID, title)
+		fmt.Fprintf(&b, "\n## Chapter %d (chapter_id: %d): %s\n", ch.ReadingNumber, ch.ID, title)
 		if strings.TrimSpace(ch.Summary) != "" {
-			fmt.Fprintf(&b, "[上下文参考，无需重新生成]\n%s\n", strings.TrimSpace(ch.Summary))
+			fmt.Fprintf(&b, "[Context reference, no need to regenerate]\n%s\n", strings.TrimSpace(ch.Summary))
 			continue
 		}
 		if strings.TrimSpace(ch.Content) == "" {
-			b.WriteString("[需提取]\n无内容。\n")
+			b.WriteString("[Needs extraction]\nNo content.\n")
 			continue
 		}
-		fmt.Fprintf(&b, "[需提取]\n%s\n", ch.Content)
+		fmt.Fprintf(&b, "[Needs extraction]\n%s\n", ch.Content)
 	}
 	return []map[string]any{
-		{"role": "system", "content": "你为叙事模式提取生成章节摘要。标记为[需提取]的章节需要各生成一条 80-150 字的叙事摘要，覆盖核心事件、关键人物行为与决策、情感或关系转折。保留足够信息量以供后续判断叙事阶段边界。标记为[上下文参考]的章节仅作叙事背景参考，除非同时标记了[需提取]，否则不要包含在输出中。章节号只用于理解阅读顺序；返回摘要时必须使用对应的 chapter_id。只能通过调用 output_chapter_summaries 返回结果。"},
+		{"role": "system", "content": "You generate chapter summaries for narrative pattern extraction. Chapters marked [Needs extraction] each need one narrative summary of 80-150 characters, covering core events, key character actions and decisions, and emotional or relational turning points. Preserve enough detail to support later determination of narrative stage boundaries. Chapters marked [Context reference] serve only as narrative background; unless also marked [Needs extraction], do not include them in the output. Chapter numbers are only used to understand reading order; when returning summaries you must use the corresponding chapter_id. You may only return results by calling output_chapter_summaries."},
 		{"role": "user", "content": b.String()},
 	}
 }
@@ -56,23 +56,23 @@ func summaryMessages(chapters []ChapterSource, boundaries []BoundaryHint) []map[
 func initialChunkMessages(summaries []ChapterSummaryItem) []map[string]any {
 	var b strings.Builder
 	for _, summary := range summaries {
-		fmt.Fprintf(&b, "第%d章（chapter_id: %d）：%s\n", summary.ReadingNumber, summary.ChapterID, summary.Summary)
+		fmt.Fprintf(&b, "Chapter %d (chapter_id: %d): %s\n", summary.ReadingNumber, summary.ChapterID, summary.Summary)
 	}
 	return []map[string]any{
-		{"role": "system", "content": "你将章节级摘要压缩为叙事阶段块（chunk）。以叙事阶段转折为分界标准：当摘要显示叙事方向、情感基调或核心冲突发生明显变化时，应在该处划分边界。相邻且属于同一叙事阶段的章节应合并为一个块。每个块的 content 应概括该阶段的核心事件、关键人物行动与转折，约 100-200 字。章节号只用于理解阅读顺序；返回块端点时必须使用对应的 start_chapter_id 和 end_chapter_id。只能通过调用 output_chunks 返回结果。"},
-		{"role": "user", "content": "根据以下章节摘要生成第一轮叙事阶段块：\n\n" + b.String()},
+		{"role": "system", "content": "You compress chapter-level summaries into narrative stage chunks. Use narrative stage transitions as the dividing standard: when a summary shows a clear change in narrative direction, emotional tone, or core conflict, a boundary should be drawn there. Adjacent chapters belonging to the same narrative stage should be merged into one chunk. Each chunk's content should summarize the core events, key character actions, and turning points of that stage, in about 100-200 characters. Chapter numbers are only used to understand reading order; when returning chunk endpoints you must use the corresponding start_chapter_id and end_chapter_id. You may only return results by calling output_chunks."},
+		{"role": "user", "content": "Generate the first round of narrative stage chunks from the following chapter summaries:\n\n" + b.String()},
 	}
 }
 
 func compressChunkMessages(chunks []Chunk, readingNumbers map[int64]int, round int) []map[string]any {
 	var b strings.Builder
 	for _, chunk := range chunks {
-		fmt.Fprintf(&b, "第%d-%d章（chapter_id: %d-%d） %s：%s\n", chunk.StartReadingNumber, chunk.EndReadingNumber, chunk.StartChapterID, chunk.EndChapterID, chunk.Name, chunk.Content)
+		fmt.Fprintf(&b, "Chapters %d-%d (chapter_id: %d-%d) %s: %s\n", chunk.StartReadingNumber, chunk.EndReadingNumber, chunk.StartChapterID, chunk.EndChapterID, chunk.Name, chunk.Content)
 	}
 	references := chapterReferences(chunks, readingNumbers)
 	return []map[string]any{
-		{"role": "system", "content": "你将多个叙事阶段块合并为更少、更大的阶段块。规则如下：\n1. 优先合并相邻且属于同一叙事阶段的块（叙事方向一致、情感基调相同）。\n2. 若一个块的内部包含两个明显不同的叙事子阶段（如铺垫→爆发），则可以拆分，但应尽量减少拆分。\n3. 每个输出块的 content 应重新概括该合并后阶段的核心事件与转折，约 100-200 字。\n4. 必须保留准确的 start_chapter_id 和 end_chapter_id；章节号只用于理解阅读顺序。可用章节定位表列出了可作为端点的全部 ID。只能通过调用 output_chunks 返回结果。"},
-		{"role": "user", "content": fmt.Sprintf("第 %d 轮压缩。将以下阶段块合并为更少的叙事阶段块：\n\n%s\n可用章节定位表：\n%s", round, b.String(), references)},
+		{"role": "system", "content": "You merge multiple narrative stage chunks into fewer, larger stage chunks. Follow these rules:\n1. Prefer merging adjacent chunks that belong to the same narrative stage (consistent narrative direction, same emotional tone).\n2. If a chunk internally contains two clearly different narrative sub-stages (e.g. setup → eruption), it may be split, but splitting should be minimized.\n3. Each output chunk's content should re-summarize the core events and turning points of the merged stage, in about 100-200 characters.\n4. The accurate start_chapter_id and end_chapter_id must be preserved; chapter numbers are only used to understand reading order. The available chapter reference table lists all IDs that can serve as endpoints. You may only return results by calling output_chunks."},
+		{"role": "user", "content": fmt.Sprintf("Round %d compression. Merge the following stage chunks into fewer narrative stage chunks:\n\n%s\nAvailable chapter reference table:\n%s", round, b.String(), references)},
 	}
 }
 
@@ -91,7 +91,7 @@ func chapterReferences(chunks []Chunk, readingNumbers map[int64]int) string {
 	slices.SortFunc(refs, func(a, b chapterReference) int { return a.number - b.number })
 	var b strings.Builder
 	for _, ref := range refs {
-		fmt.Fprintf(&b, "第%d章=%d\n", ref.number, ref.id)
+		fmt.Fprintf(&b, "Chapter %d = %d\n", ref.number, ref.id)
 	}
 	return b.String()
 }
@@ -99,34 +99,34 @@ func chapterReferences(chunks []Chunk, readingNumbers map[int64]int) string {
 func finalSkillMessages(chunks []Chunk) []map[string]any {
 	var b strings.Builder
 	for _, chunk := range chunks {
-		fmt.Fprintf(&b, "第%d-%d章（chapter_id: %d-%d） %s：%s\n", chunk.StartReadingNumber, chunk.EndReadingNumber, chunk.StartChapterID, chunk.EndChapterID, chunk.Name, chunk.Content)
+		fmt.Fprintf(&b, "Chapters %d-%d (chapter_id: %d-%d) %s: %s\n", chunk.StartReadingNumber, chunk.EndReadingNumber, chunk.StartChapterID, chunk.EndChapterID, chunk.Name, chunk.Content)
 	}
 	return []map[string]any{
 		{"role": "system", "content": finalSkillSystemPrompt},
-		{"role": "user", "content": "根据以下叙事阶段块生成最终的可复用叙事模式技能：\n\n" + b.String()},
+		{"role": "user", "content": "Generate the final reusable narrative pattern skill from the following narrative stage chunks:\n\n" + b.String()},
 	}
 }
 
-const finalSkillSystemPrompt = `你是一个专业的小说结构分析师。
+const finalSkillSystemPrompt = `You are a professional novel structure analyst.
 
-根据提供的叙事阶段块，创建一个可复用的叙事模式技能（套路模板）。不要仅仅描述原书内容，而要抽象出可复用的模板。
+Based on the provided narrative stage chunks, create a reusable narrative pattern skill (a template). Do not merely describe the original book's content; abstract a reusable template.
 
-只能通过调用 output_skill 工具返回结果，工具参数要求：
-- name：中文模式名称（如"逆袭打脸流"）。
-- description：一句话描述何时使用此叙事模式。
-- content：技能正文 markdown，不含 frontmatter（frontmatter 由系统自动生成）。必须包含以下章节：
+You may only return results by calling the output_skill tool. Tool parameter requirements:
+- name: the pattern name in Chinese (e.g. a "comeback face-slap" style).
+- description: a one-sentence description of when to use this narrative pattern.
+- content: the skill body markdown, without frontmatter (frontmatter is auto-generated by the system). It must include the following sections:
 
-  ## 套路概览
-  总结可复用的叙事结构。
-  ## 阶段拆解
-  列出每个阶段，包含源文章节范围、结构功能、常见信号以及如何复用。
-  ## 爽点节奏
-  说明压制、释放、揭示、挫折和高潮的分布规律。
-  ## 角色功能模板
-  抽象主角、盟友、对手、反派、导师、工具角色以及牺牲/对比角色的功能定位。
-  ## 可复用叙事规律
-  给出可以指导新作品创作的具体写作规则。
-  ## 使用注意
-  说明哪些地方必须改编，避免成品显得雷同。
+  ## Pattern Overview
+  Summarize the reusable narrative structure.
+  ## Stage Breakdown
+  List each stage, including the source chapter range, structural function, common signals, and how to reuse it.
+  ## Payoff Rhythm
+  Explain the distribution of suppression, release, revelation, setbacks, and climax.
+  ## Character Function Templates
+  Abstract the functional roles of the protagonist, ally, rival, antagonist, mentor, utility character, and sacrificial/contrast character.
+  ## Reusable Narrative Rules
+  Provide concrete writing rules that can guide the creation of new works.
+  ## Usage Notes
+  Explain which parts must be adapted to avoid the finished work looking derivative.
 
-再次强调：content 中应抽象出可复用模板，不要仅仅描述原书内容；content 中不要包含 YAML frontmatter。`
+Reiterating: the content should abstract a reusable template, not merely describe the original book's content; the content must not include YAML frontmatter.`

@@ -23,7 +23,7 @@ import (
 )
 
 // ErrNoCurrentNovel 表示 Goink 界面当前没有打开的小说。
-var ErrNoCurrentNovel = errors.New("当前没有打开的小说")
+var ErrNoCurrentNovel = errors.New("В данный момент не открыт ни один роман")
 
 // CurrentNovel 是每次 MCP 调用看到的当前小说快照。
 type CurrentNovel struct {
@@ -62,7 +62,7 @@ func (instance *runningServer) track(handler mcp.ToolHandler) mcp.ToolHandler {
 		instance.mu.Lock()
 		if instance.stopping {
 			instance.mu.Unlock()
-			return toolError("MCP server 正在停止"), nil
+			return toolError("MCP-сервер останавливается"), nil
 		}
 		// 与关闭入口共用锁，停止登记后才允许 Wait，避免零计数时 Add/Wait 竞态。
 		instance.calls.Add(1)
@@ -104,7 +104,7 @@ func (s *Server) SetToolContextProvider(provider ToolContextProvider) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.running != nil {
-		return errors.New("请先停止 MCP server")
+		return errors.New("Сначала остановите MCP-сервер")
 	}
 	s.toolContext = provider
 	return nil
@@ -135,22 +135,22 @@ func (s *Server) validateAllowedTools(names []string) error {
 
 func (s *Server) validateAllowedTool(name string) error {
 	if name == "get_current_novel" {
-		return errors.New("get_current_novel 是 MCP server 内置工具")
+		return errors.New("get_current_novel — встроенный инструмент MCP-сервера")
 	}
 	if name == "run_subagent" {
-		return errors.New("run_subagent 尚未支持独立 MCP 调用，暂不对外开放")
+		return errors.New("run_subagent пока не поддерживает независимые MCP-вызовы и временно не открыт наружу")
 	}
 	if name == "run_mcp" {
-		return errors.New("run_mcp 仅供内部 Agent 使用，请直接开放具体工具")
+		return errors.New("run_mcp предназначен только для внутреннего Agent; откройте конкретный инструмент напрямую")
 	}
 	if name == "search_mcp" {
-		return errors.New("search_mcp 仅供内部 Agent 使用，请直接开放具体工具")
+		return errors.New("search_mcp предназначен только для внутреннего Agent; откройте конкретный инструмент напрямую")
 	}
 	if s.registry == nil {
-		return errors.New("MCP server 工具注册表未初始化")
+		return errors.New("Реестр инструментов MCP-сервера не инициализирован")
 	}
 	if _, ok := s.registry.Get(name); !ok {
-		return fmt.Errorf("MCP server 工具不存在: %s", name)
+		return fmt.Errorf("Инструмент MCP-сервера не существует: %s", name)
 	}
 	return nil
 }
@@ -160,7 +160,7 @@ func (s *Server) SetPort(port int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.running != nil {
-		return fmt.Errorf("请先停止 MCP server")
+		return fmt.Errorf("Сначала остановите MCP-сервер")
 	}
 	s.port = port
 	return nil
@@ -174,10 +174,10 @@ func (s *Server) Start(token string) (Endpoint, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.running != nil {
-		return Endpoint{}, fmt.Errorf("MCP server 已启动")
+		return Endpoint{}, fmt.Errorf("MCP-сервер уже запущен")
 	}
 	if s.registry == nil || s.current == nil || s.logger == nil {
-		return Endpoint{}, fmt.Errorf("MCP server 依赖未初始化")
+		return Endpoint{}, fmt.Errorf("Зависимости MCP-сервера не инициализированы")
 	}
 	for name := range s.allowed {
 		if err := s.validateAllowedTool(name); err != nil {
@@ -187,7 +187,7 @@ func (s *Server) Start(token string) (Endpoint, error) {
 
 	listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", s.port))
 	if err != nil {
-		return Endpoint{}, fmt.Errorf("监听本地 MCP 端点: %w", err)
+		return Endpoint{}, fmt.Errorf("Ожидание локальной MCP-точки подключения: %w", err)
 	}
 	serverCtx, cancel := context.WithCancel(context.Background())
 	instance := &runningServer{
@@ -208,7 +208,7 @@ func (s *Server) Start(token string) (Endpoint, error) {
 	go func() {
 		defer close(instance.done)
 		if err := httpServer.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			s.logger.Error("本地 MCP server 停止", "err", err)
+			s.logger.Error("local MCP server stopped", "err", err)
 		}
 	}()
 	return Endpoint{URL: instance.url, Token: token}, nil
@@ -236,7 +236,7 @@ func (s *Server) SetAllowedTools(names []string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.running != nil {
-		return fmt.Errorf("请先停止 MCP server")
+		return fmt.Errorf("Сначала остановите MCP-сервер")
 	}
 	if err := s.validateAllowedTools(names); err != nil {
 		return err
@@ -291,12 +291,12 @@ func (s *Server) finishStop(ctx context.Context, instance *runningServer) {
 func (s *Server) authorize(token string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !allowedOrigin(r.Header.Get("Origin")) {
-			http.Error(w, "禁止的来源", http.StatusForbidden)
+			http.Error(w, "Источник запрещён", http.StatusForbidden)
 			return
 		}
 		candidate, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 		if !ok || subtle.ConstantTimeCompare([]byte(candidate), []byte(token)) != 1 {
-			http.Error(w, "未授权", http.StatusUnauthorized)
+			http.Error(w, "Не авторизован", http.StatusUnauthorized)
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -322,7 +322,7 @@ func allowedOrigin(origin string) bool {
 func (s *Server) addTools(protocolServer *mcp.Server, instance *runningServer) {
 	protocolServer.AddTool(&mcp.Tool{
 		Name:        "get_current_novel",
-		Description: "获取 Goink 界面当前打开的小说 ID 和书名。",
+		Description: "Get the ID and title of the novel currently open in the Goink UI.",
 		InputSchema: map[string]any{"type": "object", "properties": map[string]any{}, "additionalProperties": false},
 	}, instance.track(func(ctx context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		novel, err := s.current(ctx)
@@ -352,7 +352,7 @@ func (s *Server) toolHandler(name string) mcp.ToolHandler {
 		tc.DB, tc.NovelID, tc.Logger = s.db, novel.ID, s.logger
 		result := s.registry.Execute(ctx, name, request.Params.Arguments, tc, s.allowed)
 		if result == nil {
-			return toolError("工具没有返回结果"), nil
+			return toolError("Инструмент не вернул результат"), nil
 		}
 		var payload map[string]any
 		if result.Success {
@@ -365,8 +365,8 @@ func (s *Server) toolHandler(name string) mcp.ToolHandler {
 		}
 		mapped, err := encodeResult(payload, !result.Success)
 		if err != nil {
-			s.logger.Error("编码 MCP 工具结果失败", "tool", name, "err", err)
-			return toolError("工具结果无法编码"), nil
+			s.logger.Error("failed to encode MCP tool result", "tool", name, "err", err)
+			return toolError("Не удалось закодировать результат инструмента"), nil
 		}
 		return mapped, nil
 	}
@@ -388,8 +388,8 @@ func (s *Server) currentNovelError(err error) *mcp.CallToolResult {
 	if errors.Is(err, ErrNoCurrentNovel) {
 		return toolError(ErrNoCurrentNovel.Error())
 	}
-	s.logger.Error("获取当前小说失败", "err", err)
-	return toolError("获取当前小说失败")
+	s.logger.Error("failed to get current novel", "err", err)
+	return toolError("Не удалось получить текущий роман")
 }
 
 func toolError(message string) *mcp.CallToolResult {

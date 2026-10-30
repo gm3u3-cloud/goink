@@ -448,13 +448,13 @@ func TestBoundaryMessages_Format(t *testing.T) {
 	if !ok {
 		t.Fatal("user message content is not string")
 	}
-	if !strings.Contains(userContent, "第1章（chapter_id: 42）：初遇") {
+	if !strings.Contains(userContent, "Chapter 1 (chapter_id: 42): 初遇") {
 		t.Error("should contain chapter 1 title")
 	}
 	if !strings.Contains(userContent, "chapter_id: 42") {
 		t.Error("should expose stable chapter ID alongside reading number")
 	}
-	if !strings.Contains(userContent, "第2章（无标题）") {
+	if !strings.Contains(userContent, "Chapter 2 (untitled)") {
 		t.Error("should contain fallback for empty title")
 	}
 }
@@ -472,13 +472,13 @@ func TestSummaryMessages_WithBoundaries(t *testing.T) {
 	if !ok {
 		t.Fatal("user message content is not string")
 	}
-	if !strings.Contains(userContent, "疑似阶段边界参考") {
+	if !strings.Contains(userContent, "Suspected stage boundary references") {
 		t.Error("should contain boundary reference section")
 	}
-	if !strings.Contains(userContent, "[上下文参考") {
+	if !strings.Contains(userContent, "[Context reference") {
 		t.Error("should mark chapters with existing summary as context reference")
 	}
-	if !strings.Contains(userContent, "[需提取]") {
+	if !strings.Contains(userContent, "[Needs extraction]") {
 		t.Error("should mark chapters without summary as needing extraction")
 	}
 }
@@ -526,10 +526,10 @@ func TestCompressChunkMessages_ContainsRound(t *testing.T) {
 	if !ok {
 		t.Fatal("user message content is not string")
 	}
-	if !strings.Contains(userContent, "第 3 轮压缩") {
+	if !strings.Contains(userContent, "Round 3 compression") {
 		t.Error("should contain round number")
 	}
-	if !strings.Contains(userContent, "第1章=1") {
+	if !strings.Contains(userContent, "Chapter 1 = 1") {
 		t.Error("should include chapter ID reference table for range endpoints")
 	}
 }
@@ -546,8 +546,8 @@ func TestFinalSkillMessages_Format(t *testing.T) {
 	if !ok {
 		t.Fatal("system message content is not string")
 	}
-	if !strings.Contains(sysContent, "套路模板") {
-		t.Error("system prompt should mention 套路模板")
+	if !strings.Contains(sysContent, "reusable narrative pattern skill") {
+		t.Error("system prompt should mention reusable narrative pattern skill")
 	}
 }
 
@@ -567,8 +567,8 @@ func TestExtract_NilChapters(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for nil Chapters")
 	}
-	if !strings.Contains(err.Error(), "章节存储") {
-		t.Errorf("error = %q, should mention 章节存储", err.Error())
+	if !strings.Contains(err.Error(), "Хранилище глав не инициализировано") {
+		t.Errorf("error = %q, should mention chapter store not initialized", err.Error())
 	}
 }
 

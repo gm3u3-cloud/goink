@@ -8,7 +8,7 @@ import (
 
 // WebSearchArgs 是 web_search 工具的参数。
 type WebSearchArgs struct {
-	Prompt string `json:"prompt" jsonschema:"required,description=发给搜索 AI 的指令，用自然语言描述你的问题和背景，这不是传统的搜索关键词，是具体的搜索指令" validate:"required,min=1,max=500"`
+	Prompt string `json:"prompt" jsonschema:"required,description=instruction sent to the search AI; describe your question and context in natural language. This is not a traditional search keyword, but a specific search instruction" validate:"required,min=1,max=500"`
 }
 
 // WebSearchTool 通过 DeepSeek Anthropic 端点执行网络搜索，返回模型总结和来源链接。
@@ -19,8 +19,8 @@ func (t *WebSearchTool) Category() ToolCategory { return CategoryWritingAssistan
 func (t *WebSearchTool) ExposeToLLM() bool      { return true }
 
 func (t *WebSearchTool) Description() string {
-	return "联网搜索真实信息，返回综合答案和参考来源。适用于需要实时数据、新闻、技术文档或超出模型知识范围的内容。" +
-		"搜索结果已由 AI 综合分析，可直接引用返回的 summary；sources 为来源 URL 列表。如需查看某个来源的原文细节，可用 web_fetch 抓取。"
+	return "Search the web for real information, returning a synthesized answer and reference sources. Use when you need real-time data, news, technical documentation, or content beyond the model's knowledge. " +
+		"Search results are already analyzed and synthesized by the AI; you can directly cite the returned summary; sources is a list of source URLs. To view the original detail of a specific source, use web_fetch."
 }
 
 func (t *WebSearchTool) JSONSchema() json.RawMessage {
@@ -33,12 +33,12 @@ func (t *WebSearchTool) Execute(ctx context.Context, args any, tc ToolContext) (
 	a := args.(*WebSearchArgs)
 
 	if tc.WebSearch == nil {
-		return &ToolResult{Error: "网络搜索未启用：请先在 LLM 设置中配置 DeepSeek"}, nil
+		return &ToolResult{Error: "веб-поиск не включён: сначала настройте DeepSeek в настройках LLM"}, nil
 	}
 
 	result, err := tc.WebSearch(ctx, a.Prompt)
 	if err != nil {
-		return nil, fmt.Errorf("搜索失败: %w", err)
+		return nil, fmt.Errorf("ошибка поиска: %w", err)
 	}
 
 	return &ToolResult{

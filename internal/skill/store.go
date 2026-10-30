@@ -21,7 +21,7 @@ type Store struct {
 func NewStore(logger *slog.Logger, userSkillsDir string) (*Store, error) {
 	builtin, err := LoadBuiltinSkills(logger)
 	if err != nil {
-		logger.Warn("加载内置 skill 失败，内置列表为空", "err", err)
+		logger.Warn("failed to load builtin skills, builtin list is empty", "err", err)
 		builtin = nil
 	}
 
@@ -31,7 +31,7 @@ func NewStore(logger *slog.Logger, userSkillsDir string) (*Store, error) {
 		novel:   make(map[int64][]Skill),
 	}
 	if err := s.loadUser(userSkillsDir); err != nil {
-		logger.Warn("初始加载用户 skill 失败，将以空列表继续", "err", err)
+		logger.Warn("failed to load user skills on startup, continuing with an empty list", "err", err)
 	}
 	return s, nil
 }
@@ -59,10 +59,10 @@ func (s *Store) Get(novelID int64, name string) (*Skill, bool) {
 // 每次调用自动刷新磁盘数据。
 func (s *Store) ListMeta(novelID int64) []SkillMeta {
 	if err := s.ReloadUser(config.UserSkillsDir()); err != nil {
-		s.logger.Warn("ListMeta: 刷新用户 skill 失败", "err", err)
+		s.logger.Warn("ListMeta: failed to refresh user skills", "err", err)
 	}
 	if err := s.ReloadNovel(novelID, config.NovelSkillsDir(novelID)); err != nil {
-		s.logger.Warn("ListMeta: 刷新小说 skill 失败", "novel_id", novelID, "err", err)
+		s.logger.Warn("ListMeta: failed to refresh novel skills", "novel_id", novelID, "err", err)
 	}
 
 	s.mu.RLock()
@@ -122,7 +122,7 @@ func (s *Store) ReloadUser(userSkillsDir string) error {
 func (s *Store) ReloadNovel(novelID int64, novelSkillsDir string) error {
 	skills, err := scanDir(s.logger, novelSkillsDir)
 	if err != nil {
-		return fmt.Errorf("skill: reload novel %d: %w", novelID, err)
+		return fmt.Errorf("skill: перезагрузка романа %d: %w", novelID, err)
 	}
 	s.mu.Lock()
 	if len(skills) == 0 {

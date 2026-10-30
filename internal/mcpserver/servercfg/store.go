@@ -30,15 +30,15 @@ func (s *Store) Load() (State, error) {
 		return state, state.Validate()
 	}
 	if err != nil {
-		return State{}, fmt.Errorf("读取 MCP 配置失败: %w", err)
+		return State{}, fmt.Errorf("Не удалось прочитать конфигурацию MCP: %w", err)
 	}
 	plain, err := config.Decrypt(data)
 	if err != nil {
-		return State{}, fmt.Errorf("MCP 配置解密失败: %w", err)
+		return State{}, fmt.Errorf("Не удалось расшифровать конфигурацию MCP: %w", err)
 	}
 	var state State
 	if err := json.Unmarshal(plain, &state); err != nil {
-		return State{}, fmt.Errorf("解析 MCP 配置失败: %w", err)
+		return State{}, fmt.Errorf("Не удалось разобрать конфигурацию MCP: %w", err)
 	}
 	state.normalize()
 	if err := state.Validate(); err != nil {
@@ -53,18 +53,18 @@ func (s *Store) Save(state State) error {
 		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(s.path), 0700); err != nil {
-		return fmt.Errorf("创建 MCP 配置目录失败: %w", err)
+		return fmt.Errorf("Не удалось создать каталог конфигурации MCP: %w", err)
 	}
 	plain, err := json.Marshal(state)
 	if err != nil {
-		return fmt.Errorf("编码 MCP 配置失败: %w", err)
+		return fmt.Errorf("Не удалось закодировать конфигурацию MCP: %w", err)
 	}
 	data, err := config.Encrypt(plain)
 	if err != nil {
-		return fmt.Errorf("加密 MCP 配置失败: %w", err)
+		return fmt.Errorf("Не удалось зашифровать конфигурацию MCP: %w", err)
 	}
 	if err := utils.AtomicWrite(s.path, data); err != nil {
-		return fmt.Errorf("保存 MCP 配置失败: %w", err)
+		return fmt.Errorf("Не удалось сохранить конфигурацию MCP: %w", err)
 	}
 	return nil
 }

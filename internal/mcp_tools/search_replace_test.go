@@ -205,7 +205,7 @@ func TestFuzzyHint_NearMatch(t *testing.T) {
 	if !strings.Contains(hint, "城墙") {
 		t.Errorf("hint should include matched content, got: %s", hint)
 	}
-	if !strings.Contains(hint, "自行判断") {
+	if !strings.Contains(hint, "решите сами") {
 		t.Errorf("hint should tell LLM to judge, got: %s", hint)
 	}
 	if !strings.Contains(hint, "start_line") {
@@ -221,7 +221,7 @@ func TestFuzzyHint_NoMatch(t *testing.T) {
 	if hint == "" {
 		t.Fatal("hint should always return a message")
 	}
-	if !strings.Contains(hint, "未找到任何相似") {
+	if !strings.Contains(hint, "Не найдено ни одного похожего содержимого") {
 		t.Errorf("should indicate no match, got: %s", hint)
 	}
 }
@@ -312,10 +312,10 @@ func TestSearchReplaceHint_IsActionable(t *testing.T) {
 	if found {
 		t.Fatal("should not find mismatched text")
 	}
-	if !strings.Contains(hint, "相似度") {
+	if !strings.Contains(hint, "степень сходства") {
 		t.Error("hint should include similarity score")
 	}
-	if !strings.Contains(hint, "自行判断") {
+	if !strings.Contains(hint, "решите сами") {
 		t.Error("hint should tell LLM to judge")
 	}
 	if !strings.Contains(hint, "start_line") || !strings.Contains(hint, "end_line") {
@@ -388,7 +388,7 @@ func TestFuzzyHintLineNumbers_TopOfFile(t *testing.T) {
 	searchText := "第一行内容\n第二行"
 
 	hint := fuzzyHint(searchText, content)
-	if !strings.Contains(hint, "第 1-2 行") {
+	if !strings.Contains(hint, "около строк 1-2") {
 		t.Errorf("match at top should report line 1-2, got: %s", hint)
 	}
 	if !strings.Contains(hint, "start_line=1, end_line=2") {
@@ -401,7 +401,7 @@ func TestFuzzyHintLineNumbers_MiddleOfFile(t *testing.T) {
 	searchText := "第三行\n第四行"
 
 	hint := fuzzyHint(searchText, content)
-	if !strings.Contains(hint, "第 3-4 行") {
+	if !strings.Contains(hint, "около строк 3-4") {
 		t.Errorf("match in middle should report line 3-4, got: %s", hint)
 	}
 	if !strings.Contains(hint, "start_line=3, end_line=4") {
@@ -414,7 +414,7 @@ func TestFuzzyHintLineNumbers_SingleLine(t *testing.T) {
 	searchText := "第二段"
 
 	hint := fuzzyHint(searchText, content)
-	if !strings.Contains(hint, "第 3-3 行") {
+	if !strings.Contains(hint, "около строк 3-3") {
 		t.Errorf("single-line match should report line 3-3, got: %s", hint)
 	}
 }
@@ -424,7 +424,7 @@ func TestFuzzyHintLineNumbers_BottomOfFile(t *testing.T) {
 	searchText := "第四行\n第五行"
 
 	hint := fuzzyHint(searchText, content)
-	if !strings.Contains(hint, "第 4-5 行") {
+	if !strings.Contains(hint, "около строк 4-5") {
 		t.Errorf("match at bottom should report line 4-5, got: %s", hint)
 	}
 }
@@ -455,7 +455,7 @@ func TestLinePreview_SingleLine(t *testing.T) {
 	if !strings.Contains(preview, "3|") {
 		t.Errorf("should show context line 3, got:\n%s", preview)
 	}
-	if !strings.Contains(preview, "改动区间") || !strings.Contains(preview, "改动结束") {
+	if !strings.Contains(preview, "Change range") || !strings.Contains(preview, "Change end") {
 		t.Errorf("should mark the changed section, got:\n%s", preview)
 	}
 }

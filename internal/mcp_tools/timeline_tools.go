@@ -18,10 +18,10 @@ import (
 
 // GetTimelineArgs 是 get_timeline 的参数。
 type GetTimelineArgs struct {
-	CurrentChapterID int64  `json:"current_chapter_id" jsonschema:"description=当前章节的稳定 ID。传入时自动按其当前阅读顺序收集附近条目并检测异常。写新章时必填" validate:"omitempty,min=1"`
-	Category         string `json:"category" jsonschema:"description=按分类筛选,enum=foreshadowing,enum=user_directive" validate:"omitempty,oneof=foreshadowing user_directive"`
-	Status           string `json:"status" jsonschema:"description=按状态筛选,enum=pending,enum=resolved,enum=abandoned" validate:"omitempty,oneof=pending resolved abandoned"`
-	Search           string `json:"search" jsonschema:"description=按标题或内容模糊搜索（仅不传 current_chapter 时生效）"`
+	CurrentChapterID int64  `json:"current_chapter_id" jsonschema:"description=Stable ID of the current chapter. When provided, nearby entries are automatically collected by current reading order and anomalies are detected. Required when writing a new chapter." validate:"omitempty,min=1"`
+	Category         string `json:"category" jsonschema:"description=Filter by category,enum=foreshadowing,enum=user_directive" validate:"omitempty,oneof=foreshadowing user_directive"`
+	Status           string `json:"status" jsonschema:"description=Filter by status,enum=pending,enum=resolved,enum=abandoned" validate:"omitempty,oneof=pending resolved abandoned"`
+	Search           string `json:"search" jsonschema:"description=Fuzzy search by title or content (only applies when current_chapter is not provided)"`
 	PageArgs                // 嵌入分页参数（仅不传 current_chapter 时生效）
 }
 
@@ -30,9 +30,9 @@ type GetTimelineTool struct{}
 
 func (t *GetTimelineTool) Name() string { return "get_timeline" }
 func (t *GetTimelineTool) Description() string {
-	return "获取故事时间线总览：章节计划（next/near/far）+ 伏笔和用户指令。两种用法：\n" +
-		"- 传入 current_chapter_id：自动收集附近条目（近期历史+未来+异常标记），不要传分页/过滤 参数\n" +
-		"- 不传 current_chapter_id：分页浏览条目（不含计划），可用 category/status 过滤，需要传分页/过滤 参数"
+	return "Get a story timeline overview: chapter plans (next/near/far) + foreshadowing and user directives. Two usage modes:\n" +
+		"- With current_chapter_id: nearby entries are collected automatically (recent history + future + anomaly flags). Do NOT pass pagination/filter params\n" +
+		"- Without current_chapter_id: paginate over entries (excluding plans), filterable by category/status. Pagination/filter params are required"
 }
 func (t *GetTimelineTool) Category() ToolCategory { return CategoryMemoryRetrieval }
 
@@ -50,7 +50,7 @@ func (t *GetTimelineTool) Execute(ctx context.Context, args any, tc ToolContext)
 		currentReadingNumber, err := chapter.NewStore(tc.DB, tc.LoggerOrDefault()).GetReadingNumberByID(ctx, nil, tc.NovelID, a.CurrentChapterID)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return &ToolResult{Success: false, Error: fmt.Sprintf("章节 %d 不存在或不属于当前小说", a.CurrentChapterID)}, nil
+				return &ToolResult{Success: false, Error: fmt.Sprintf("Глава %d не существует или не принадлежит текущему роману", a.CurrentChapterID)}, nil
 			}
 			return nil, err
 		}
@@ -122,19 +122,19 @@ func (t *GetTimelineTool) executeFull(ctx context.Context, a *GetTimelineArgs, t
 
 // CreateTimelineEntryItem 是单条伏笔/用户指令的创建参数。
 type CreateTimelineEntryItem struct {
-	Category            string `json:"category" jsonschema:"required,description=条目类型,enum=foreshadowing,enum=user_directive" validate:"required,oneof=foreshadowing user_directive"`
-	Title               string `json:"title" jsonschema:"required,description=简短标题"                                   validate:"required"`
-	Content             string `json:"content" jsonschema:"description=详细描述"`
-	DetailJSON          string `json:"detail_json" jsonschema:"description=字符串形式的JSON，结构化数据"`
-	TargetReadingNumber int    `json:"target_reading_number" jsonschema:"required,description=预计回收的阅读序号。用于未来计划位置，不是章节 ID" validate:"required,min=1"`
-	Importance          int    `json:"importance" jsonschema:"description=重要度1-5,default=3,minimum=1,maximum=5"         validate:"omitempty,min=1,max=5"`
-	SourceChapterID     *int64 `json:"source_chapter_id" jsonschema:"description=在哪章创建/埋下的稳定章节 ID" validate:"omitempty,min=1"`
-	Source              string `json:"source" jsonschema:"description=来源,default=ai"`
+	Category            string `json:"category" jsonschema:"required,description=Entry type,enum=foreshadowing,enum=user_directive" validate:"required,oneof=foreshadowing user_directive"`
+	Title               string `json:"title" jsonschema:"required,description=Short title"                                   validate:"required"`
+	Content             string `json:"content" jsonschema:"description=Detailed description"`
+	DetailJSON          string `json:"detail_json" jsonschema:"description=JSON in string form, structured data"`
+	TargetReadingNumber int    `json:"target_reading_number" jsonschema:"required,description=Expected reading number at which this is resolved. Used for the future plan position, not a chapter ID" validate:"required,min=1"`
+	Importance          int    `json:"importance" jsonschema:"description=Importance 1-5,default=3,minimum=1,maximum=5"         validate:"omitempty,min=1,max=5"`
+	SourceChapterID     *int64 `json:"source_chapter_id" jsonschema:"description=Stable chapter ID where this was created/planted" validate:"omitempty,min=1"`
+	Source              string `json:"source" jsonschema:"description=Source,default=ai"`
 }
 
 // CreateTimelineEntryArgs 是 create_timeline_entry 的参数。
 type CreateTimelineEntryArgs struct {
-	Entries []CreateTimelineEntryItem `json:"entries" jsonschema:"required,description=要添加的条目列表（1-6个）" validate:"required,min=1,max=6,dive"`
+	Entries []CreateTimelineEntryItem `json:"entries" jsonschema:"required,description=List of entries to add (1-6)" validate:"required,min=1,max=6,dive"`
 }
 
 // CreateTimelineEntryTool 批量创建伏笔和用户指令。
@@ -142,10 +142,10 @@ type CreateTimelineEntryTool struct{}
 
 func (t *CreateTimelineEntryTool) Name() string { return "create_timeline_entry" }
 func (t *CreateTimelineEntryTool) Description() string {
-	return "批量创建伏笔或用户指令（1-6条）。保证原子性，失败时返回具体条目原因。" +
-		"每章写完后发现新埋的伏笔或用户指令时调用。" +
-		"创建前先查询已有条目；内容相近时更新原条目，避免重复创建。" +
-		"category 为 foreshadowing（伏笔）或 user_directive（用户创作指令）。"
+	return "Batch-create foreshadowing entries or user directives (1-6). Guarantees atomicity; on failure returns the reason for the specific item." +
+		"Call this after finishing a chapter when new foreshadowing or user directives are planted." +
+		"Query existing entries before creating; if the content is similar, update the existing entry to avoid duplicates." +
+		"category is foreshadowing (foreshadowing) or user_directive (user creative directive)."
 }
 func (t *CreateTimelineEntryTool) Category() ToolCategory { return CategoryWritingAssistant }
 
@@ -204,7 +204,7 @@ func (t *CreateTimelineEntryTool) Execute(ctx context.Context, args any, tc Tool
 	if err != nil {
 		return &ToolResult{
 			Success: false,
-			Error:   fmt.Sprintf("创建时间线条目 [%s] 失败: %s", failedName, failedErr),
+			Error:   fmt.Sprintf("Не удалось создать запись таймлайна [%s]: %s", failedName, failedErr),
 		}, nil
 	}
 
@@ -218,14 +218,14 @@ func (t *CreateTimelineEntryTool) Execute(ctx context.Context, args any, tc Tool
 
 // UpdateTimelineEntryArgs 是 update_timeline_entry 的参数。
 type UpdateTimelineEntryArgs struct {
-	EntryID             int64  `json:"entry_id" jsonschema:"required,description=条目ID"              validate:"required,min=1"`
-	Title               string `json:"title" jsonschema:"description=新的标题"`
-	Content             string `json:"content" jsonschema:"description=新的描述"`
-	DetailJSON          string `json:"detail_json" jsonschema:"description=新的结构化数据（完全替换旧的）"`
-	TargetReadingNumber int    `json:"target_reading_number" jsonschema:"description=新的目标阅读序号,minimum=1" validate:"omitempty,min=1"`
-	Importance          int    `json:"importance" jsonschema:"description=新的重要度1-5,minimum=1,maximum=5"`
-	Status              string `json:"status" jsonschema:"description=新状态,enum=pending,enum=resolved,enum=abandoned" validate:"omitempty,oneof=pending resolved abandoned"`
-	ResolvedChapterID   *int64 `json:"resolved_chapter_id" jsonschema:"description=在哪章回收的稳定章节 ID（标记 resolved 时填入）" validate:"omitempty,min=1"`
+	EntryID             int64  `json:"entry_id" jsonschema:"required,description=Entry ID"              validate:"required,min=1"`
+	Title               string `json:"title" jsonschema:"description=New title"`
+	Content             string `json:"content" jsonschema:"description=New description"`
+	DetailJSON          string `json:"detail_json" jsonschema:"description=New structured data (completely replaces the old one)"`
+	TargetReadingNumber int    `json:"target_reading_number" jsonschema:"description=New target reading number,minimum=1" validate:"omitempty,min=1"`
+	Importance          int    `json:"importance" jsonschema:"description=New importance 1-5,minimum=1,maximum=5"`
+	Status              string `json:"status" jsonschema:"description=New status,enum=pending,enum=resolved,enum=abandoned" validate:"omitempty,oneof=pending resolved abandoned"`
+	ResolvedChapterID   *int64 `json:"resolved_chapter_id" jsonschema:"description=Stable chapter ID where this is resolved (fill in when marking resolved)" validate:"omitempty,min=1"`
 }
 
 // UpdateTimelineEntryTool 更新伏笔或用户指令。
@@ -233,9 +233,9 @@ type UpdateTimelineEntryTool struct{}
 
 func (t *UpdateTimelineEntryTool) Name() string { return "update_timeline_entry" }
 func (t *UpdateTimelineEntryTool) Description() string {
-	return "更新已有的伏笔或用户指令。只需传入要修改的字段。" +
-		"常见用途：回收伏笔（status=resolved + resolved_chapter_id）、调整 target_reading_number、修改内容。" +
-		"category 和 source_chapter_id 创建后不可变。"
+	return "Update an existing foreshadowing entry or user directive. Only pass the fields to change." +
+		"Common uses: resolve a foreshadowing (status=resolved + resolved_chapter_id), adjust target_reading_number, edit content." +
+		"category and source_chapter_id are immutable after creation."
 }
 func (t *UpdateTimelineEntryTool) Category() ToolCategory { return CategoryWritingAssistant }
 
@@ -249,7 +249,7 @@ func (t *UpdateTimelineEntryTool) Execute(ctx context.Context, args any, tc Tool
 	a := args.(*UpdateTimelineEntryArgs)
 
 	if a.Title == "" && a.Content == "" && a.DetailJSON == "" && a.TargetReadingNumber == 0 && a.Importance == 0 && a.Status == "" && a.ResolvedChapterID == nil {
-		return &ToolResult{Success: false, Error: "至少需要提供一个要修改的字段"}, nil
+		return &ToolResult{Success: false, Error: "Необходимо указать хотя бы одно поле для изменения"}, nil
 	}
 
 	var entry timeline.TimelineEntry
@@ -257,7 +257,7 @@ func (t *UpdateTimelineEntryTool) Execute(ctx context.Context, args any, tc Tool
 		Where("id = ? AND novel_id = ?", a.EntryID, tc.NovelID).
 		First(&entry).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("条目 %d 不存在", a.EntryID)}, nil
+			return &ToolResult{Success: false, Error: fmt.Sprintf("Запись %d не существует", a.EntryID)}, nil
 		}
 		return nil, fmt.Errorf("query timeline entry: %w", err)
 	}
@@ -270,7 +270,7 @@ func (t *UpdateTimelineEntryTool) Execute(ctx context.Context, args any, tc Tool
 	}
 
 	if err := json.Unmarshal(tc.RawArgs, &entry); err != nil {
-		return &ToolResult{Success: false, Error: "参数格式不正确: " + err.Error()}, nil
+		return &ToolResult{Success: false, Error: "Неверный формат параметров: " + err.Error()}, nil
 	}
 
 	if err := tc.DB.WithContext(ctx).Save(&entry).Error; err != nil {
@@ -287,8 +287,8 @@ func (t *UpdateTimelineEntryTool) Execute(ctx context.Context, args any, tc Tool
 
 // UpdateChapterPlanArgs 是 update_chapter_plan 的参数。
 type UpdateChapterPlanArgs struct {
-	Scope   string `json:"scope" jsonschema:"required,description=计划范围,enum=next,enum=near,enum=far" validate:"required,oneof=next near far"`
-	Content string `json:"content" jsonschema:"required,description=计划内容，自然语言描述"                   validate:"required"`
+	Scope   string `json:"scope" jsonschema:"required,description=Plan scope,enum=next,enum=near,enum=far" validate:"required,oneof=next near far"`
+	Content string `json:"content" jsonschema:"required,description=Plan content, a natural-language description"                   validate:"required"`
 }
 
 // UpdateChapterPlanTool 更新章节创作计划。
@@ -296,11 +296,11 @@ type UpdateChapterPlanTool struct{}
 
 func (t *UpdateChapterPlanTool) Name() string { return "update_chapter_plan" }
 func (t *UpdateChapterPlanTool) Description() string {
-	return "更新章节创作计划。三个槽位：\n" +
-		"- next：下一章的写作计划\n" +
-		"- near：近期 3-10 章的写作方向\n" +
-		"- far：远期的写作方向\n" +
-		"同一 scope 重复调用会覆盖旧值。写新章前应更新计划以反映最新进展。"
+	return "Update the chapter writing plan. Three slots:\n" +
+		"- next: the writing plan for the next chapter\n" +
+		"- near: the writing direction for the upcoming 3-10 chapters\n" +
+		"- far: the long-term writing direction\n" +
+		"Calling the same scope again overwrites the previous value. Update the plan before writing a new chapter to reflect the latest progress."
 }
 func (t *UpdateChapterPlanTool) Category() ToolCategory { return CategoryWritingAssistant }
 
@@ -337,16 +337,16 @@ func formatTimelineContext(plans []timeline.ChapterPlan, history, anomalies, fut
 	var parts []string
 
 	// 章节计划
-	parts = append(parts, "### 章节计划")
-	planMap := map[string]string{"next": "暂无", "near": "暂无", "far": "暂无"}
+	parts = append(parts, "### Chapter Plans")
+	planMap := map[string]string{"next": "None", "near": "None", "far": "None"}
 	for _, p := range plans {
 		if p.Content != "" {
 			planMap[p.Scope] = p.Content
 		}
 	}
-	parts = append(parts, fmt.Sprintf("- **next**：%s", planMap["next"]))
-	parts = append(parts, fmt.Sprintf("- **near**：%s", planMap["near"]))
-	parts = append(parts, fmt.Sprintf("- **far**：%s", planMap["far"]))
+	parts = append(parts, fmt.Sprintf("- **next**: %s", planMap["next"]))
+	parts = append(parts, fmt.Sprintf("- **near**: %s", planMap["near"]))
+	parts = append(parts, fmt.Sprintf("- **far**: %s", planMap["far"]))
 
 	// 近期历史（排除已在异常中的条目，避免重复）
 	anomalyIDs := make(map[int64]bool, len(anomalies))
@@ -354,14 +354,14 @@ func formatTimelineContext(plans []timeline.ChapterPlan, history, anomalies, fut
 		anomalyIDs[e.ID] = true
 	}
 	if len(history) > 0 {
-		lines := []string{fmt.Sprintf("\n### 近期历史（最近%d条，截至第%d章）", len(history), currentChapter)}
+		lines := []string{fmt.Sprintf("\n### Recent History (last %d entries, up to chapter %d)", len(history), currentChapter)}
 		for _, e := range history {
 			if anomalyIDs[e.ID] {
 				continue
 			}
 			cat := catLabel(e.Category)
 			st := statusLabel(e.Status)
-			line := fmt.Sprintf("- %s %s [entry_id:%d] — 目标第%d章 — %s", cat, e.Title, e.ID, e.TargetReadingNumber, st)
+			line := fmt.Sprintf("- %s %s [entry_id:%d] — target chapter %d — %s", cat, e.Title, e.ID, e.TargetReadingNumber, st)
 			lines = append(lines, line)
 		}
 		parts = append(parts, strings.Join(lines, "\n"))
@@ -369,15 +369,15 @@ func formatTimelineContext(plans []timeline.ChapterPlan, history, anomalies, fut
 
 	// 异常
 	if len(anomalies) > 0 {
-		lines := []string{"\n### ⚠️ 状态异常"}
-		lines = append(lines, "以下条目需要关注和修正：")
+		lines := []string{"\n### ⚠️ Status Anomalies"}
+		lines = append(lines, "The following entries need attention and correction:")
 		for _, e := range anomalies {
 			cat := catLabel(e.Category)
 			if e.Status == "pending" && e.TargetReadingNumber < currentChapter {
-				lines = append(lines, fmt.Sprintf("- %s %s [entry_id:%d] — 目标第%d章但仍为pending，应在第%d章前回收",
+				lines = append(lines, fmt.Sprintf("- %s %s [entry_id:%d] — target chapter %d but still pending; should be resolved before chapter %d",
 					cat, e.Title, e.ID, e.TargetReadingNumber, currentChapter))
 			} else if e.Status == "resolved" && e.TargetReadingNumber >= currentChapter {
-				lines = append(lines, fmt.Sprintf("- %s %s [entry_id:%d] — 目标第%d章但已标记resolved，可能提前回收",
+				lines = append(lines, fmt.Sprintf("- %s %s [entry_id:%d] — target chapter %d but already marked resolved; may have been resolved early",
 					cat, e.Title, e.ID, e.TargetReadingNumber))
 			}
 		}
@@ -386,17 +386,17 @@ func formatTimelineContext(plans []timeline.ChapterPlan, history, anomalies, fut
 
 	// 未来条目
 	if len(future) > 0 {
-		lines := []string{fmt.Sprintf("\n### 未来条目（%d条，按目标章节排序）", len(future))}
+		lines := []string{fmt.Sprintf("\n### Future Entries (%d entries, sorted by target chapter)", len(future))}
 		for _, e := range future {
 			if e.Status == "resolved" {
 				continue // 已在异常区展示
 			}
-			line := fmt.Sprintf("- %s %s [entry_id:%d] 第%d章", catLabel(e.Category), e.Title, e.ID, e.TargetReadingNumber)
+			line := fmt.Sprintf("- %s %s [entry_id:%d] chapter %d", catLabel(e.Category), e.Title, e.ID, e.TargetReadingNumber)
 			if e.Importance > 0 {
-				line += fmt.Sprintf(" [重要度:%d]", e.Importance)
+				line += fmt.Sprintf(" [importance:%d]", e.Importance)
 			}
 			if e.Status == "abandoned" {
-				line += " — 已废弃"
+				line += " — abandoned"
 			}
 			lines = append(lines, line)
 		}
@@ -404,7 +404,7 @@ func formatTimelineContext(plans []timeline.ChapterPlan, history, anomalies, fut
 	}
 
 	if len(history) == 0 && len(anomalies) == 0 && len(future) == 0 {
-		parts = append(parts, "\n暂无伏笔或用户指令。")
+		parts = append(parts, "\nNo foreshadowing or user directives yet.")
 	}
 
 	return strings.Join(parts, "\n")
@@ -414,18 +414,18 @@ func formatTimelineFull(entries []timeline.TimelineEntry) string {
 	var parts []string
 
 	if len(entries) > 0 {
-		lines := []string{fmt.Sprintf("### 伏笔与用户指令（%d条）", len(entries))}
+		lines := []string{fmt.Sprintf("### Foreshadowing & User Directives (%d entries)", len(entries))}
 		for _, e := range entries {
-			line := fmt.Sprintf("- %s %s [entry_id:%d] 第%d章 — %s",
+			line := fmt.Sprintf("- %s %s [entry_id:%d] chapter %d — %s",
 				catLabel(e.Category), e.Title, e.ID, e.TargetReadingNumber, statusLabel(e.Status))
 			if e.Importance > 0 {
-				line += fmt.Sprintf(" [重要度:%d]", e.Importance)
+				line += fmt.Sprintf(" [importance:%d]", e.Importance)
 			}
 			lines = append(lines, line)
 		}
 		parts = append(parts, strings.Join(lines, "\n"))
 	} else {
-		parts = append(parts, "暂无伏笔或用户指令。")
+		parts = append(parts, "No foreshadowing or user directives yet.")
 	}
 
 	return strings.Join(parts, "\n")
@@ -434,11 +434,11 @@ func formatTimelineFull(entries []timeline.TimelineEntry) string {
 func catLabel(category string) string {
 	switch category {
 	case "foreshadowing":
-		return "【伏笔】"
+		return "[foreshadowing]"
 	case "user_directive":
-		return "【用户指令】"
+		return "[user_directive]"
 	}
-	return "【" + category + "】"
+	return "[" + category + "]"
 }
 
 func statusLabel(status string) string {
@@ -446,9 +446,9 @@ func statusLabel(status string) string {
 	case "pending":
 		return "pending"
 	case "resolved":
-		return "已回收 ✓"
+		return "resolved ✓"
 	case "abandoned":
-		return "已废弃 ✗"
+		return "abandoned ✗"
 	}
 	return status
 }

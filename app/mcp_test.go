@@ -53,7 +53,7 @@ func TestMCPServerUsesCurrentNovelWithRegisteredTool(t *testing.T) {
 	result, err := client.CallTool(ctx, "get_chapter_list", nil)
 	require.NoError(t, err)
 	require.False(t, result.IsError)
-	require.Equal(t, "暂无章节。", result.StructuredContent.(map[string]any)["content"])
+	require.Equal(t, "No chapters available.", result.StructuredContent.(map[string]any)["content"])
 
 	require.NoError(t, a.SetActiveNovel(SetActiveNovelInput{NovelID: 0}))
 	result, err = client.CallTool(ctx, "get_chapter_list", nil)

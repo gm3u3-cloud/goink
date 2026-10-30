@@ -43,15 +43,15 @@ func TestGetChapterListGroupsByVolume(t *testing.T) {
 	if !ok {
 		t.Fatalf("content = %#v, want string", result.Data["content"])
 	}
-	want := fmt.Sprintf(`## 未分卷
-- 第4章《未分卷草稿》 [chapter_id:%d] · 1400 字
+	want := fmt.Sprintf(`## Unassigned Volume
+- Chapter 4 "未分卷草稿" [chapter_id:%d] · 1400 words
 
 ## 第二卷 [volume_id:%d]
-- 第3章《再入京城》 [chapter_id:%d] · 1300 字
+- Chapter 3 "再入京城" [chapter_id:%d] · 1300 words
 
 ## 第一卷 [volume_id:%d]
-- 第2章《夜宿客栈》 [chapter_id:%d] · 1200 字
-- 第1章《初入江湖》 [chapter_id:%d] · 1100 字`,
+- Chapter 2 "夜宿客栈" [chapter_id:%d] · 1200 words
+- Chapter 1 "初入江湖" [chapter_id:%d] · 1100 words`,
 		chapters[3].ID, secondVolumeID, chapters[2].ID, firstVolumeID, chapters[1].ID, chapters[0].ID)
 	if content != want {
 		t.Errorf("content =\n%s\nwant:\n%s", content, want)

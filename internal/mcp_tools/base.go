@@ -127,7 +127,7 @@ func compactErrorDetail(detail string) string {
 		detail = string(runes[:maxSystemErrorDetailRunes]) + "…"
 	}
 	if detail == "" {
-		detail = "未提供错误详情"
+		detail = "No error details provided"
 	}
 	return detail
 }
@@ -144,7 +144,7 @@ func compactToolResultError(result *ToolResult) *ToolResult {
 func systemErrorResult(err error) *ToolResult {
 	return &ToolResult{
 		Success: false,
-		Error:   "工具执行失败：" + compactErrorDetail(err.Error()),
+		Error:   "Ошибка выполнения инструмента: " + compactErrorDetail(err.Error()),
 		ErrKind: ErrKindSystem,
 	}
 }
@@ -278,10 +278,10 @@ func (r *Registry) OpenAI(allowed map[string]bool) []map[string]any {
 func (r *Registry) Execute(ctx context.Context, name string, rawArgs json.RawMessage, tc ToolContext, allowed map[string]bool) *ToolResult {
 	t, ok := r.Get(name)
 	if !ok {
-		return compactToolResultError(&ToolResult{Success: false, Error: "工具不存在: " + name})
+		return compactToolResultError(&ToolResult{Success: false, Error: "Инструмент не существует: " + name})
 	}
 	if !allow(allowed, name) {
-		return compactToolResultError(&ToolResult{Success: false, Error: "工具禁止使用: " + name})
+		return compactToolResultError(&ToolResult{Success: false, Error: "Использование инструмента запрещено: " + name})
 	}
 
 	// 反序列化 + 校验
@@ -291,10 +291,10 @@ func (r *Registry) Execute(ctx context.Context, name string, rawArgs json.RawMes
 	dec := json.NewDecoder(bytes.NewReader(rawArgs))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(args); err != nil {
-		return compactToolResultError(&ToolResult{Success: false, Error: "参数格式不正确: " + err.Error(), ErrKind: ErrKindArgs})
+		return compactToolResultError(&ToolResult{Success: false, Error: "Неверный формат параметра: " + err.Error(), ErrKind: ErrKindArgs})
 	}
 	if err := r.validate.Struct(args); err != nil {
-		return compactToolResultError(&ToolResult{Success: false, Error: "参数校验失败: " + err.Error(), ErrKind: ErrKindArgs})
+		return compactToolResultError(&ToolResult{Success: false, Error: "Ошибка валидации параметра: " + err.Error(), ErrKind: ErrKindArgs})
 	}
 
 	tc.RawArgs = rawArgs
@@ -310,7 +310,7 @@ func (r *Registry) Execute(ctx context.Context, name string, rawArgs json.RawMes
 		defer func() {
 			if p := recover(); p != nil {
 				r.logger.Error("tool panicked", "tool", name, "panic", p)
-				result = &ToolResult{Success: false, Error: "服务器内部错误，请稍后重试", ErrKind: ErrKindSystem}
+				result = &ToolResult{Success: false, Error: "Внутренняя ошибка сервера, повторите попытку позже", ErrKind: ErrKindSystem}
 				execErr = nil
 			}
 		}()
@@ -350,8 +350,8 @@ func allow(set map[string]bool, name string) bool {
 
 // PageArgs 是分页查询的公共参数，嵌入 Args 结构体即可。
 type PageArgs struct {
-	Page int `json:"page" jsonschema:"description=页码,default=1,minimum=1"                validate:"omitempty,min=1"`
-	Size int `json:"size" jsonschema:"description=每页数量,default=50,minimum=1,maximum=100"  validate:"omitempty,min=1,max=100"`
+	Page int `json:"page" jsonschema:"description=Page number,default=1,minimum=1"                validate:"omitempty,min=1"`
+	Size int `json:"size" jsonschema:"description=Items per page,default=50,minimum=1,maximum=100"  validate:"omitempty,min=1,max=100"`
 }
 
 // NormalizePage 给 Page/Size 设默认值。

@@ -41,7 +41,7 @@ func TestEnsureChapterIDsInNovel(t *testing.T) {
 	if result == nil || result.Success {
 		t.Fatalf("invalid result = %+v, want business rejection", result)
 	}
-	if !strings.Contains(result.Error, "不存在或不属于当前小说") {
+	if !strings.Contains(result.Error, "не существуют или не относятся к текущему роману") {
 		message := result.Error
 		t.Errorf("error = %q, want chapter ownership message", message)
 	}

@@ -101,11 +101,11 @@ func defaultDirResolver(target string, novelID int64) (string, error) {
 		return config.UserSkillsDir(), nil
 	case "novel":
 		if novelID == 0 {
-			return "", apperr.NewInvalid("remote: install to novel layer requires non-zero novelID")
+			return "", apperr.NewInvalid("remote: установка в слой романа требует ненулевой novelID")
 		}
 		return config.NovelSkillsDir(novelID), nil
 	default:
-		return "", apperr.NewInvalid(fmt.Sprintf("remote: invalid target %q (want user or novel)", target))
+		return "", apperr.NewInvalid(fmt.Sprintf("remote: недопустимое значение target %q (ожидается user или novel)", target))
 	}
 }
 
@@ -129,12 +129,12 @@ func (s *Service) ListRemoteSkills(ctx context.Context, forceRefresh bool) ([]Re
 	// 调 API 时不持锁，避免网络 I/O 阻塞其他读。
 	body, _, err := s.client.GetRawContent(ctx, repoOwner, repoName, branch, indexPath)
 	if err != nil {
-		return nil, fmt.Errorf("remote: fetch index.json: %w", err)
+		return nil, fmt.Errorf("remote: загрузка index.json: %w", err)
 	}
 
 	var idx IndexFile
 	if err := json.Unmarshal(body, &idx); err != nil {
-		return nil, fmt.Errorf("remote: parse index.json: %w", err)
+		return nil, fmt.Errorf("remote: разбор index.json: %w", err)
 	}
 
 	// 写锁更新缓存。
@@ -152,7 +152,7 @@ func (s *Service) GetRemoteSkillContent(ctx context.Context, name string) (strin
 	path := fmt.Sprintf("%s/%s.md", skillsDir, name)
 	body, _, err := s.client.GetRawContent(ctx, repoOwner, repoName, branch, path)
 	if err != nil {
-		return "", fmt.Errorf("remote: fetch skill %s: %w", name, err)
+		return "", fmt.Errorf("remote: загрузка скилла %s: %w", name, err)
 	}
 	return string(body), nil
 }
@@ -172,7 +172,7 @@ func (s *Service) InstallRemoteSkill(ctx context.Context, name, target string, n
 	// 防止远程 index.json 被污染时 name 含 ../ 逃出 skills 目录写任意文件
 	safeName := strings.TrimSuffix(filepath.Base(name), ".md")
 	if safeName == "" || safeName != name {
-		return apperr.NewInvalid(fmt.Sprintf("remote: invalid skill name %q", name))
+		return apperr.NewInvalid(fmt.Sprintf("remote: недопустимое имя скилла %q", name))
 	}
 
 	content, err := s.GetRemoteSkillContent(ctx, name)
@@ -186,18 +186,18 @@ func (s *Service) InstallRemoteSkill(ctx context.Context, name, target string, n
 	}
 
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return fmt.Errorf("remote: create skill dir %s: %w", dir, err)
+		return fmt.Errorf("remote: создание каталога скиллов %s: %w", dir, err)
 	}
 
 	dst, err := git.SafePath(dir, name+".md")
 	if err != nil {
-		return &apperr.BusinessError{CodeVal: apperr.CodeInvalid, Msg: "remote: invalid skill path", Cause: err}
+		return &apperr.BusinessError{CodeVal: apperr.CodeInvalid, Msg: "remote: недопустимый путь скилла", Cause: err}
 	}
 	if err := git.WriteFileAtPathIfUnchanged(dst, expectedContent, content); err != nil {
 		if errors.Is(err, git.ErrFileChanged) {
-			return &apperr.BusinessError{CodeVal: apperr.CodeConflict, Msg: "remote: target skill changed", Cause: err}
+			return &apperr.BusinessError{CodeVal: apperr.CodeConflict, Msg: "remote: целевой скилл изменён", Cause: err}
 		}
-		return fmt.Errorf("remote: write skill file %s: %w", dst, err)
+		return fmt.Errorf("remote: запись файла скилла %s: %w", dst, err)
 	}
 
 	// 文件已成功写入，热重载失败只记录日志，不影响安装结果。

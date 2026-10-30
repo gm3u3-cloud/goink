@@ -47,7 +47,7 @@ func TestWebSearchRequestFailureIsSystemError(t *testing.T) {
 	if result.ErrKind != ErrKindSystem {
 		t.Errorf("ErrKind = %q, want %q", result.ErrKind, ErrKindSystem)
 	}
-	if !strings.Contains(result.Error, "搜索失败: request timed out") {
+	if !strings.Contains(result.Error, "ошибка поиска: request timed out") {
 		t.Errorf("Error = %q, want search failure detail", result.Error)
 	}
 }
@@ -63,7 +63,7 @@ func TestUpsertPreferenceSeparatesBusinessAndSystemFailures(t *testing.T) {
 	if business.Success || business.ErrKind != ErrKindBusiness {
 		t.Errorf("business result = %+v, want business failure", business)
 	}
-	if !strings.Contains(business.Error, "偏好条目 99 不存在") {
+	if !strings.Contains(business.Error, "предпочтение 99 не существует") {
 		t.Errorf("business error = %q", business.Error)
 	}
 
@@ -71,7 +71,7 @@ func TestUpsertPreferenceSeparatesBusinessAndSystemFailures(t *testing.T) {
 	if system.Success || system.ErrKind != ErrKindSystem {
 		t.Errorf("system result = %+v, want system failure", system)
 	}
-	if !strings.Contains(system.Error, "upsert preference 第 0 条 [文风]（事务已回滚）") {
+	if !strings.Contains(system.Error, "upsert предпочтения, запись 0 [文风] (транзакция откатлена)") {
 		t.Errorf("system error = %q, want rollback state", system.Error)
 	}
 }
@@ -87,7 +87,7 @@ func TestUpsertSettingSeparatesBusinessAndSystemFailures(t *testing.T) {
 	if business.Success || business.ErrKind != ErrKindBusiness {
 		t.Errorf("business result = %+v, want business failure", business)
 	}
-	if !strings.Contains(business.Error, "设定条目 99 不存在") {
+	if !strings.Contains(business.Error, "настройка 99 не существует") {
 		t.Errorf("business error = %q", business.Error)
 	}
 
@@ -95,7 +95,7 @@ func TestUpsertSettingSeparatesBusinessAndSystemFailures(t *testing.T) {
 	if system.Success || system.ErrKind != ErrKindSystem {
 		t.Errorf("system result = %+v, want system failure", system)
 	}
-	if !strings.Contains(system.Error, "upsert setting 第 0 条 [世界观]（事务已回滚）") {
+	if !strings.Contains(system.Error, "upsert настройки, запись 0 [世界观] (транзакция откатлена)") {
 		t.Errorf("system error = %q, want rollback state", system.Error)
 	}
 }

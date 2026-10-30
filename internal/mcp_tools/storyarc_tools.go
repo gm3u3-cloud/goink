@@ -17,9 +17,9 @@ import (
 
 // GetStoryArcsArgs 是 get_story_arcs 的参数。
 type GetStoryArcsArgs struct {
-	CurrentChapterID int64  `json:"current_chapter_id" jsonschema:"description=当前章节的稳定 ID。传入时按其当前阅读顺序做窗口切分并检测异常。写新章时必填" validate:"omitempty,min=1"`
-	ArcType          string `json:"arc_type" jsonschema:"description=按类型筛选,enum=main,enum=sub,enum=character,enum=background" validate:"omitempty,oneof=main sub character background"`
-	Status           string `json:"status" jsonschema:"description=按状态筛选,enum=active,enum=paused,enum=completed,enum=abandoned" validate:"omitempty,oneof=active paused completed abandoned"`
+	CurrentChapterID int64  `json:"current_chapter_id" jsonschema:"description=Stable ID of the current chapter. When provided, the arcs are windowed by current reading order and anomalies are detected. Required when writing a new chapter." validate:"omitempty,min=1"`
+	ArcType          string `json:"arc_type" jsonschema:"description=Filter by type,enum=main,enum=sub,enum=character,enum=background" validate:"omitempty,oneof=main sub character background"`
+	Status           string `json:"status" jsonschema:"description=Filter by status,enum=active,enum=paused,enum=completed,enum=abandoned" validate:"omitempty,oneof=active paused completed abandoned"`
 	PageArgs                // 嵌入分页参数（仅不传 current_chapter 时生效）
 }
 
@@ -28,9 +28,9 @@ type GetStoryArcsTool struct{}
 
 func (t *GetStoryArcsTool) Name() string { return "get_story_arcs" }
 func (t *GetStoryArcsTool) Description() string {
-	return "获取叙事弧线和节点链。两种用法：\n" +
-		"- 传入 current_chapter_id：活跃弧线做窗口切分（近期/异常/未来），暂停弧线显示断点+恢复条件，已完成/废弃弧线仅显示元数据，不要传分页/过滤 参数\n" +
-		"- 不传 current_chapter_id：分页查看所有弧线含完整节点链，需要传分页/过滤 参数"
+	return "Get story arcs and their node chains. Two usage modes:\n" +
+		"- With current_chapter_id: active arcs are windowed (recent/anomaly/future), paused arcs show breakpoint + reactivation condition, completed/abandoned arcs show metadata only. Do NOT pass pagination/filter params\n" +
+		"- Without current_chapter_id: paginate over all arcs with their full node chains. Pagination/filter params are required"
 }
 func (t *GetStoryArcsTool) Category() ToolCategory { return CategoryMemoryRetrieval }
 
@@ -51,7 +51,7 @@ func (t *GetStoryArcsTool) Execute(ctx context.Context, args any, tc ToolContext
 	if a.CurrentChapterID > 0 {
 		currentReadingNumber, ok := readingNumbers[a.CurrentChapterID]
 		if !ok {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("章节 %d 不存在或不属于当前小说", a.CurrentChapterID)}, nil
+			return &ToolResult{Success: false, Error: fmt.Sprintf("Глава %d не существует или не принадлежит текущему роману", a.CurrentChapterID)}, nil
 		}
 		return t.executeContext(ctx, tc, store, currentReadingNumber, readingNumbers)
 	}
@@ -152,15 +152,15 @@ func (t *GetStoryArcsTool) executeFull(ctx context.Context, a *GetStoryArcsArgs,
 
 // CreateStoryArcItem 是 create_story_arc 的单条参数。
 type CreateStoryArcItem struct {
-	Name        string `json:"name" jsonschema:"required,description=弧线名称，如'复仇之路'"                          validate:"required"`
-	ArcType     string `json:"arc_type" jsonschema:"required,description=弧线类型,enum=main,enum=sub,enum=character,enum=background" validate:"required,oneof=main sub character background"`
-	Description string `json:"description" jsonschema:"description=弧线整体描述"`
-	Importance  int    `json:"importance" jsonschema:"description=重要度1-5,default=1,minimum=1,maximum=5"          validate:"omitempty,min=1,max=5"`
+	Name        string `json:"name" jsonschema:"required,description=Arc name, e.g. 'Path of Revenge'"                          validate:"required"`
+	ArcType     string `json:"arc_type" jsonschema:"required,description=Arc type,enum=main,enum=sub,enum=character,enum=background" validate:"required,oneof=main sub character background"`
+	Description string `json:"description" jsonschema:"description=Overall description of the arc"`
+	Importance  int    `json:"importance" jsonschema:"description=Importance 1-5,default=1,minimum=1,maximum=5"          validate:"omitempty,min=1,max=5"`
 }
 
 // CreateStoryArcArgs 是 create_story_arc 的参数。
 type CreateStoryArcArgs struct {
-	StoryArcs []CreateStoryArcItem `json:"story_arcs" jsonschema:"required,description=要创建的弧线列表（1-5个）" validate:"required,min=1,max=5,dive"`
+	StoryArcs []CreateStoryArcItem `json:"story_arcs" jsonschema:"required,description=List of arcs to create (1-5)" validate:"required,min=1,max=5,dive"`
 }
 
 // CreateStoryArcTool 创建新叙事弧线。
@@ -168,9 +168,9 @@ type CreateStoryArcTool struct{}
 
 func (t *CreateStoryArcTool) Name() string { return "create_story_arc" }
 func (t *CreateStoryArcTool) Description() string {
-	return "批量创建叙事弧线（1-5个）。保证原子性，失败时返回具体条目原因。" +
-		"弧线类型：main（主线）/ sub（支线）/ character（角色线）/ background（背景线）。" +
-		"弧线是跨越多章节的故事线容器，内部节点通过 create_arc_node 添加。"
+	return "Batch-create story arcs (1-5). Guarantees atomicity; on failure returns the reason for the specific item." +
+		"Arc types: main (main storyline) / sub (sub-plot) / character (character arc) / background (background arc)." +
+		"An arc is a storyline container spanning multiple chapters; its nodes are added via create_arc_node."
 }
 func (t *CreateStoryArcTool) Category() ToolCategory { return CategoryWritingAssistant }
 
@@ -210,7 +210,7 @@ func (t *CreateStoryArcTool) Execute(ctx context.Context, args any, tc ToolConte
 	if err != nil {
 		return &ToolResult{
 			Success: false,
-			Error:   fmt.Sprintf("创建弧线 [%s] 失败: %s", failedName, failedErr),
+			Error:   fmt.Sprintf("Не удалось создать дугу [%s]: %s", failedName, failedErr),
 		}, nil
 	}
 
@@ -224,13 +224,13 @@ func (t *CreateStoryArcTool) Execute(ctx context.Context, args any, tc ToolConte
 
 // UpdateStoryArcArgs 是 update_story_arc 的参数。
 type UpdateStoryArcArgs struct {
-	ArcID        int64  `json:"arc_id" jsonschema:"required,description=弧线ID"                         validate:"required,min=1"`
-	Name         string `json:"name" jsonschema:"description=新的弧线名称"`
-	Description  string `json:"description" jsonschema:"description=新的描述"`
-	ArcType      string `json:"arc_type" jsonschema:"description=新的弧线类型,enum=main,enum=sub,enum=character,enum=background" validate:"omitempty,oneof=main sub character background"`
-	Importance   int    `json:"importance" jsonschema:"description=新的重要度1-5,minimum=1,maximum=5"`
-	Status       string `json:"status" jsonschema:"description=新状态,enum=active,enum=paused,enum=completed,enum=abandoned" validate:"omitempty,oneof=active paused completed abandoned"`
-	ReactivateAt string `json:"reactivate_at" jsonschema:"description=暂停弧线的恢复条件，自然语言。状态改为paused时填写"`
+	ArcID        int64  `json:"arc_id" jsonschema:"required,description=Arc ID"                         validate:"required,min=1"`
+	Name         string `json:"name" jsonschema:"description=New arc name"`
+	Description  string `json:"description" jsonschema:"description=New description"`
+	ArcType      string `json:"arc_type" jsonschema:"description=New arc type,enum=main,enum=sub,enum=character,enum=background" validate:"omitempty,oneof=main sub character background"`
+	Importance   int    `json:"importance" jsonschema:"description=New importance 1-5,minimum=1,maximum=5"`
+	Status       string `json:"status" jsonschema:"description=New status,enum=active,enum=paused,enum=completed,enum=abandoned" validate:"omitempty,oneof=active paused completed abandoned"`
+	ReactivateAt string `json:"reactivate_at" jsonschema:"description=Reactivation condition for a paused arc, in natural language. Fill in when setting status to paused"`
 }
 
 // UpdateStoryArcTool 更新叙事弧线元数据（PATCH 语义）。
@@ -238,8 +238,8 @@ type UpdateStoryArcTool struct{}
 
 func (t *UpdateStoryArcTool) Name() string { return "update_story_arc" }
 func (t *UpdateStoryArcTool) Description() string {
-	return "更新叙事弧线的元数据。只需传入要修改的字段。" +
-		"常用：暂停弧线（status=paused + reactivate_at）、完成弧线（status=completed）、废弃弧线（status=abandoned）。"
+	return "Update the metadata of a story arc. Only pass the fields to change." +
+		"Common: pause an arc (status=paused + reactivate_at), complete an arc (status=completed), abandon an arc (status=abandoned)."
 }
 func (t *UpdateStoryArcTool) Category() ToolCategory { return CategoryWritingAssistant }
 
@@ -251,7 +251,7 @@ func (t *UpdateStoryArcTool) Execute(ctx context.Context, args any, tc ToolConte
 	a := args.(*UpdateStoryArcArgs)
 
 	if a.Name == "" && a.Description == "" && a.ArcType == "" && a.Importance == 0 && a.Status == "" && a.ReactivateAt == "" {
-		return &ToolResult{Success: false, Error: "至少需要提供一个要修改的字段"}, nil
+		return &ToolResult{Success: false, Error: "Необходимо указать хотя бы одно поле для изменения"}, nil
 	}
 
 	var arc storyarc.StoryArc
@@ -259,13 +259,13 @@ func (t *UpdateStoryArcTool) Execute(ctx context.Context, args any, tc ToolConte
 		Where("id = ? AND novel_id = ?", a.ArcID, tc.NovelID).
 		First(&arc).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("弧线 %d 不存在", a.ArcID)}, nil
+			return &ToolResult{Success: false, Error: fmt.Sprintf("Дуга %d не существует", a.ArcID)}, nil
 		}
 		return nil, fmt.Errorf("query arc: %w", err)
 	}
 
 	if err := json.Unmarshal(tc.RawArgs, &arc); err != nil {
-		return &ToolResult{Success: false, Error: "参数格式不正确: " + err.Error()}, nil
+		return &ToolResult{Success: false, Error: "Неверный формат параметров: " + err.Error()}, nil
 	}
 
 	if err := tc.DB.WithContext(ctx).Save(&arc).Error; err != nil {
@@ -279,15 +279,15 @@ func (t *UpdateStoryArcTool) Execute(ctx context.Context, args any, tc ToolConte
 
 // CreateArcNodeItem 是 create_arc_node 的单条参数。
 type CreateArcNodeItem struct {
-	StoryArcID          int64  `json:"arc_id" jsonschema:"required,description=所属弧线ID"                  validate:"required,min=1"`
-	Title               string `json:"title" jsonschema:"required,description=节点标题，如'发现仇人身份'"              validate:"required"`
-	Description         string `json:"description" jsonschema:"description=节点详情"`
-	TargetReadingNumber int    `json:"target_reading_number" jsonschema:"required,description=预计发生的阅读序号。用于未来计划位置，不是章节 ID" validate:"required,min=1"`
+	StoryArcID          int64  `json:"arc_id" jsonschema:"required,description=ID of the parent arc"                  validate:"required,min=1"`
+	Title               string `json:"title" jsonschema:"required,description=Node title, e.g. 'Discovering the enemy's identity'"              validate:"required"`
+	Description         string `json:"description" jsonschema:"description=Node details"`
+	TargetReadingNumber int    `json:"target_reading_number" jsonschema:"required,description=Expected reading number at which this happens. Used for the future plan position, not a chapter ID" validate:"required,min=1"`
 }
 
 // CreateArcNodeArgs 是 create_arc_node 的参数。
 type CreateArcNodeArgs struct {
-	ArcNodes []CreateArcNodeItem `json:"arc_nodes" jsonschema:"required,description=要创建的节点列表（1-10个）" validate:"required,min=1,max=10,dive"`
+	ArcNodes []CreateArcNodeItem `json:"arc_nodes" jsonschema:"required,description=List of nodes to create (1-10)" validate:"required,min=1,max=10,dive"`
 }
 
 // CreateArcNodeTool 新建弧线节点。
@@ -295,9 +295,9 @@ type CreateArcNodeTool struct{}
 
 func (t *CreateArcNodeTool) Name() string { return "create_arc_node" }
 func (t *CreateArcNodeTool) Description() string {
-	return "批量向弧线添加节点（1-10个）。保证原子性，失败时返回具体条目原因。" +
-		"target_reading_number 为预计发生的阅读序号（不准确不要紧，后续可通过 update_arc_node 调整）。" +
-		"节点按 target_reading_number 排序构成弧线演进链。"
+	return "Batch-add nodes to an arc (1-10). Guarantees atomicity; on failure returns the reason for the specific item." +
+		"target_reading_number is the expected reading number at which this happens (inexact is fine; it can be adjusted later via update_arc_node)." +
+		"Nodes are sorted by target_reading_number to form the arc's evolution chain."
 }
 func (t *CreateArcNodeTool) Category() ToolCategory { return CategoryWritingAssistant }
 
@@ -324,7 +324,7 @@ func (t *CreateArcNodeTool) Execute(ctx context.Context, args any, tc ToolContex
 		return nil, fmt.Errorf("verify arcs: %w", err)
 	}
 	if int(count) != len(arcIDs) {
-		return &ToolResult{Success: false, Error: "部分弧线不存在或不属于当前小说"}, nil
+		return &ToolResult{Success: false, Error: "Некоторые дуги не существуют или не принадлежат текущему роману"}, nil
 	}
 
 	var ids []int64
@@ -352,7 +352,7 @@ func (t *CreateArcNodeTool) Execute(ctx context.Context, args any, tc ToolContex
 	if err != nil {
 		return &ToolResult{
 			Success: false,
-			Error:   fmt.Sprintf("创建节点 [%s] 失败: %s", failedName, failedErr),
+			Error:   fmt.Sprintf("Не удалось создать узел [%s]: %s", failedName, failedErr),
 		}, nil
 	}
 
@@ -366,12 +366,12 @@ func (t *CreateArcNodeTool) Execute(ctx context.Context, args any, tc ToolContex
 
 // UpdateArcNodeArgs 是 update_arc_node 的参数。
 type UpdateArcNodeArgs struct {
-	NodeID              int64  `json:"node_id" jsonschema:"required,description=节点ID"              validate:"required,min=1"`
-	Title               string `json:"title" jsonschema:"description=新的标题"`
-	Description         string `json:"description" jsonschema:"description=新的描述"`
-	TargetReadingNumber int    `json:"target_reading_number" jsonschema:"description=新的目标阅读序号,minimum=1" validate:"omitempty,min=1"`
-	ActualChapterID     *int64 `json:"actual_chapter_id" jsonschema:"description=实际发生的稳定章节 ID（标记完成时填入）" validate:"omitempty,min=1"`
-	Status              string `json:"status" jsonschema:"description=新状态,enum=pending,enum=completed,enum=abandoned" validate:"omitempty,oneof=pending completed abandoned"`
+	NodeID              int64  `json:"node_id" jsonschema:"required,description=Node ID"              validate:"required,min=1"`
+	Title               string `json:"title" jsonschema:"description=New title"`
+	Description         string `json:"description" jsonschema:"description=New description"`
+	TargetReadingNumber int    `json:"target_reading_number" jsonschema:"description=New target reading number,minimum=1" validate:"omitempty,min=1"`
+	ActualChapterID     *int64 `json:"actual_chapter_id" jsonschema:"description=Stable chapter ID where it actually happened (fill in when marking completed)" validate:"omitempty,min=1"`
+	Status              string `json:"status" jsonschema:"description=New status,enum=pending,enum=completed,enum=abandoned" validate:"omitempty,oneof=pending completed abandoned"`
 }
 
 // UpdateArcNodeTool 更新弧线节点（PATCH 语义）。
@@ -379,8 +379,8 @@ type UpdateArcNodeTool struct{}
 
 func (t *UpdateArcNodeTool) Name() string { return "update_arc_node" }
 func (t *UpdateArcNodeTool) Description() string {
-	return "更新已有的弧线节点。只需传入要修改的字段。" +
-		"标记完成时填 actual_chapter_id + status=completed。调整 target_reading_number 可改变节点在弧线链中的顺序。"
+	return "Update an existing arc node. Only pass the fields to change." +
+		"When marking as completed, fill in actual_chapter_id + status=completed. Adjusting target_reading_number changes the node's position in the arc chain."
 }
 func (t *UpdateArcNodeTool) Category() ToolCategory { return CategoryWritingAssistant }
 
@@ -392,7 +392,7 @@ func (t *UpdateArcNodeTool) Execute(ctx context.Context, args any, tc ToolContex
 	a := args.(*UpdateArcNodeArgs)
 
 	if a.Title == "" && a.Description == "" && a.TargetReadingNumber == 0 && a.ActualChapterID == nil && a.Status == "" {
-		return &ToolResult{Success: false, Error: "至少需要提供一个要修改的字段"}, nil
+		return &ToolResult{Success: false, Error: "Необходимо указать хотя бы одно поле для изменения"}, nil
 	}
 
 	var node storyarc.ArcNode
@@ -400,7 +400,7 @@ func (t *UpdateArcNodeTool) Execute(ctx context.Context, args any, tc ToolContex
 		Where("id = ? AND novel_id = ?", a.NodeID, tc.NovelID).
 		First(&node).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("节点 %d 不存在", a.NodeID)}, nil
+			return &ToolResult{Success: false, Error: fmt.Sprintf("Узел %d не существует", a.NodeID)}, nil
 		}
 		return nil, fmt.Errorf("query node: %w", err)
 	}
@@ -413,7 +413,7 @@ func (t *UpdateArcNodeTool) Execute(ctx context.Context, args any, tc ToolContex
 	}
 
 	if err := json.Unmarshal(tc.RawArgs, &node); err != nil {
-		return &ToolResult{Success: false, Error: "参数格式不正确: " + err.Error()}, nil
+		return &ToolResult{Success: false, Error: "Неверный формат параметров: " + err.Error()}, nil
 	}
 
 	if err := tc.DB.WithContext(ctx).Save(&node).Error; err != nil {
@@ -427,11 +427,11 @@ func (t *UpdateArcNodeTool) Execute(ctx context.Context, args any, tc ToolContex
 
 func formatArcsAll(activeArcs []storyarc.StoryArc, beforeByArc, anomalyByArc, afterByArc map[int64][]storyarc.ArcNode, pausedArcs []storyarc.StoryArc, pausedBefore, pausedPending map[int64][]storyarc.ArcNode, archivedArcs []storyarc.StoryArc, currentChapter int, readingNumbers map[int64]int) string {
 	if len(activeArcs) == 0 && len(pausedArcs) == 0 && len(archivedArcs) == 0 {
-		return "暂无叙事弧线。"
+		return "No story arcs yet."
 	}
 
 	var parts []string
-	parts = append(parts, "### 叙事弧线")
+	parts = append(parts, "### Story Arcs")
 
 	for _, arc := range activeArcs {
 		parts = append(parts, formatActiveArc(arc,
@@ -458,12 +458,12 @@ func formatActiveArc(arc storyarc.StoryArc, before, anomalies, after []storyarc.
 	}
 
 	if len(before) == 0 && len(anomalies) == 0 && len(after) == 0 {
-		parts = append(parts, "（暂无节点）")
+		parts = append(parts, "(No nodes yet)")
 		return strings.Join(parts, "\n")
 	}
 
 	if len(before) > 0 {
-		lines := []string{fmt.Sprintf("\n##### 近期（最近%d个节点，截至第%d章）", len(before), currentChapter)}
+		lines := []string{fmt.Sprintf("\n##### Recent (last %d nodes, up to chapter %d)", len(before), currentChapter)}
 		for _, n := range before {
 			lines = append(lines, formatNode(n, false, readingNumbers))
 		}
@@ -471,16 +471,16 @@ func formatActiveArc(arc storyarc.StoryArc, before, anomalies, after []storyarc.
 	}
 
 	if len(anomalies) > 0 {
-		lines := []string{"\n##### ⚠️ 异常", "以下节点需要关注和修正："}
+		lines := []string{"\n##### ⚠️ Anomalies", "The following nodes need attention and correction:"}
 		for _, n := range anomalies {
-			lines = append(lines, fmt.Sprintf("- %s [node_id:%d] — 目标第%d章但仍pending，应在第%d章前完成",
+			lines = append(lines, fmt.Sprintf("- %s [node_id:%d] — target chapter %d but still pending; should be completed before chapter %d",
 				n.Title, n.ID, n.TargetReadingNumber, currentChapter))
 		}
 		parts = append(parts, strings.Join(lines, "\n"))
 	}
 
 	if len(after) > 0 {
-		lines := []string{fmt.Sprintf("\n##### 未来（%d个节点）", len(after))}
+		lines := []string{fmt.Sprintf("\n##### Future (%d nodes)", len(after))}
 		for _, n := range after {
 			lines = append(lines, formatNode(n, false, readingNumbers))
 		}
@@ -495,7 +495,7 @@ func formatPausedArc(arc storyarc.StoryArc, before, pending []storyarc.ArcNode, 
 	parts = append(parts, fmt.Sprintf("\n#### %s [arc_id:%d] (%s) — paused %s",
 		arc.Name, arc.ID, arc.ArcType, importanceStars(arc.Importance)))
 	if arc.ReactivateAt != "" {
-		parts = append(parts, fmt.Sprintf("恢复条件：%s", arc.ReactivateAt))
+		parts = append(parts, fmt.Sprintf("Reactivation condition: %s", arc.ReactivateAt))
 	}
 
 	if len(before) == 0 && len(pending) == 0 {
@@ -508,9 +508,9 @@ func formatPausedArc(arc storyarc.StoryArc, before, pending []storyarc.ArcNode, 
 	}
 	for i, n := range pending {
 		if i == 0 {
-			parts = append(parts, fmt.Sprintf("- ▶ %s [node_id:%d] — 目标第%d章", n.Title, n.ID, n.TargetReadingNumber))
+			parts = append(parts, fmt.Sprintf("- ▶ %s [node_id:%d] — target chapter %d", n.Title, n.ID, n.TargetReadingNumber))
 		} else {
-			parts = append(parts, fmt.Sprintf("- %s [node_id:%d] — 目标第%d章", n.Title, n.ID, n.TargetReadingNumber))
+			parts = append(parts, fmt.Sprintf("- %s [node_id:%d] — target chapter %d", n.Title, n.ID, n.TargetReadingNumber))
 		}
 	}
 
@@ -524,11 +524,11 @@ func formatArchivedArc(arc storyarc.StoryArc) string {
 
 func formatArcsFull(arcs []storyarc.StoryArc, nodes []storyarc.ArcNode, readingNumbers map[int64]int) string {
 	if len(arcs) == 0 {
-		return "暂无叙事弧线。"
+		return "No story arcs yet."
 	}
 
 	var parts []string
-	parts = append(parts, "### 叙事弧线")
+	parts = append(parts, "### Story Arcs")
 
 	nodesByArc := groupNodesByArc(nodes)
 
@@ -539,12 +539,12 @@ func formatArcsFull(arcs []storyarc.StoryArc, nodes []storyarc.ArcNode, readingN
 			parts = append(parts, arc.Description)
 		}
 		if arc.Status == "paused" && arc.ReactivateAt != "" {
-			parts = append(parts, fmt.Sprintf("恢复条件：%s", arc.ReactivateAt))
+			parts = append(parts, fmt.Sprintf("Reactivation condition: %s", arc.ReactivateAt))
 		}
 
 		arcNodes := nodesByArc[arc.ID]
 		if len(arcNodes) == 0 {
-			parts = append(parts, "（暂无节点）")
+			parts = append(parts, "(No nodes yet)")
 			continue
 		}
 		for _, n := range arcNodes {
@@ -559,15 +559,15 @@ func formatNode(n storyarc.ArcNode, showStatus bool, readingNumbers map[int64]in
 	statusStr := ""
 	if n.ActualChapterID != nil {
 		if readingNumber, ok := readingNumbers[*n.ActualChapterID]; ok {
-			statusStr = fmt.Sprintf(" — 第%d章 ✓ [chapter_id:%d]", readingNumber, *n.ActualChapterID)
+			statusStr = fmt.Sprintf(" — chapter %d ✓ [chapter_id:%d]", readingNumber, *n.ActualChapterID)
 		} else {
-			statusStr = fmt.Sprintf(" — 已发生 [chapter_id:%d]", *n.ActualChapterID)
+			statusStr = fmt.Sprintf(" — occurred [chapter_id:%d]", *n.ActualChapterID)
 		}
 	} else if n.TargetReadingNumber > 0 {
-		statusStr = fmt.Sprintf(" — 目标第%d章", n.TargetReadingNumber)
+		statusStr = fmt.Sprintf(" — target chapter %d", n.TargetReadingNumber)
 	}
 	if showStatus && n.Status == "abandoned" {
-		statusStr += " — 已废弃"
+		statusStr += " — abandoned"
 	}
 
 	return fmt.Sprintf("- %s [node_id:%d]%s", n.Title, n.ID, statusStr)

@@ -54,7 +54,7 @@ func TestDisallowUnknownFields_RejectsEntityImmutableFields(t *testing.T) {
 	if res.Success {
 		t.Error("expected failure on unknown fields id/novel_id/is_current")
 	}
-	if !strings.Contains(res.Error, "参数格式不正确") {
+	if !strings.Contains(res.Error, "Неверный формат параметра") {
 		t.Errorf("expected 参数格式不正确, got: %s", res.Error)
 	}
 }
@@ -72,7 +72,7 @@ func TestDisallowUnknownFields_FrameworkLevelAcrossTools(t *testing.T) {
 	if res.Success {
 		t.Error("expected failure on unknown field 'id'")
 	}
-	if !strings.Contains(res.Error, "参数格式不正确") {
+	if !strings.Contains(res.Error, "Неверный формат параметра") {
 		t.Errorf("expected 参数格式不正确, got: %s", res.Error)
 	}
 }
@@ -96,7 +96,7 @@ func TestUpdateCharacterRelationship_AcceptsSchemaFieldsButRejectsMutualExclusio
 	if strings.Contains(res.Error, "参数格式不正确") {
 		t.Errorf("schema fields should pass DisallowUnknownFields, got: %s", res.Error)
 	}
-	if !strings.Contains(res.Error, "参数组合非法") {
+	if !strings.Contains(res.Error, "Недопустимая комбинация параметров") {
 		t.Errorf("expected 参数组合非法, got: %s", res.Error)
 	}
 }
@@ -121,7 +121,7 @@ func TestUpdateCharacterRelationship_IllegalCombinations(t *testing.T) {
 			if res.Success {
 				t.Error("expected failure on illegal combination")
 			}
-			if !strings.Contains(res.Error, "参数组合非法") {
+			if !strings.Contains(res.Error, "Недопустимая комбинация параметров") {
 				t.Errorf("expected 参数组合非法, got: %s", res.Error)
 			}
 		})
@@ -149,7 +149,7 @@ func TestUpdateCharacterRelationship_ZeroValueTrapBlocked(t *testing.T) {
 	if res.Success {
 		t.Error("expected failure: relation_id + explicit source_character_id:0 is illegal")
 	}
-	if !strings.Contains(res.Error, "参数组合非法") {
+	if !strings.Contains(res.Error, "Недопустимая комбинация параметров") {
 		t.Errorf("explicit zero should be detected as field present, got: %s", res.Error)
 	}
 	// 关键：不能进 editRelation（否则 Unmarshal 会把 source 覆盖为 0）
@@ -169,7 +169,7 @@ func TestUpdateCharacterRelationship_ZeroValueTrapBlockedTarget(t *testing.T) {
 	if res.Success {
 		t.Error("expected failure: relation_id + explicit target_character_id:0 is illegal")
 	}
-	if !strings.Contains(res.Error, "参数组合非法") {
+	if !strings.Contains(res.Error, "Недопустимая комбинация параметров") {
 		t.Errorf("explicit zero target should be detected as field present, got: %s", res.Error)
 	}
 }

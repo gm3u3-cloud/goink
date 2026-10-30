@@ -36,7 +36,7 @@ const (
 // apiKey 是 DeepSeek 的 API key，model 如 "deepseek-flash"，query 是搜索词。
 func SearchWeb(ctx context.Context, apiKey, model, query string) (*WebSearchResult, error) {
 	if apiKey == "" {
-		return nil, fmt.Errorf("DeepSeek API key 未配置")
+		return nil, fmt.Errorf("API-ключ DeepSeek не настроен")
 	}
 	if model == "" {
 		model = "deepseek-flash"
@@ -147,7 +147,7 @@ func extractSearchResult(blocks []json.RawMessage) (*WebSearchResult, error) {
 	}
 
 	if len(out.Sources) == 0 && out.Summary == "" {
-		return nil, fmt.Errorf("搜索未返回有效结果")
+		return nil, fmt.Errorf("Поиск не вернул результатов")
 	}
 
 	return out, nil

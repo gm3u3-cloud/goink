@@ -426,12 +426,12 @@ func TestInstallRemoteSkill_ReloadFailureStillSucceeds(t *testing.T) {
 func TestDefaultDirResolver_InvalidTarget(t *testing.T) {
 	_, err := defaultDirResolver("bogus", 0)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid target")
+	assert.Contains(t, err.Error(), "недопустимое значение target")
 }
 
 // TestDefaultDirResolver_NovelZeroID 验证默认目录解析器对 novel + novelID=0 的处理。
 func TestDefaultDirResolver_NovelZeroID(t *testing.T) {
 	_, err := defaultDirResolver("novel", 0)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "non-zero novelID")
+	assert.Contains(t, err.Error(), "установка в слой романа требует ненулевой novelID")
 }

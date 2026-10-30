@@ -45,7 +45,7 @@ func TestFormatSearchStoryMemoryResults_UsesChapterIDAndReadingNumber(t *testing
 	if maxRelevance != 0.86 {
 		t.Errorf("max relevance = %v, want 0.86", maxRelevance)
 	}
-	if !strings.Contains(content, "第1章 夜入皇城 [chapter_id:42]") {
+	if !strings.Contains(content, "Chapter 1 夜入皇城 [chapter_id:42]") {
 		t.Errorf("content = %q, want chapter found by ID with reading number", content)
 	}
 }

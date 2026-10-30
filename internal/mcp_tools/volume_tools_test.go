@@ -41,7 +41,7 @@ func TestVolumeToolsDiscoverReadAndRun(t *testing.T) {
 	}
 	empty := call("run_mcp", `{"tool_name":"get_volumes","args":{}}`)
 	require.True(t, empty.Success, empty.Error)
-	require.Contains(t, empty.Data["content"], "暂无分卷")
+	require.Contains(t, empty.Data["content"], "The current novel has no volumes")
 	foreignID := seedVolume(t, db, 2, "其他小说", 1)
 	var ids []int64
 	for _, name := range []string{"起点", "终点"} {
@@ -59,7 +59,7 @@ func TestVolumeToolsDiscoverReadAndRun(t *testing.T) {
 	require.True(t, result.Success, result.Error)
 	content := result.Data["content"].(string)
 	for i, v := range volumes {
-		require.Contains(t, content, fmt.Sprintf("第%d卷 %s [volume_id:%d]", i+1, v.Name, v.ID))
+		require.Contains(t, content, fmt.Sprintf("Volume %d %s [volume_id:%d]", i+1, v.Name, v.ID))
 		require.Contains(t, content, fmt.Sprintf("volumes/id_%d.md", v.ID))
 	}
 	require.NotContains(t, content, "sort_order")
@@ -160,7 +160,7 @@ func TestPlaceVolumeTransactionAndOperationLog(t *testing.T) {
 			require.NoError(t, db.Where("session_id = ?", "volume-test").Find(&logs).Error)
 			if fail {
 				require.False(t, result.Success)
-				require.Contains(t, result.Error, "放置分卷失败")
+				require.Contains(t, result.Error, "ошибка размещения тома")
 				require.Len(t, volumes, 1)
 				require.Equal(t, 1, volumes[0].SortOrder)
 				require.Empty(t, logs)

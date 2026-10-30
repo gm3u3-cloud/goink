@@ -9,8 +9,8 @@ import (
 
 // RunSubagentArgs 是 run_subagent 的参数。
 type RunSubagentArgs struct {
-	AgentType   string `json:"agent_type" jsonschema:"required,enum=memory,enum=review,description=子 Agent 类型。memory：记忆检索分析员，探索故事数据并整理报告；review：章节审稿人，全面质量审查" validate:"required,oneof=memory review"`
-	Instruction string `json:"instruction" jsonschema:"required,description=给子 Agent 的任务指令，描述需要完成的具体工作" validate:"required"`
+	AgentType   string `json:"agent_type" jsonschema:"required,enum=memory,enum=review,description=subagent type. memory: memory retrieval analyst that explores story data and compiles a report; review: chapter reviewer that performs a full quality review" validate:"required,oneof=memory review"`
+	Instruction string `json:"instruction" jsonschema:"required,description=task instruction for the subagent, describing the specific work to complete" validate:"required"`
 }
 
 // RunSubagentTool 启动子 Agent 执行专项任务，返回最终报告。
@@ -30,7 +30,7 @@ func (t *RunSubagentTool) Execute(ctx context.Context, args any, tc ToolContext)
 	if tc.RunSubAgent == nil {
 		return &ToolResult{
 			Success: false,
-			Error:   "子 Agent 运行器未配置",
+			Error:   "раннер суб-Agent не настроен",
 		}, nil
 	}
 
@@ -56,13 +56,13 @@ func (t *RunSubagentTool) Execute(ctx context.Context, args any, tc ToolContext)
 	}, nil
 }
 
-const runSubagentDescription = `启动专项子 Agent 执行任务，子 Agent 独立运行多轮思考后返回报告。
+const runSubagentDescription = `Launch a specialized subagent to perform a task; the subagent runs multiple rounds of thinking independently and then returns a report.
 
-Agent 类型：
-- memory：记忆检索分析员。可以搜索故事记忆、查询角色/时间线/弧线/地点/读者认知等所有数据，将分散的信息整合为连贯报告。用于需要多维度检索和深度分析的场景。
-- review：章节审稿人。可以读取章节内容、查询角色设定/伏笔/弧线等参考数据，逐项检查角色一致性、情节逻辑、伏笔管理、读者认知和弧线推进，输出审稿意见。
+Agent types:
+- memory: memory retrieval analyst. Can search story memory and query all data such as characters / timeline / arcs / locations / reader cognition, integrating scattered information into a coherent report. Use for scenarios requiring multi-dimensional retrieval and deep analysis.
+- review: chapter reviewer. Can read chapter content and query reference data such as character settings / foreshadowing / arcs, checking character consistency, plot logic, foreshadowing management, reader cognition, and arc progression item by item, and outputting review comments.
 
-instruction 应清晰描述任务目标和期望输出。`
+instruction should clearly describe the task goal and expected output.`
 
 // ── 注册 ──────────────────────────────────────────────────
 

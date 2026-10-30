@@ -20,7 +20,7 @@ import (
 // ── delete_record ──────────────────────────────────────
 
 const deleteRecordTableMapping = `
-table 可选值与对应工具映射：
+table allowed values and their corresponding tools:
   character                 — create_character / get_characters / update_character
   character_relation        — update_character_relationship / get_character_relations
   location                  — create_location / get_locations / update_location
@@ -36,8 +36,8 @@ table 可选值与对应工具映射：
 //
 //nolint:raw_id — 通用删除工具，多表共用一个 id 字段，裸 id 合理
 type DeleteRecordArgs struct {
-	Table string `json:"table" jsonschema:"required,description=要删除的表名,enum=character,enum=character_relation,enum=location,enum=location_relation,enum=timeline_entry,enum=story_arc,enum=arc_node,enum=reader_perspective_entry,enum=preference,enum=setting" validate:"required,oneof=character character_relation location location_relation timeline_entry story_arc arc_node reader_perspective_entry preference setting"`
-	ID    int64  `json:"id"    jsonschema:"required,description=主键ID"                                                                validate:"required,min=1"`
+	Table string `json:"table" jsonschema:"required,description=table name to delete,enum=character,enum=character_relation,enum=location,enum=location_relation,enum=timeline_entry,enum=story_arc,enum=arc_node,enum=reader_perspective_entry,enum=preference,enum=setting" validate:"required,oneof=character character_relation location location_relation timeline_entry story_arc arc_node reader_perspective_entry preference setting"`
+	ID    int64  `json:"id"    jsonschema:"required,description=primary key ID"                                                                validate:"required,min=1"`
 }
 
 // DeleteRecordTool 统一删除任意表的单条记录。
@@ -45,8 +45,8 @@ type DeleteRecordTool struct{}
 
 func (t *DeleteRecordTool) Name() string { return "delete_record" }
 func (t *DeleteRecordTool) Description() string {
-	return "删除指定表中的单条记录。删除前自动检查关联数据，存在关联时拒绝删除并返回影响清单。" +
-		"只有确认需要删除时才使用此工具；如果误删，提示用户通过操作日志回滚。" +
+	return "Delete a single record from the given table. Before deleting it automatically checks related data; if related data exists it refuses to delete and returns the impact list. " +
+		"Only use this tool when you are sure the record needs to be deleted; if a record is deleted by mistake, tell the user to roll it back via the operation log. " +
 		"\n\n" + deleteRecordTableMapping
 }
 func (t *DeleteRecordTool) Category() ToolCategory { return CategoryNovelManagement }
@@ -80,7 +80,7 @@ func (t *DeleteRecordTool) Execute(ctx context.Context, args any, tc ToolContext
 	case "setting":
 		return t.deleteSetting(ctx, a, tc)
 	default:
-		return &ToolResult{Success: false, Error: fmt.Sprintf("不支持的表：%s", a.Table)}, nil
+		return &ToolResult{Success: false, Error: fmt.Sprintf("неподдерживаемая таблица: %s", a.Table)}, nil
 	}
 }
 
@@ -99,24 +99,24 @@ func requestDeleteApproval(ctx context.Context, tc ToolContext, payload map[stri
 	approval, err := tc.Approver.RequestApproval(ctx, tc.ToolID, payload)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
-			return nil, &ToolResult{Success: false, Error: "操作被中断"}, nil
+			return nil, &ToolResult{Success: false, Error: "операция прервана"}, nil
 		}
-		return nil, nil, fmt.Errorf("approval: %w", err)
+		return nil, nil, fmt.Errorf("одобрение: %w", err)
 	}
 	if !approval.Approved {
-		info := "删除被用户拒绝"
+		info := "The user rejected the deletion"
 		if approval.Feedback != "" {
-			info += "。用户反馈：" + approval.Feedback
+			info += ". User feedback: " + approval.Feedback
 		}
 		return nil, &ToolResult{
 			Success: false,
-			Error:   "审批未通过",
+			Error:   "Удаление отклонено",
 			Data:    map[string]any{"approved": false},
 			Inject:  []InjectMessage{{Role: "user", Content: info}},
 		}, nil
 	}
 	if approval.Feedback != "" {
-		return []InjectMessage{{Role: "user", Content: "用户通过了删除审批并反馈：" + approval.Feedback}}, nil, nil
+		return []InjectMessage{{Role: "user", Content: "The user approved the deletion with feedback: " + approval.Feedback}}, nil, nil
 	}
 	return nil, nil, nil
 }
@@ -127,9 +127,9 @@ func (t *DeleteRecordTool) deleteCharacter(ctx context.Context, a *DeleteRecordA
 	var rec character.Character
 	if err := tc.DB.WithContext(ctx).Where("id = ? AND novel_id = ?", a.ID, tc.NovelID).First(&rec).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("角色 %d 不存在或不属于当前小说", a.ID)}, nil
+			return &ToolResult{Success: false, Error: fmt.Sprintf("персонаж %d не существует или не относится к текущему роману", a.ID)}, nil
 		}
-		return nil, fmt.Errorf("query character: %w", err)
+		return nil, fmt.Errorf("запрос персонажа: %w", err)
 	}
 
 	// 检查关联的角色关系
@@ -137,12 +137,12 @@ func (t *DeleteRecordTool) deleteCharacter(ctx context.Context, a *DeleteRecordA
 	if err := tc.DB.WithContext(ctx).Model(&character.CharacterRelation{}).
 		Where("(source_character_id = ? OR target_character_id = ?) AND novel_id = ?", a.ID, a.ID, tc.NovelID).
 		Count(&relCount).Error; err != nil {
-		return nil, fmt.Errorf("count relations: %w", err)
+		return nil, fmt.Errorf("подсчёт связей: %w", err)
 	}
 	if relCount > 0 {
 		return &ToolResult{
 			Success: false,
-			Error:   fmt.Sprintf("角色「%s」存在 %d 条关联的角色关系，请先删除这些关系边", rec.Name, relCount),
+			Error:   fmt.Sprintf("у персонажа «%s» есть %d связанных отношений, сначала удалите эти связи", rec.Name, relCount),
 			Data:    map[string]any{"impact": map[string]any{"character_relations": relCount}},
 		}, nil
 	}
@@ -156,7 +156,7 @@ func (t *DeleteRecordTool) deleteCharacter(ctx context.Context, a *DeleteRecordA
 	}
 
 	if err := character.NewStore(tc.DB, tc.LoggerOrDefault()).DeleteCharacter(ctx, tc.NovelID, rec.ID); err != nil {
-		return nil, fmt.Errorf("delete character: %w", err)
+		return nil, fmt.Errorf("удаление персонажа: %w", err)
 	}
 
 	return &ToolResult{Success: true, Data: map[string]any{"deleted": meta}, Inject: injects}, nil
@@ -166,9 +166,9 @@ func (t *DeleteRecordTool) deleteCharacterRelation(ctx context.Context, a *Delet
 	var rec character.CharacterRelation
 	if err := tc.DB.WithContext(ctx).Where("id = ? AND novel_id = ?", a.ID, tc.NovelID).First(&rec).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("角色关系 %d 不存在或不属于当前小说", a.ID)}, nil
+			return &ToolResult{Success: false, Error: fmt.Sprintf("связь персонажей %d не существует или не относится к текущему роману", a.ID)}, nil
 		}
-		return nil, fmt.Errorf("query character relation: %w", err)
+		return nil, fmt.Errorf("запрос связи персонажей: %w", err)
 	}
 
 	// 解析关联角色名
@@ -194,7 +194,7 @@ func (t *DeleteRecordTool) deleteCharacterRelation(ctx context.Context, a *Delet
 	}
 
 	if err := tc.DB.WithContext(ctx).Delete(&rec).Error; err != nil {
-		return nil, fmt.Errorf("delete character relation: %w", err)
+		return nil, fmt.Errorf("удаление связи персонажей: %w", err)
 	}
 
 	return &ToolResult{Success: true, Data: map[string]any{"deleted": meta}, Inject: injects}, nil
@@ -204,9 +204,9 @@ func (t *DeleteRecordTool) deleteLocation(ctx context.Context, a *DeleteRecordAr
 	var rec location.Location
 	if err := tc.DB.WithContext(ctx).Where("id = ? AND novel_id = ?", a.ID, tc.NovelID).First(&rec).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("地点 %d 不存在或不属于当前小说", a.ID)}, nil
+			return &ToolResult{Success: false, Error: fmt.Sprintf("локация %d не существует или не относится к текущему роману", a.ID)}, nil
 		}
-		return nil, fmt.Errorf("query location: %w", err)
+		return nil, fmt.Errorf("запрос локации: %w", err)
 	}
 
 	impact := map[string]any{}
@@ -216,7 +216,7 @@ func (t *DeleteRecordTool) deleteLocation(ctx context.Context, a *DeleteRecordAr
 	if err := tc.DB.WithContext(ctx).Model(&location.Location{}).
 		Where("parent_location_id = ? AND novel_id = ?", a.ID, tc.NovelID).
 		Count(&childCount).Error; err != nil {
-		return nil, fmt.Errorf("count children: %w", err)
+		return nil, fmt.Errorf("подсчёт дочерних локаций: %w", err)
 	}
 	if childCount > 0 {
 		impact["child_locations"] = childCount
@@ -227,7 +227,7 @@ func (t *DeleteRecordTool) deleteLocation(ctx context.Context, a *DeleteRecordAr
 	if err := tc.DB.WithContext(ctx).Model(&location.LocationRelation{}).
 		Where("(location_a = ? OR location_b = ?) AND novel_id = ?", a.ID, a.ID, tc.NovelID).
 		Count(&relCount).Error; err != nil {
-		return nil, fmt.Errorf("count location relations: %w", err)
+		return nil, fmt.Errorf("подсчёт связей локаций: %w", err)
 	}
 	if relCount > 0 {
 		impact["location_relations"] = relCount
@@ -236,7 +236,7 @@ func (t *DeleteRecordTool) deleteLocation(ctx context.Context, a *DeleteRecordAr
 	if len(impact) > 0 {
 		return &ToolResult{
 			Success: false,
-			Error:   fmt.Sprintf("地点「%s」存在关联数据，请先处理后再删除", rec.Name),
+			Error:   fmt.Sprintf("у локации «%s» есть связанные данные, сначала обработайте их перед удалением", rec.Name),
 			Data:    map[string]any{"impact": impact},
 		}, nil
 	}
@@ -250,7 +250,7 @@ func (t *DeleteRecordTool) deleteLocation(ctx context.Context, a *DeleteRecordAr
 	}
 
 	if err := tc.DB.WithContext(ctx).Delete(&rec).Error; err != nil {
-		return nil, fmt.Errorf("delete location: %w", err)
+		return nil, fmt.Errorf("удаление локации: %w", err)
 	}
 
 	return &ToolResult{Success: true, Data: map[string]any{"deleted": meta}, Inject: injects}, nil
@@ -260,9 +260,9 @@ func (t *DeleteRecordTool) deleteLocationRelation(ctx context.Context, a *Delete
 	var rec location.LocationRelation
 	if err := tc.DB.WithContext(ctx).Where("id = ? AND novel_id = ?", a.ID, tc.NovelID).First(&rec).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("地点关系 %d 不存在或不属于当前小说", a.ID)}, nil
+			return &ToolResult{Success: false, Error: fmt.Sprintf("связь локаций %d не существует или не относится к текущему роману", a.ID)}, nil
 		}
-		return nil, fmt.Errorf("query location relation: %w", err)
+		return nil, fmt.Errorf("запрос связи локаций: %w", err)
 	}
 
 	// 解析关联地点名
@@ -288,7 +288,7 @@ func (t *DeleteRecordTool) deleteLocationRelation(ctx context.Context, a *Delete
 	}
 
 	if err := tc.DB.WithContext(ctx).Delete(&rec).Error; err != nil {
-		return nil, fmt.Errorf("delete location relation: %w", err)
+		return nil, fmt.Errorf("удаление связи локаций: %w", err)
 	}
 
 	return &ToolResult{Success: true, Data: map[string]any{"deleted": meta}, Inject: injects}, nil
@@ -298,9 +298,9 @@ func (t *DeleteRecordTool) deleteTimelineEntry(ctx context.Context, a *DeleteRec
 	var rec timeline.TimelineEntry
 	if err := tc.DB.WithContext(ctx).Where("id = ? AND novel_id = ?", a.ID, tc.NovelID).First(&rec).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("时间线条目 %d 不存在或不属于当前小说", a.ID)}, nil
+			return &ToolResult{Success: false, Error: fmt.Sprintf("запись таймлайна %d не существует или не относится к текущему роману", a.ID)}, nil
 		}
-		return nil, fmt.Errorf("query timeline entry: %w", err)
+		return nil, fmt.Errorf("запрос записи таймлайна: %w", err)
 	}
 
 	meta := map[string]any{"id": rec.ID, "title": rec.Title, "type": "timeline_entry"}
@@ -312,7 +312,7 @@ func (t *DeleteRecordTool) deleteTimelineEntry(ctx context.Context, a *DeleteRec
 	}
 
 	if err := tc.DB.WithContext(ctx).Delete(&rec).Error; err != nil {
-		return nil, fmt.Errorf("delete timeline entry: %w", err)
+		return nil, fmt.Errorf("удаление записи таймлайна: %w", err)
 	}
 
 	return &ToolResult{Success: true, Data: map[string]any{"deleted": meta}, Inject: injects}, nil
@@ -322,9 +322,9 @@ func (t *DeleteRecordTool) deleteStoryArc(ctx context.Context, a *DeleteRecordAr
 	var rec storyarc.StoryArc
 	if err := tc.DB.WithContext(ctx).Where("id = ? AND novel_id = ?", a.ID, tc.NovelID).First(&rec).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("故事弧 %d 不存在或不属于当前小说", a.ID)}, nil
+			return &ToolResult{Success: false, Error: fmt.Sprintf("сюжетная арка %d не существует или не относится к текущему роману", a.ID)}, nil
 		}
-		return nil, fmt.Errorf("query story arc: %w", err)
+		return nil, fmt.Errorf("запрос сюжетной арки: %w", err)
 	}
 
 	// 检查关联的弧节点
@@ -332,12 +332,12 @@ func (t *DeleteRecordTool) deleteStoryArc(ctx context.Context, a *DeleteRecordAr
 	if err := tc.DB.WithContext(ctx).Model(&storyarc.ArcNode{}).
 		Where("story_arc_id = ? AND novel_id = ?", a.ID, tc.NovelID).
 		Count(&nodeCount).Error; err != nil {
-		return nil, fmt.Errorf("count arc nodes: %w", err)
+		return nil, fmt.Errorf("подсчёт узлов арки: %w", err)
 	}
 	if nodeCount > 0 {
 		return &ToolResult{
 			Success: false,
-			Error:   fmt.Sprintf("故事弧「%s」存在 %d 个弧节点，请先删除这些节点", rec.Name, nodeCount),
+			Error:   fmt.Sprintf("у сюжетной арки «%s» есть %d узлов, сначала удалите эти узлы", rec.Name, nodeCount),
 			Data:    map[string]any{"impact": map[string]any{"arc_nodes": nodeCount}},
 		}, nil
 	}
@@ -351,7 +351,7 @@ func (t *DeleteRecordTool) deleteStoryArc(ctx context.Context, a *DeleteRecordAr
 	}
 
 	if err := tc.DB.WithContext(ctx).Delete(&rec).Error; err != nil {
-		return nil, fmt.Errorf("delete story arc: %w", err)
+		return nil, fmt.Errorf("удаление сюжетной арки: %w", err)
 	}
 
 	return &ToolResult{Success: true, Data: map[string]any{"deleted": meta}, Inject: injects}, nil
@@ -361,9 +361,9 @@ func (t *DeleteRecordTool) deleteArcNode(ctx context.Context, a *DeleteRecordArg
 	var rec storyarc.ArcNode
 	if err := tc.DB.WithContext(ctx).Where("id = ? AND novel_id = ?", a.ID, tc.NovelID).First(&rec).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("弧节点 %d 不存在或不属于当前小说", a.ID)}, nil
+			return &ToolResult{Success: false, Error: fmt.Sprintf("узел арки %d не существует или не относится к текущему роману", a.ID)}, nil
 		}
-		return nil, fmt.Errorf("query arc node: %w", err)
+		return nil, fmt.Errorf("запрос узла арки: %w", err)
 	}
 
 	// 解析所属故事弧名
@@ -387,7 +387,7 @@ func (t *DeleteRecordTool) deleteArcNode(ctx context.Context, a *DeleteRecordArg
 	}
 
 	if err := tc.DB.WithContext(ctx).Delete(&rec).Error; err != nil {
-		return nil, fmt.Errorf("delete arc node: %w", err)
+		return nil, fmt.Errorf("удаление узла арки: %w", err)
 	}
 
 	return &ToolResult{Success: true, Data: map[string]any{"deleted": meta}, Inject: injects}, nil
@@ -397,9 +397,9 @@ func (t *DeleteRecordTool) deleteReaderPerspectiveEntry(ctx context.Context, a *
 	var rec reader.ReaderPerspective
 	if err := tc.DB.WithContext(ctx).Where("id = ? AND novel_id = ?", a.ID, tc.NovelID).First(&rec).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("读者视角条目 %d 不存在或不属于当前小说", a.ID)}, nil
+			return &ToolResult{Success: false, Error: fmt.Sprintf("запись о восприятии читателя %d не существует или не относится к текущему роману", a.ID)}, nil
 		}
-		return nil, fmt.Errorf("query reader perspective: %w", err)
+		return nil, fmt.Errorf("запрос восприятия читателя: %w", err)
 	}
 
 	meta := map[string]any{
@@ -416,7 +416,7 @@ func (t *DeleteRecordTool) deleteReaderPerspectiveEntry(ctx context.Context, a *
 	}
 
 	if err := tc.DB.WithContext(ctx).Delete(&rec).Error; err != nil {
-		return nil, fmt.Errorf("delete reader perspective: %w", err)
+		return nil, fmt.Errorf("удаление восприятия читателя: %w", err)
 	}
 
 	return &ToolResult{Success: true, Data: map[string]any{"deleted": meta}, Inject: injects}, nil
@@ -426,9 +426,9 @@ func (t *DeleteRecordTool) deletePreference(ctx context.Context, a *DeleteRecord
 	var rec preference.PreferenceItem
 	if err := tc.DB.WithContext(ctx).Where("id = ? AND ((novel_id = ? AND is_global = false) OR is_global = true)", a.ID, tc.NovelID).First(&rec).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("偏好项 %d 不存在", a.ID)}, nil
+			return &ToolResult{Success: false, Error: fmt.Sprintf("предпочтение %d не существует", a.ID)}, nil
 		}
-		return nil, fmt.Errorf("query preference: %w", err)
+		return nil, fmt.Errorf("запрос предпочтения: %w", err)
 	}
 
 	meta := map[string]any{"id": rec.ID, "category": rec.Category, "type": "preference"}
@@ -440,7 +440,7 @@ func (t *DeleteRecordTool) deletePreference(ctx context.Context, a *DeleteRecord
 	}
 
 	if err := tc.DB.WithContext(ctx).Delete(&rec).Error; err != nil {
-		return nil, fmt.Errorf("delete preference: %w", err)
+		return nil, fmt.Errorf("удаление предпочтения: %w", err)
 	}
 
 	return &ToolResult{Success: true, Data: map[string]any{"deleted": meta}, Inject: injects}, nil
@@ -451,9 +451,9 @@ func (t *DeleteRecordTool) deleteSetting(ctx context.Context, a *DeleteRecordArg
 	// v2 取消 is_global 后，设定全部归属当前小说，只校验 id + novel_id
 	if err := tc.DB.WithContext(ctx).Where("id = ? AND novel_id = ?", a.ID, tc.NovelID).First(&rec).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("设定项 %d 不存在或不属于当前小说", a.ID)}, nil
+			return &ToolResult{Success: false, Error: fmt.Sprintf("настройка %d не существует или не относится к текущему роману", a.ID)}, nil
 		}
-		return nil, fmt.Errorf("query setting: %w", err)
+		return nil, fmt.Errorf("запрос настройки: %w", err)
 	}
 
 	meta := map[string]any{"id": rec.ID, "category": rec.Category, "type": "setting"}
@@ -465,7 +465,7 @@ func (t *DeleteRecordTool) deleteSetting(ctx context.Context, a *DeleteRecordArg
 	}
 
 	if err := tc.DB.WithContext(ctx).Delete(&rec).Error; err != nil {
-		return nil, fmt.Errorf("delete setting: %w", err)
+		return nil, fmt.Errorf("удаление настройки: %w", err)
 	}
 
 	return &ToolResult{Success: true, Data: map[string]any{"deleted": meta}, Inject: injects}, nil

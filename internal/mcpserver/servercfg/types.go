@@ -19,7 +19,7 @@ type Local struct {
 
 func (c Local) Validate() error {
 	if c.Port < MinPort || c.Port > MaxPort {
-		return errors.New("MCP 端口必须在 1024 到 32767 之间")
+		return errors.New("Порт MCP должен быть в диапазоне от 1024 до 32767")
 	}
 	return nil
 }
@@ -40,7 +40,7 @@ func (s State) Validate() error {
 		return err
 	}
 	if s.Local.Enabled && s.LocalToken == "" {
-		return errors.New("已启用的 MCP 服务缺少凭据")
+		return errors.New("Для включённой службы MCP отсутствуют учётные данные")
 	}
 	if s.LocalToken != "" {
 		return ValidateToken(s.LocalToken)
@@ -51,7 +51,7 @@ func (s State) Validate() error {
 func ValidateToken(token string) error {
 	secret, err := hex.DecodeString(token)
 	if err != nil || len(secret) != 32 {
-		return errors.New("MCP 访问令牌无效")
+		return errors.New("Токен доступа MCP недействителен")
 	}
 	return nil
 }

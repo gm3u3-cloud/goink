@@ -42,7 +42,7 @@ func TestReadCatalogIndex(t *testing.T) {
 	RegisterRunMCPTools(r)
 	result := readCatalogForTest(t, r, ReadArgs{Path: "mcp/index.md"})
 	require.True(t, result.Success, result.Error)
-	require.Contains(t, result.Data["content"], "暂无可用")
+	require.Contains(t, result.Data["content"], "No extension tools available")
 
 	r.Register(catalogTestTool{name: "z_tool", description: "最后一个工具\n完整的详细说明"})
 	r.Register(catalogTestTool{name: "a_tool", description: "  第一个工具\t简述  \n不应出现在索引的详细说明"})
@@ -51,8 +51,8 @@ func TestReadCatalogIndex(t *testing.T) {
 	result = readCatalogForTest(t, r, ReadArgs{Path: "mcp/index.md"})
 	require.True(t, result.Success, result.Error)
 	content := result.Data["content"].(string)
-	require.Contains(t, content, "1|# 拓展工具")
-	require.Contains(t, content, "`a_tool` — 第一个工具 简述；schema：`mcp/schemas/a_tool.json`")
+	require.Contains(t, content, "1|# Extension Tools")
+	require.Contains(t, content, "`a_tool` — 第一个工具 简述; schema: `mcp/schemas/a_tool.json`")
 	require.Contains(t, content, strings.Repeat("中", 120)+"…")
 	require.Less(t, strings.Index(content, "`a_tool`"), strings.Index(content, "`z_tool`"))
 	require.NotContains(t, content, "完整的详细说明")
@@ -63,7 +63,7 @@ func TestReadCatalogIndex(t *testing.T) {
 
 	page := readCatalogForTest(t, r, ReadArgs{Path: "mcp/index.md", StartLine: 4, EndLine: 4})
 	require.True(t, page.Success, page.Error)
-	require.Equal(t, "4|- `a_tool` — 第一个工具 简述；schema：`mcp/schemas/a_tool.json`", page.Data["content"])
+	require.Equal(t, "4|- `a_tool` — 第一个工具 简述; schema: `mcp/schemas/a_tool.json`", page.Data["content"])
 	require.Equal(t, result.Data["total_lines"], page.Data["total_lines"])
 	require.Equal(t, true, page.Data["truncated"])
 	plain := false
@@ -174,7 +174,7 @@ func TestReadCatalogOversizedSchema(t *testing.T) {
 	} {
 		result := readCatalogForTest(t, r, args)
 		require.False(t, result.Success)
-		require.Contains(t, result.Error, "超过大小上限")
+		require.Contains(t, result.Error, "превышает ограничение по размеру")
 		require.Empty(t, result.Data, "超限时不应返回内容，指定行范围也不能绕过上限")
 	}
 }
@@ -203,7 +203,7 @@ func TestReadCatalogRejectsInvalidPathsAndEdit(t *testing.T) {
 		require.NoError(t, err)
 		result := r.Execute(context.Background(), "edit", raw, ToolContext{}, agentcfg.Allowlist(agentcfg.MainAgent))
 		require.False(t, result.Success)
-		require.Contains(t, result.Error, "无效文件路径")
+		require.Contains(t, result.Error, "Недопустимый путь к файлу")
 	}
 }
 
@@ -214,9 +214,9 @@ func TestReadCatalogDependencyErrors(t *testing.T) {
 	result := readCatalogForTest(t, r, ReadArgs{Path: "mcp/schemas/broken_tool.json"})
 	require.False(t, result.Success)
 	require.Equal(t, ErrKindSystem, result.ErrKind)
-	require.Contains(t, result.Error, "编码工具 broken_tool 的 schema")
+	require.Contains(t, result.Error, "ошибка кодирования schema инструмента broken_tool")
 	read := &ReadTool{}
 	result, err := read.Execute(context.Background(), &ReadArgs{Path: "mcp/index.md"}, ToolContext{})
 	require.Nil(t, result)
-	require.ErrorContains(t, err, "工具注册表未初始化")
+	require.ErrorContains(t, err, "реестр инструментов не инициализирован")
 }

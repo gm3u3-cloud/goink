@@ -17,9 +17,9 @@ import (
 
 // GetCharactersArgs 是 get_characters 的参数。
 type GetCharactersArgs struct {
-	Mode     string `json:"mode" jsonschema:"description=characters（默认）查询角色及所属分组；groups 查询分组名称、描述和成员数,enum=characters,enum=groups" validate:"omitempty,oneof=characters groups"`
-	GroupID  *int64 `json:"group_id,omitempty" jsonschema:"description=仅 characters 模式：省略查全部，0查未分组，正整数查指定分组,minimum=0" validate:"omitempty,min=0"`
-	Search   string `json:"search" jsonschema:"description=角色模式按角色名搜索；分组模式按组名或描述搜索"`
+	Mode     string `json:"mode" jsonschema:"description=characters (default) queries characters and their groups; groups queries group names, descriptions, and member counts,enum=characters,enum=groups" validate:"omitempty,oneof=characters groups"`
+	GroupID  *int64 `json:"group_id,omitempty" jsonschema:"description=characters mode only: omit to query all, 0 for ungrouped, positive integer for a specific group,minimum=0" validate:"omitempty,min=0"`
+	Search   string `json:"search" jsonschema:"description=In characters mode, search by character name; in groups mode, search by group name or description"`
 	PageArgs        // 嵌入分页参数
 }
 
@@ -28,11 +28,11 @@ type GetCharactersTool struct{}
 
 func (t *GetCharactersTool) Name() string { return "get_characters" }
 func (t *GetCharactersTool) Description() string {
-	return "获取当前小说的角色列表。按最近更新降序排列，截断 50 条——完整了解角色阵容后再创作。" +
-		"冷门角色（长时间未更新）可能不在列表中，用 search 按名搜索。" +
-		"角色结果包含所属分组；可用 group_id 筛选，0 表示未分组。" +
-		"mode=groups 时分页查询分组名称、用途描述、成员数和 group_id（含空组），此时不要传 group_id。" +
-		"需要了解角色之间的关系时，用 get_character_relations 传入角色 ID 获取子图。"
+	return "Get the character list for the current novel. Sorted by most recent update in descending order, truncated to 50 entries — understand the full character lineup before writing. " +
+		"Uncommon characters (not updated for a long time) may not appear in the list; use search to find them by name. " +
+		"Character results include their groups; you can filter with group_id, where 0 means ungrouped. " +
+		"When mode=groups, pages through group names, purpose descriptions, member counts, and group_id (including empty groups); do not pass group_id in this case. " +
+		"To understand relationships between characters, use get_character_relations with the character IDs to fetch the subgraph."
 }
 func (t *GetCharactersTool) Category() ToolCategory { return CategoryNovelManagement }
 
@@ -43,7 +43,7 @@ func (t *GetCharactersTool) NewArgs() any                { return &GetCharacters
 func (t *GetCharactersTool) Execute(ctx context.Context, args any, tc ToolContext) (*ToolResult, error) {
 	a := args.(*GetCharactersArgs)
 	if a.Mode == "groups" && a.GroupID != nil {
-		return &ToolResult{Success: false, Error: "mode=groups 时不能传入 group_id；查询组内角色请使用 mode=characters"}, nil
+		return &ToolResult{Success: false, Error: "Нельзя передавать group_id при mode=groups; для запроса персонажей внутри группы используйте mode=characters"}, nil
 	}
 	a.NormalizePage()
 
@@ -103,15 +103,15 @@ func (t *GetCharactersTool) getGroups(ctx context.Context, a *GetCharactersArgs,
 	}
 	lines := make([]string, 0, len(result.Items))
 	for _, group := range result.Items {
-		line := fmt.Sprintf("- %s [group_id:%d]（%d 名角色）", group.Name, group.ID, group.MemberCount)
+		line := fmt.Sprintf("- %s [group_id:%d] (%d characters)", group.Name, group.ID, group.MemberCount)
 		if group.Description != "" {
-			line += "：" + group.Description
+			line += ": " + group.Description
 		}
 		lines = append(lines, line)
 	}
 	content := strings.Join(lines, "\n")
 	if len(lines) == 0 {
-		content = "本页无匹配的角色分组。"
+		content = "No matching character groups on this page."
 	}
 	data := PageMeta(result)
 	data["content"] = content
@@ -122,7 +122,7 @@ func (t *GetCharactersTool) getGroups(ctx context.Context, a *GetCharactersArgs,
 
 // GetCharacterRelationsArgs 是 get_character_relations 的参数。
 type GetCharacterRelationsArgs struct {
-	CharacterIDs []int64 `json:"character_ids" jsonschema:"required,description=角色ID列表，只返回这些角色之间的关系边" validate:"required,min=1"`
+	CharacterIDs []int64 `json:"character_ids" jsonschema:"required,description=List of character IDs; only returns relation edges between these characters" validate:"required,min=1"`
 }
 
 // GetCharacterRelationsTool 返回给定角色集合内部的子图边。
@@ -130,8 +130,8 @@ type GetCharacterRelationsTool struct{}
 
 func (t *GetCharacterRelationsTool) Name() string { return "get_character_relations" }
 func (t *GetCharacterRelationsTool) Description() string {
-	return "获取指定角色之间的关系边（子图）。只返回两端都在 character_ids 中的关系，不限方向。" +
-		"通常先通过 get_characters 获取角色列表，然后传入你关心的角色 ID 查询它们之间的关系。"
+	return "Get the relation edges (subgraph) among the specified characters. Only returns relations where both endpoints are in character_ids, in any direction. " +
+		"Typically, first get the character list via get_characters, then pass the character IDs you care about to query their relations."
 }
 func (t *GetCharacterRelationsTool) Category() ToolCategory { return CategoryMemoryRetrieval }
 
@@ -171,7 +171,7 @@ func (t *GetCharacterRelationsTool) Execute(ctx context.Context, args any, tc To
 
 func formatRelationEdges(rels []character.CharacterRelation, nameMap map[int64]string) string {
 	if len(rels) == 0 {
-		return "暂无关系数据。"
+		return "No relation data yet."
 	}
 
 	// 按源角色分组为邻接表
@@ -184,19 +184,19 @@ func formatRelationEdges(rels []character.CharacterRelation, nameMap map[int64]s
 		groups[rel.SourceCharacterID] = append(groups[rel.SourceCharacterID], rel)
 	}
 
-	lines := []string{"### 角色关系"}
+	lines := []string{"### Character Relations"}
 	for _, srcID := range order {
 		srcName := nameMap[srcID]
 		var edges []string
 		for _, rel := range groups[srcID] {
-			edge := fmt.Sprintf("→ %s：%s [relation_id:%d]",
+			edge := fmt.Sprintf("→ %s: %s [relation_id:%d]",
 				nameMap[rel.TargetCharacterID], rel.RelationDescribe, rel.ID)
 			if rel.Description != "" {
-				edge += fmt.Sprintf("（%s）", rel.Description)
+				edge += fmt.Sprintf(" (%s)", rel.Description)
 			}
 			edges = append(edges, edge)
 		}
-		lines = append(lines, fmt.Sprintf("- %s %s", srcName, strings.Join(edges, "、")))
+		lines = append(lines, fmt.Sprintf("- %s %s", srcName, strings.Join(edges, ", ")))
 	}
 	return strings.Join(lines, "\n")
 }
@@ -205,15 +205,15 @@ func formatRelationEdges(rels []character.CharacterRelation, nameMap map[int64]s
 
 // CreateCharacterItem 是 create_character 的单条参数。
 type CreateCharacterItem struct {
-	Name        string `json:"name"        jsonschema:"required,description=角色名称"               validate:"required"`
-	Description string `json:"description"  jsonschema:"description=角色自然语言描述，如外貌、身份、背景故事等"`
-	Personality string `json:"personality" jsonschema:"description=自由JSON对象，描述角色性格/定位/背景等，如{\"traits\":[\"勇敢\"]，\"brief\":\"热血青年\"}"`
-	Abilities   string `json:"abilities"   jsonschema:"description=JSON数组，角色能力/技能列表，如[\"剑术\"，\"隐身\"]"`
+	Name        string `json:"name"        jsonschema:"required,description=Character name"               validate:"required"`
+	Description string `json:"description"  jsonschema:"description=Natural language description of the character, e.g. appearance, identity, background story"`
+	Personality string `json:"personality" jsonschema:"description=Free-form JSON object describing the character's personality/role/background, e.g. {\"traits\":[\"brave\"],\"brief\":\"passionate youth\"}"`
+	Abilities   string `json:"abilities"   jsonschema:"description=JSON array of the character's abilities/skills, e.g. [\"swordsmanship\",\"stealth\"]"`
 }
 
 // CreateCharacterArgs 是 create_character 的参数。
 type CreateCharacterArgs struct {
-	Characters []CreateCharacterItem `json:"characters" jsonschema:"required,description=要创建的角色列表（1-10个）" validate:"required,min=1,max=10,dive"`
+	Characters []CreateCharacterItem `json:"characters" jsonschema:"required,description=List of characters to create (1-10)" validate:"required,min=1,max=10,dive"`
 }
 
 // CreateCharacterTool 创建新角色。
@@ -221,9 +221,9 @@ type CreateCharacterTool struct{}
 
 func (t *CreateCharacterTool) Name() string { return "create_character" }
 func (t *CreateCharacterTool) Description() string {
-	return "批量创建角色（1-10个）。保证原子性，失败时返回具体条目原因。" +
-		"name 必填；personality 为自由 JSON，建议包含 role/traits/background/motivation；" +
-		"abilities 为 JSON 数组。创建后可用 get_characters 查看。"
+	return "Batch-create characters (1-10). Guarantees atomicity; on failure, returns the specific entry reason. " +
+		"name is required; personality is free-form JSON and should include role/traits/background/motivation; " +
+		"abilities is a JSON array. After creation, use get_characters to view them."
 }
 func (t *CreateCharacterTool) Category() ToolCategory { return CategoryNovelManagement }
 
@@ -258,7 +258,7 @@ func (t *CreateCharacterTool) Execute(ctx context.Context, args any, tc ToolCont
 	if err != nil {
 		return &ToolResult{
 			Success: false,
-			Error:   fmt.Sprintf("创建角色 [%s] 失败: %s", failedName, failedErr),
+			Error:   fmt.Sprintf("Не удалось создать персонажа [%s]: %s", failedName, failedErr),
 		}, nil
 	}
 
@@ -274,11 +274,11 @@ func (t *CreateCharacterTool) Execute(ctx context.Context, args any, tc ToolCont
 
 // UpdateCharacterArgs 是 update_character 的参数。
 type UpdateCharacterArgs struct {
-	CharacterID int64  `json:"character_id" jsonschema:"required,description=角色ID"     validate:"required,min=1"`
-	Name        string `json:"name"         jsonschema:"description=新的名称"`
-	Description string `json:"description"  jsonschema:"description=新的自然语言描述（完全替换旧的）"`
-	Personality string `json:"personality"  jsonschema:"description=新的性格/设定，字符串形式JSON（完全替换旧的）"`
-	Abilities   string `json:"abilities"    jsonschema:"description=新的能力列表，字符串形式JSON（完全替换旧的）"`
+	CharacterID int64  `json:"character_id" jsonschema:"required,description=Character ID"     validate:"required,min=1"`
+	Name        string `json:"name"         jsonschema:"description=New name"`
+	Description string `json:"description"  jsonschema:"description=New natural language description (fully replaces the old one)"`
+	Personality string `json:"personality"  jsonschema:"description=New personality/settings, JSON in string form (fully replaces the old one)"`
+	Abilities   string `json:"abilities"    jsonschema:"description=New abilities list, JSON in string form (fully replaces the old one)"`
 }
 
 // UpdateCharacterTool 更新角色字段。
@@ -286,8 +286,8 @@ type UpdateCharacterTool struct{}
 
 func (t *UpdateCharacterTool) Name() string { return "update_character" }
 func (t *UpdateCharacterTool) Description() string {
-	return "更新已有角色的设定。只需传入要修改的字段，未传入的保持不变。" +
-		"personality 和 abilities 会完全替换旧值，不是合并。"
+	return "Update the settings of an existing character. Only pass the fields you want to change; unpassed fields stay unchanged. " +
+		"personality and abilities fully replace the old values; they are not merged."
 }
 func (t *UpdateCharacterTool) Category() ToolCategory { return CategoryNovelManagement }
 
@@ -299,19 +299,19 @@ func (t *UpdateCharacterTool) Execute(ctx context.Context, args any, tc ToolCont
 	a := args.(*UpdateCharacterArgs)
 
 	if a.Name == "" && a.Description == "" && a.Personality == "" && a.Abilities == "" {
-		return &ToolResult{Success: false, Error: "至少需要提供一个要修改的字段"}, nil
+		return &ToolResult{Success: false, Error: "Требуется указать хотя бы одно поле для изменения"}, nil
 	}
 
 	var ch character.Character
 	if err := tc.DB.WithContext(ctx).Where("id = ? AND novel_id = ?", a.CharacterID, tc.NovelID).First(&ch).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("角色 %d 不存在", a.CharacterID)}, nil
+			return &ToolResult{Success: false, Error: fmt.Sprintf("Персонаж %d не найден", a.CharacterID)}, nil
 		}
 		return nil, fmt.Errorf("query character: %w", err)
 	}
 
 	if err := json.Unmarshal(tc.RawArgs, &ch); err != nil {
-		return &ToolResult{Success: false, Error: "参数格式不正确: " + err.Error()}, nil
+		return &ToolResult{Success: false, Error: "Неверный формат параметров: " + err.Error()}, nil
 	}
 
 	if err := tc.DB.WithContext(ctx).Save(&ch).Error; err != nil {
@@ -328,12 +328,12 @@ func (t *UpdateCharacterTool) Execute(ctx context.Context, args any, tc ToolCont
 
 // UpdateCharacterRelationshipArgs 是 update_character_relationship 的参数。
 type UpdateCharacterRelationshipArgs struct {
-	RelationID        int64  `json:"relation_id"         jsonschema:"description=编辑已有关系时提供此ID，直接修改描述内容"`
-	SourceCharacterID int64  `json:"source_character_id" jsonschema:"description=建立新关系时的发出方角色ID。旧关系自动变为历史"`
-	TargetCharacterID int64  `json:"target_character_id" jsonschema:"description=建立新关系时的接收方角色ID。旧关系自动变为历史"`
-	RelationDescribe  string `json:"relation_describe"   jsonschema:"description=自由文本描述关系，如'师徒、暗中较量'。详细描述而非简单分类词。编辑已有关系时可不传"`
-	Description       string `json:"description"         jsonschema:"description=当前关系阶段的详细描述"`
-	ChapterID         *int64 `json:"chapter_id"          jsonschema:"description=此关系确立/变化的稳定章节 ID" validate:"omitempty,min=1"`
+	RelationID        int64  `json:"relation_id"         jsonschema:"description=Provide this ID when editing an existing relation to modify the description directly"`
+	SourceCharacterID int64  `json:"source_character_id" jsonschema:"description=Source character ID when creating a new relation. The old relation automatically becomes historical"`
+	TargetCharacterID int64  `json:"target_character_id" jsonschema:"description=Target character ID when creating a new relation. The old relation automatically becomes historical"`
+	RelationDescribe  string `json:"relation_describe"   jsonschema:"description=Free-text description of the relation, e.g. 'master-apprentice, quietly rivals each other'. A detailed description, not a simple category word. Can be omitted when editing an existing relation"`
+	Description       string `json:"description"         jsonschema:"description=Detailed description of the current relation stage"`
+	ChapterID         *int64 `json:"chapter_id"          jsonschema:"description=Stable chapter ID where this relation was established/changed" validate:"omitempty,min=1"`
 }
 
 // UpdateCharacterRelationshipTool 创建或更新角色关系。
@@ -341,11 +341,11 @@ type UpdateCharacterRelationshipTool struct{}
 
 func (t *UpdateCharacterRelationshipTool) Name() string { return "update_character_relationship" }
 func (t *UpdateCharacterRelationshipTool) Description() string {
-	return "更新角色关系。两种用法（互斥，不可同时传）：" +
-		"1) 编辑已有关系——只传 relation_id，修改描述措辞，不要传 source_character_id/target_character_id；" +
-		"2) 创建或演变关系——只传 source_character_id + target_character_id（不要传 relation_id）。两个角色之前无关系时即新建；已有关系时旧关系自动归档为历史，新关系设为当前。" +
-		"关系有方向；需要描述双方的关系时，按两个方向分别调用一次。" +
-		"relation_describe 用自然语言描述，如'师徒但暗中互相提防'，不要用简单枚举词。"
+	return "Update a character relation. Two usages (mutually exclusive, cannot be passed together): " +
+		"1) Edit an existing relation — pass only relation_id to change the description wording; do not pass source_character_id/target_character_id. " +
+		"2) Create or evolve a relation — pass only source_character_id + target_character_id (do not pass relation_id). If the two characters have no prior relation, this creates a new one; if a relation already exists, the old one is automatically archived as history and the new one is set as current. " +
+		"Relations are directional; to describe the relationship from both sides, call once for each direction. " +
+		"relation_describe uses natural language, e.g. 'master-apprentice but quietly watchful of each other'; do not use simple enum words."
 }
 func (t *UpdateCharacterRelationshipTool) Category() ToolCategory { return CategoryWritingAssistant }
 
@@ -362,7 +362,7 @@ func (t *UpdateCharacterRelationshipTool) Execute(ctx context.Context, args any,
 	// LLM 显式传 0 会绕过 ==0 判断进入 editRelation，Unmarshal 把 source/target 覆盖为 0）
 	var m map[string]json.RawMessage
 	if err := json.Unmarshal(tc.RawArgs, &m); err != nil {
-		return &ToolResult{Success: false, Error: "参数格式不正确: " + err.Error()}, nil
+		return &ToolResult{Success: false, Error: "Неверный формат параметров: " + err.Error()}, nil
 	}
 	_, hasRelationID := m["relation_id"]
 	_, hasSource := m["source_character_id"]
@@ -383,7 +383,7 @@ func (t *UpdateCharacterRelationshipTool) Execute(ctx context.Context, args any,
 	default:
 		return &ToolResult{
 			Success: false,
-			Error:   "参数组合非法：编辑关系只传 relation_id，演进关系只传 source_character_id + target_character_id，两者互斥，不要同时传",
+			Error:   "Недопустимая комбинация параметров: для редактирования отношения передавайте только relation_id, для эволюции — только source_character_id + target_character_id; они взаимоисключающие, не передавайте оба сразу",
 		}, nil
 	}
 }
@@ -392,16 +392,16 @@ func (t *UpdateCharacterRelationshipTool) editRelation(ctx context.Context, a *U
 	var rel character.CharacterRelation
 	if err := tc.DB.WithContext(ctx).First(&rel, a.RelationID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("关系 %d 不存在", a.RelationID)}, nil
+			return &ToolResult{Success: false, Error: fmt.Sprintf("Отношение %d не найдено", a.RelationID)}, nil
 		}
 		return nil, fmt.Errorf("query relation: %w", err)
 	}
 	if rel.NovelID != tc.NovelID {
-		return &ToolResult{Success: false, Error: fmt.Sprintf("关系 %d 不属于当前小说", a.RelationID)}, nil
+		return &ToolResult{Success: false, Error: fmt.Sprintf("Отношение %d не принадлежит текущему роману", a.RelationID)}, nil
 	}
 
 	if err := json.Unmarshal(tc.RawArgs, &rel); err != nil {
-		return &ToolResult{Success: false, Error: "参数格式不正确: " + err.Error()}, nil
+		return &ToolResult{Success: false, Error: "Неверный формат параметров: " + err.Error()}, nil
 	}
 
 	if err := tc.DB.WithContext(ctx).Save(&rel).Error; err != nil {
@@ -416,10 +416,10 @@ func (t *UpdateCharacterRelationshipTool) editRelation(ctx context.Context, a *U
 
 func (t *UpdateCharacterRelationshipTool) evolveRelation(ctx context.Context, a *UpdateCharacterRelationshipArgs, tc ToolContext) (*ToolResult, error) {
 	if a.SourceCharacterID == a.TargetCharacterID {
-		return &ToolResult{Success: false, Error: "source 和 target 不能是同一个角色"}, nil
+		return &ToolResult{Success: false, Error: "source и target не могут быть одним и тем же персонажем"}, nil
 	}
 	if a.RelationDescribe == "" {
-		return &ToolResult{Success: false, Error: "演变关系时 relation_describe 为必填"}, nil
+		return &ToolResult{Success: false, Error: "При эволюции отношения relation_describe обязателен"}, nil
 	}
 
 	// 校验两个角色存在且属于当前小说
@@ -433,10 +433,10 @@ func (t *UpdateCharacterRelationshipTool) evolveRelation(ctx context.Context, a 
 		found[ch.ID] = true
 	}
 	if !found[a.SourceCharacterID] {
-		return &ToolResult{Success: false, Error: fmt.Sprintf("角色 %d 不存在", a.SourceCharacterID)}, nil
+		return &ToolResult{Success: false, Error: fmt.Sprintf("Персонаж %d не найден", a.SourceCharacterID)}, nil
 	}
 	if !found[a.TargetCharacterID] {
-		return &ToolResult{Success: false, Error: fmt.Sprintf("角色 %d 不存在", a.TargetCharacterID)}, nil
+		return &ToolResult{Success: false, Error: fmt.Sprintf("Персонаж %d не найден", a.TargetCharacterID)}, nil
 	}
 
 	var newRel character.CharacterRelation

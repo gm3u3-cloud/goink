@@ -60,7 +60,7 @@ func (s *Service) Restore() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.closed {
-		return errors.New("MCP 管理服务已关闭")
+		return errors.New("Служба управления MCP закрыта")
 	}
 	if s.loadErr != nil {
 		return s.loadErr
@@ -128,7 +128,7 @@ func (s *Service) applyLocal(ctx context.Context, next servercfg.State) (LocalVi
 	stopCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	if err := s.server.Stop(stopCtx); err != nil {
-		s.localErr = "MCP 服务仍在关闭，请稍后重试"
+		s.localErr = "MCP-сервер всё ещё останавливается, повторите попытку позже"
 		return s.localView(), fmt.Errorf("%s: %w", s.localErr, err)
 	}
 	if err := s.startLocal(); err != nil {
@@ -140,16 +140,16 @@ func (s *Service) applyLocal(ctx context.Context, next servercfg.State) (LocalVi
 func (s *Service) startLocal() error {
 	s.localErr = ""
 	if err := s.server.SetPort(s.state.Local.Port); err != nil {
-		s.localErr = "无法设置 MCP 端口，请先停止服务后重试"
+		s.localErr = "Не удалось задать порт MCP, сначала остановите службу и повторите"
 		return fmt.Errorf("%s: %w", s.localErr, err)
 	}
 	if err := s.server.SetAllowedTools(s.state.Local.AllowedTools); err != nil {
-		s.localErr = "无法设置 MCP 对外工具，请先停止服务后重试"
+		s.localErr = "Не удалось настроить внешние инструменты MCP, сначала остановите службу и повторите"
 		return fmt.Errorf("%s: %w", s.localErr, err)
 	}
 	if s.state.Local.Enabled {
 		if _, err := s.server.Start(s.state.LocalToken); err != nil {
-			s.localErr = "启动 MCP 服务失败，请检查端口是否被占用或本机监听权限后重试"
+			s.localErr = "Не удалось запустить MCP-сервер: проверьте, не занят ли порт, и права на локальное прослушивание, затем повторите"
 			return fmt.Errorf("%s: %w", s.localErr, err)
 		}
 	}
@@ -165,7 +165,7 @@ func (s *Service) Close(ctx context.Context) error {
 
 func (s *Service) save(next servercfg.State) error {
 	if s.closed {
-		return errors.New("MCP 管理服务已关闭")
+		return errors.New("Служба управления MCP закрыта")
 	}
 	if s.loadErr != nil {
 		return s.loadErr
@@ -190,7 +190,7 @@ func (s *Service) localView() LocalView {
 func newToken() (string, error) {
 	secret := make([]byte, 32)
 	if _, err := rand.Read(secret); err != nil {
-		return "", fmt.Errorf("生成 MCP 凭据失败: %w", err)
+		return "", fmt.Errorf("Не удалось сгенерировать учётные данные MCP: %w", err)
 	}
 	return hex.EncodeToString(secret), nil
 }

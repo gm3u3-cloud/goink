@@ -56,7 +56,7 @@ func TestCreateReaderPerspectiveEntry_ValidatesChapterNovel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Success || !strings.Contains(result.Error, "不属于当前小说") {
+	if result.Success || !strings.Contains(result.Error, "не относятся к текущему роману") {
 		t.Errorf("cross-novel result = %+v, want business rejection", result)
 	}
 }
@@ -68,7 +68,7 @@ func TestFormatReaderPerspective_MissingPlantedChapter(t *testing.T) {
 		nil,
 		nil,
 	)
-	if !strings.Contains(formatted, "章节信息缺失") {
+	if !strings.Contains(formatted, "chapter info missing") {
 		t.Errorf("formatted = %q, want missing chapter label", formatted)
 	}
 }

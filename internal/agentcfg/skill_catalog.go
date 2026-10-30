@@ -22,7 +22,7 @@ func BuildSkillCatalog(meta []skill.SkillMeta) string {
 	b.WriteString("<available_skills>\n")
 
 	if len(novel) > 0 {
-		b.WriteString("## 小说专属技能\n")
+		b.WriteString("## Novel-specific skills\n")
 		for _, s := range novel {
 			b.WriteString("- ")
 			b.WriteString(s.Name)
@@ -35,7 +35,7 @@ func BuildSkillCatalog(meta []skill.SkillMeta) string {
 		b.WriteString("\n")
 	}
 	if len(user) > 0 {
-		b.WriteString("## 用户技能\n")
+		b.WriteString("## User skills\n")
 		for _, s := range user {
 			b.WriteString("- ")
 			b.WriteString(s.Name)
@@ -48,7 +48,7 @@ func BuildSkillCatalog(meta []skill.SkillMeta) string {
 		b.WriteString("\n")
 	}
 	if len(builtin) > 0 {
-		b.WriteString("## 内置技能（只读）\n")
+		b.WriteString("## Built-in skills (read-only)\n")
 		for _, s := range builtin {
 			b.WriteString("- ")
 			b.WriteString(s.Name)
@@ -62,11 +62,11 @@ func BuildSkillCatalog(meta []skill.SkillMeta) string {
 	}
 
 	b.WriteString("---\n")
-	b.WriteString("使用 read 工具加载技能完整内容：\n")
-	b.WriteString("- skills/<name>.md（小说技能）\n")
-	b.WriteString("- ~/.goink/skills/<name>.md（用户技能）\n")
-	b.WriteString("- /builtin/skills/<name>.md（内置技能，只读）\n")
-	b.WriteString("使用 edit 工具创建或修改技能。内置技能不可编辑。\n")
+	b.WriteString("Use the read tool to load a skill's full content:\n")
+	b.WriteString("- skills/<name>.md (novel skill)\n")
+	b.WriteString("- ~/.goink/skills/<name>.md (user skill)\n")
+	b.WriteString("- /builtin/skills/<name>.md (built-in skill, read-only)\n")
+	b.WriteString("Use the edit tool to create or modify a skill. Built-in skills cannot be edited.\n")
 	b.WriteString("</available_skills>")
 
 	return b.String()
@@ -81,8 +81,8 @@ func BuildAlwaysSkillsContent(meta []skill.SkillMeta, store *skill.Store, novelI
 	}
 
 	var b strings.Builder
-	b.WriteString("【常驻技能】\n")
-	b.WriteString("以下技能在本次对话中始终生效：\n\n")
+	b.WriteString("[Always-on skills]\n")
+	b.WriteString("The following skills are always active in this conversation:\n\n")
 
 	for _, m := range always {
 		sk, ok := store.Get(novelID, m.Name)

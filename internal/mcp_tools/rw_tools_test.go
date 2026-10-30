@@ -402,7 +402,7 @@ func TestEditExistingID_MissingRecord(t *testing.T) {
 	if res.Success {
 		t.Fatal("expected failure for missing chapter record")
 	}
-	if !contains(res.Error, "章节记录不存在") || !contains(res.Error, "new.md") {
+	if !contains(res.Error, "Запись главы не найдена") || !contains(res.Error, "new.md") {
 		t.Errorf("error = %s", res.Error)
 	}
 }
@@ -535,8 +535,8 @@ func TestVolumeOutlineReadWrite(t *testing.T) {
 	if !read.Success {
 		t.Fatalf("read volume outline failed: %s", read.Error)
 	}
-	if got := read.Data["display"]; got != "第一卷（卷纲）" {
-		t.Errorf("display = %v, want 第一卷（卷纲）", got)
+	if got := read.Data["display"]; got != "第一卷 (volume outline)" {
+		t.Errorf("display = %v, want 第一卷 (volume outline)", got)
 	}
 	if got := read.Data["content"]; got != "1|# 入城卷\n2|- 目标：进京" {
 		t.Errorf("content = %q", got)
@@ -566,7 +566,7 @@ func TestVolumeOutlineRejectsLegacyPath(t *testing.T) {
 		execEdit(t, ctx, tc, editArgs(legacyPath, "full_replace", "# 旧路径")),
 		execRead(t, ctx, tc, legacyPath),
 	} {
-		if res.Success || !contains(res.Error, "无效文件路径") {
+		if res.Success || !contains(res.Error, "Недопустимый путь к файлу") {
 			t.Errorf("legacy path result = %+v, want invalid path", res)
 		}
 	}
@@ -611,8 +611,8 @@ func TestReadChapter_DisplayTitleAndTolerance(t *testing.T) {
 	if !res3.Success {
 		t.Fatalf("read outline failed: %s", res3.Error)
 	}
-	if got := res3.Data["display"]; got != "夜入皇城（大纲）" {
-		t.Errorf("outline display = %v, want 夜入皇城（大纲）", got)
+	if got := res3.Data["display"]; got != "夜入皇城 (outline)" {
+		t.Errorf("outline display = %v, want 夜入皇城 (outline)", got)
 	}
 }
 
@@ -711,7 +711,7 @@ func TestExistingChapter_ContentRolledBackWhenTitleUpdateFails(t *testing.T) {
 	if res.ErrKind != mcp_tools.ErrKindSystem {
 		t.Errorf("ErrKind = %q, want %q", res.ErrKind, mcp_tools.ErrKindSystem)
 	}
-	if !strings.Contains(res.Error, "正文已回退") {
+	if !strings.Contains(res.Error, "текст откатан") {
 		t.Errorf("Error = %q, want confirmed rollback state for LLM", res.Error)
 	}
 
@@ -764,7 +764,7 @@ func TestExistingChapter_TitleFailurePreservesNewerContent(t *testing.T) {
 	if res.Success || res.ErrKind != mcp_tools.ErrKindSystem {
 		t.Fatalf("result = %+v, want system failure", res)
 	}
-	if !strings.Contains(res.Error, "正文已被后续修改，未回退") {
+	if !strings.Contains(res.Error, "текст уже изменён последующей операцией") {
 		t.Errorf("Error = %q, want preserved newer content state", res.Error)
 	}
 	if !injected {
@@ -792,7 +792,7 @@ func TestNewChapter_VolumeQueryFailureIsSystemError(t *testing.T) {
 	if res.ErrKind != mcp_tools.ErrKindSystem {
 		t.Errorf("ErrKind = %q, want %q", res.ErrKind, mcp_tools.ErrKindSystem)
 	}
-	if !strings.Contains(res.Error, "query volume") {
+	if !strings.Contains(res.Error, "запрос тома") {
 		t.Errorf("Error = %q, want volume query context", res.Error)
 	}
 }
@@ -896,7 +896,7 @@ func TestReadChapter_FileMissing(t *testing.T) {
 	if res.Success {
 		t.Fatal("expected failure for missing file")
 	}
-	if !contains(res.Error, "文件不存在") {
+	if !contains(res.Error, "Файл не найден") {
 		t.Errorf("error = %s", res.Error)
 	}
 }

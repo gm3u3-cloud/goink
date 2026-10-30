@@ -23,7 +23,7 @@ type GetChapterListTool struct{}
 
 func (t *GetChapterListTool) Name() string { return "get_chapter_list" }
 func (t *GetChapterListTool) Description() string {
-	return "获取小说的章节目录，支持分页。按阅读顺序降序排列（最新的在前），按卷分组展示每章的稳定 ID、实时阅读序号、标题和字数。"
+	return "Get the novel's chapter directory, with pagination. Sorted by reading order in descending order (newest first), grouped by volume, showing each chapter's stable ID, live reading number, title, and word count."
 }
 func (t *GetChapterListTool) Category() ToolCategory { return CategoryNovelManagement }
 
@@ -44,12 +44,12 @@ func (t *GetChapterListTool) Execute(ctx context.Context, args any, tc ToolConte
 		Order:      "desc",
 	})
 	if err != nil {
-		return nil, fmt.Errorf("list chapters: %w", err)
+		return nil, fmt.Errorf("ошибка перечисления глав: %w", err)
 	}
 
 	volumes, err := volume.NewStore(tc.DB, tc.LoggerOrDefault()).ListByNovel(ctx, nil, tc.NovelID)
 	if err != nil {
-		return nil, fmt.Errorf("list volumes: %w", err)
+		return nil, fmt.Errorf("ошибка перечисления томов: %w", err)
 	}
 	volumeNames := make(map[int64]string, len(volumes))
 	for _, v := range volumes {
@@ -67,7 +67,7 @@ func (t *GetChapterListTool) Execute(ctx context.Context, args any, tc ToolConte
 
 func formatChapterList(chapters []chapter.Chapter, volumeNames map[int64]string) string {
 	if len(chapters) == 0 {
-		return "暂无章节。"
+		return "No chapters available."
 	}
 
 	var sb strings.Builder
@@ -78,17 +78,17 @@ func formatChapterList(chapters []chapter.Chapter, volumeNames map[int64]string)
 				sb.WriteByte('\n')
 			}
 			if ch.VolumeID == nil {
-				sb.WriteString("## 未分卷\n")
+				sb.WriteString("## Unassigned Volume\n")
 			} else {
 				name, ok := volumeNames[*ch.VolumeID]
 				if !ok {
-					name = "未知分卷"
+					name = "Unknown Volume"
 				}
 				fmt.Fprintf(&sb, "## %s [volume_id:%d]\n", name, *ch.VolumeID)
 			}
 			previousVolumeID = ch.VolumeID
 		}
-		fmt.Fprintf(&sb, "- 第%d章《%s》 [chapter_id:%d] · %d 字\n", ch.ReadingNumber, ch.Title, ch.ID, ch.WordCount)
+		fmt.Fprintf(&sb, "- Chapter %d \"%s\" [chapter_id:%d] · %d words\n", ch.ReadingNumber, ch.Title, ch.ID, ch.WordCount)
 	}
 	return strings.TrimSuffix(sb.String(), "\n")
 }

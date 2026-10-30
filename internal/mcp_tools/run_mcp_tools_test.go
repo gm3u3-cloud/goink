@@ -94,20 +94,20 @@ func TestRunMCPRejectsInvalidCalls(t *testing.T) {
 	for _, tt := range []struct {
 		name, args, message string
 	}{
-		{"unknown", `{"tool_name":"missing","args":{}}`, "工具不存在"},
-		{"external", `{"tool_name":"server.search","args":{}}`, "工具不存在"},
-		{"direct tool", `{"tool_name":"read","args":{"path":"goink.md"}}`, "不支持按需调用"},
-		{"recursive", `{"tool_name":"run_mcp","args":{}}`, "不支持按需调用"},
-		{"missing name", `{"args":{}}`, "参数校验失败"},
-		{"missing args", `{"tool_name":"low_frequency"}`, "参数校验失败"},
-		{"null args", `{"tool_name":"low_frequency","args":null}`, "参数校验失败"},
-		{"array args", `{"tool_name":"low_frequency","args":[]}`, "参数格式不正确"},
-		{"scalar args", `{"tool_name":"low_frequency","args":3}`, "参数格式不正确"},
-		{"outer unknown field", `{"tool_name":"low_frequency","args":{},"novel_id":99}`, "参数格式不正确"},
-		{"inner required field", `{"tool_name":"low_frequency","args":{}}`, "参数校验失败"},
-		{"inner unknown field", `{"tool_name":"low_frequency","args":{"name":"test","novel_id":99}}`, "参数格式不正确"},
-		{"inner field type", `{"tool_name":"low_frequency","args":{"name":"test","id":"wrong"}}`, "参数格式不正确"},
-		{"inner validation", `{"tool_name":"low_frequency","args":{"name":"test","id":-1}}`, "参数校验失败"},
+		{"unknown", `{"tool_name":"missing","args":{}}`, "инструмент не найден"},
+		{"external", `{"tool_name":"server.search","args":{}}`, "инструмент не найден"},
+		{"direct tool", `{"tool_name":"read","args":{"path":"goink.md"}}`, "не поддерживает вызов по требованию"},
+		{"recursive", `{"tool_name":"run_mcp","args":{}}`, "не поддерживает вызов по требованию"},
+		{"missing name", `{"args":{}}`, "Ошибка валидации параметра"},
+		{"missing args", `{"tool_name":"low_frequency"}`, "Ошибка валидации параметра"},
+		{"null args", `{"tool_name":"low_frequency","args":null}`, "Ошибка валидации параметра"},
+		{"array args", `{"tool_name":"low_frequency","args":[]}`, "Неверный формат параметра"},
+		{"scalar args", `{"tool_name":"low_frequency","args":3}`, "Неверный формат параметра"},
+		{"outer unknown field", `{"tool_name":"low_frequency","args":{},"novel_id":99}`, "Неверный формат параметра"},
+		{"inner required field", `{"tool_name":"low_frequency","args":{}}`, "Ошибка валидации параметра"},
+		{"inner unknown field", `{"tool_name":"low_frequency","args":{"name":"test","novel_id":99}}`, "Неверный формат параметра"},
+		{"inner field type", `{"tool_name":"low_frequency","args":{"name":"test","id":"wrong"}}`, "Неверный формат параметра"},
+		{"inner validation", `{"tool_name":"low_frequency","args":{"name":"test","id":-1}}`, "Ошибка валидации параметра"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			result := reg.Execute(context.Background(), "run_mcp", json.RawMessage(tt.args), tc, agentcfg.Allowlist(agentcfg.MainAgent))
@@ -118,7 +118,7 @@ func TestRunMCPRejectsInvalidCalls(t *testing.T) {
 	for _, role := range []agentcfg.AgentType{agentcfg.ReviewAgent, agentcfg.MemoryAgent} {
 		result := reg.Execute(context.Background(), "run_mcp", json.RawMessage(`{"tool_name":"low_frequency","args":{"name":"test"}}`), tc, agentcfg.Allowlist(role))
 		require.False(t, result.Success)
-		require.Contains(t, result.Error, "工具禁止使用")
+		require.Contains(t, result.Error, "Использование инструмента запрещено")
 	}
 	requireToolActivity(t, tc.DB, 0)
 }

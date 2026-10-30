@@ -83,44 +83,44 @@ type BatchTrace struct {
 }
 
 type BoundaryHint struct {
-	StartChapterID     int64  `json:"start_chapter_id" jsonschema:"required,description=起始章节的稳定ID"`
-	EndChapterID       int64  `json:"end_chapter_id" jsonschema:"required,description=结束章节的稳定ID"`
+	StartChapterID     int64  `json:"start_chapter_id" jsonschema:"required,description=The stable ID of the start chapter"`
+	EndChapterID       int64  `json:"end_chapter_id" jsonschema:"required,description=The stable ID of the end chapter"`
 	StartReadingNumber int    `json:"-"`
 	EndReadingNumber   int    `json:"-"`
-	Hint               string `json:"hint" jsonschema:"required,description=为什么这里可能是叙事阶段边界"`
+	Hint               string `json:"hint" jsonschema:"required,description=Why this may be a narrative stage boundary"`
 }
 
 type BoundaryHintsOutput struct {
-	Boundaries []BoundaryHint `json:"boundaries" jsonschema:"required,description=可能的叙事阶段边界列表"`
+	Boundaries []BoundaryHint `json:"boundaries" jsonschema:"required,description=List of possible narrative stage boundaries"`
 }
 
 type ChapterSummaryItem struct {
-	ChapterID     int64  `json:"chapter_id" jsonschema:"required,description=章节的稳定ID"`
+	ChapterID     int64  `json:"chapter_id" jsonschema:"required,description=The stable ID of the chapter"`
 	ReadingNumber int    `json:"-"`
-	Summary       string `json:"summary" jsonschema:"required,description=80-150字的章节叙事摘要，覆盖核心事件、人物行为与转折"`
+	Summary       string `json:"summary" jsonschema:"required,description=An 80-150 character narrative summary of the chapter, covering core events, character actions, and turning points"`
 }
 
 type ChapterSummariesOutput struct {
-	Summaries []ChapterSummaryItem `json:"summaries" jsonschema:"required,description=生成的章节摘要列表"`
+	Summaries []ChapterSummaryItem `json:"summaries" jsonschema:"required,description=List of generated chapter summaries"`
 }
 
 type Chunk struct {
-	Name               string `json:"name" jsonschema:"required,description=叙事阶段名称（如：崛起、转折）"`
-	StartChapterID     int64  `json:"start_chapter_id" jsonschema:"required,description=起始章节的稳定ID"`
-	EndChapterID       int64  `json:"end_chapter_id" jsonschema:"required,description=结束章节的稳定ID"`
+	Name               string `json:"name" jsonschema:"required,description=The narrative stage name (e.g. rise, turning point)"`
+	StartChapterID     int64  `json:"start_chapter_id" jsonschema:"required,description=The stable ID of the start chapter"`
+	EndChapterID       int64  `json:"end_chapter_id" jsonschema:"required,description=The stable ID of the end chapter"`
 	StartReadingNumber int    `json:"-"`
 	EndReadingNumber   int    `json:"-"`
-	Content            string `json:"content" jsonschema:"required,description=100-200字的阶段叙事概括，覆盖核心事件与转折"`
+	Content            string `json:"content" jsonschema:"required,description=A 100-200 character narrative summary of the stage, covering core events and turning points"`
 }
 
 type ChunksOutput struct {
-	Chunks []Chunk `json:"chunks" jsonschema:"required,description=压缩后的叙事阶段块列表"`
+	Chunks []Chunk `json:"chunks" jsonschema:"required,description=List of compressed narrative stage chunks"`
 }
 
 type SkillOutput struct {
-	Name        string `json:"name" jsonschema:"required,description=技能名称（中文模式名）"`
-	Description string `json:"description" jsonschema:"required,description=一句话描述何时使用此叙事模式"`
-	Content     string `json:"content" jsonschema:"required,description=技能正文 markdown，含 ## 套路概览/阶段拆解/爽点节奏/角色功能模板/可复用叙事规律/使用注意 等章节，不含 frontmatter"`
+	Name        string `json:"name" jsonschema:"required,description=The skill name (Chinese pattern name)"`
+	Description string `json:"description" jsonschema:"required,description=A one-sentence description of when to use this narrative pattern"`
+	Content     string `json:"content" jsonschema:"required,description=The skill body markdown, containing sections such as ## Pattern Overview / Stage Breakdown / Payoff Rhythm / Character Function Templates / Reusable Narrative Rules / Usage Notes, without frontmatter"`
 }
 
 // ChapterSource 是从 DB 元数据和 git 正文拼出的章节数据传递对象

@@ -108,7 +108,7 @@ func TestGetCharactersGroupMode(t *testing.T) {
 	require.Equal(t, 1, data["page"])
 	require.Equal(t, 50, data["size"])
 	require.NotContains(t, data, "characters")
-	require.Equal(t, "- A 主角团 [group_id:10]（1 名角色）：长期同行的伙伴\n- B 青云宗 [group_id:20]（2 名角色）：修行宗门\n- C 空组 [group_id:30]（0 名角色）：预留分类", data["content"])
+	require.Equal(t, "- A 主角团 [group_id:10] (1 characters): 长期同行的伙伴\n- B 青云宗 [group_id:20] (2 characters): 修行宗门\n- C 空组 [group_id:30] (0 characters): 预留分类", data["content"])
 
 	for _, search := range []string{"青云", "修行"} {
 		args, err := json.Marshal(map[string]any{"mode": "groups", "search": search})
@@ -121,17 +121,17 @@ func TestGetCharactersGroupMode(t *testing.T) {
 	require.Equal(t, int64(3), data["total"])
 	require.Equal(t, 2, data["page"])
 	require.Equal(t, 3, data["total_pages"])
-	require.Equal(t, "- B 青云宗 [group_id:20]（2 名角色）：修行宗门", data["content"])
+	require.Equal(t, "- B 青云宗 [group_id:20] (2 characters): 修行宗门", data["content"])
 	data = queryCharacters(t, reg, tc, `{"mode":"groups","search":"不存在"}`)
 	require.Equal(t, int64(0), data["total"])
-	require.Equal(t, "本页无匹配的角色分组。", data["content"])
+	require.Equal(t, "No matching character groups on this page.", data["content"])
 	data = queryCharacters(t, reg, tc, `{"mode":"groups","size":100}`)
 	require.Equal(t, 100, data["size"])
 
 	tc.NovelID = 2
 	data = queryCharacters(t, reg, tc, `{"mode":"groups"}`)
 	require.Equal(t, int64(1), data["total"])
-	require.Equal(t, "- 其他小说分组 [group_id:40]（1 名角色）：不应泄露", data["content"])
+	require.Equal(t, "- 其他小说分组 [group_id:40] (1 characters): 不应泄露", data["content"])
 }
 
 func TestGetCharactersRejectsInvalidGroupParameters(t *testing.T) {

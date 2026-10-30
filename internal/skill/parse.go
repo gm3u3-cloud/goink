@@ -16,11 +16,11 @@ import (
 func ParseFile(path string) (*Skill, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("skill: 读取文件失败 %s: %w", path, err)
+		return nil, fmt.Errorf("skill: чтение файла %s не удалось: %w", path, err)
 	}
 	sk, err := ParseBytes(data, "user")
 	if err != nil {
-		return nil, fmt.Errorf("skill: 解析 %s 失败: %w", path, err)
+		return nil, fmt.Errorf("skill: разбор %s не удалось: %w", path, err)
 	}
 	return sk, nil
 }
@@ -29,11 +29,11 @@ func ParseFile(path string) (*Skill, error) {
 func ParseFS(fsys fs.FS, name string) (*Skill, error) {
 	data, err := fs.ReadFile(fsys, name)
 	if err != nil {
-		return nil, fmt.Errorf("skill: 读取 %s 失败: %w", name, err)
+		return nil, fmt.Errorf("skill: чтение %s не удалось: %w", name, err)
 	}
 	sk, err := ParseBytes(data, "builtin")
 	if err != nil {
-		return nil, fmt.Errorf("skill: 解析 %s 失败: %w", name, err)
+		return nil, fmt.Errorf("skill: разбор %s не удалось: %w", name, err)
 	}
 	return sk, nil
 }
@@ -48,11 +48,11 @@ func ParseBytes(data []byte, defaultAuthor string) (*Skill, error) {
 
 	sk, err := parseFrontmatter(fm)
 	if err != nil {
-		return nil, fmt.Errorf("YAML frontmatter 解析失败: %w", err)
+		return nil, fmt.Errorf("не удалось разобрать YAML frontmatter: %w", err)
 	}
 
 	if sk.Name == "" {
-		return nil, fmt.Errorf("缺少 name 字段")
+		return nil, fmt.Errorf("отсутствует поле name")
 	}
 	if sk.Author == "" {
 		sk.Author = defaultAuthor
@@ -73,7 +73,7 @@ func splitFrontmatter(raw string) (frontmatter, body string, err error) {
 	raw = raw[3:]
 	frontmatter, body, found := strings.Cut(raw, "\n---")
 	if !found {
-		return "", "", fmt.Errorf("未闭合的 frontmatter：缺少结束标记 ---")
+		return "", "", fmt.Errorf("frontmatter не закрыт: отсутствует завершающий маркер ---")
 	}
 	body = strings.TrimSpace(body)
 	return frontmatter, body, nil
@@ -88,7 +88,7 @@ func parseFrontmatter(raw string) (*Skill, error) {
 
 	var sk Skill
 	if err := yaml.Unmarshal([]byte(raw), &sk); err != nil {
-		return nil, fmt.Errorf("YAML 解析失败: %w", err)
+		return nil, fmt.Errorf("не удалось разобрать YAML: %w", err)
 	}
 	return &sk, nil
 }
@@ -97,7 +97,7 @@ func parseFrontmatter(raw string) (*Skill, error) {
 func scanFS(logger *slog.Logger, fsys fs.FS, dir string) ([]Skill, error) {
 	entries, err := fs.ReadDir(fsys, dir)
 	if err != nil {
-		return nil, fmt.Errorf("skill: 读取目录 %s 失败: %w", dir, err)
+		return nil, fmt.Errorf("skill: чтение каталога %s не удалось: %w", dir, err)
 	}
 
 	var skills []Skill
@@ -107,7 +107,7 @@ func scanFS(logger *slog.Logger, fsys fs.FS, dir string) ([]Skill, error) {
 		}
 		sk, err := ParseFS(fsys, dir+"/"+entry.Name())
 		if err != nil {
-			logger.Warn("skill: 解析内置 skill 失败，已跳过", "file", entry.Name(), "err", err)
+			logger.Warn("skill: failed to parse builtin skill, skipped", "file", entry.Name(), "err", err)
 			continue
 		}
 		skills = append(skills, *sk)
@@ -124,7 +124,7 @@ func scanDir(logger *slog.Logger, dir string) ([]Skill, error) {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("读取目录 %s 失败: %w", dir, err)
+		return nil, fmt.Errorf("чтение каталога %s не удалось: %w", dir, err)
 	}
 
 	var skills []Skill
@@ -134,7 +134,7 @@ func scanDir(logger *slog.Logger, dir string) ([]Skill, error) {
 		}
 		sk, err := ParseFile(filepath.Join(dir, entry.Name()))
 		if err != nil {
-			logger.Warn("skill: 解析 skill 文件失败，已跳过", "file", entry.Name(), "err", err)
+			logger.Warn("skill: failed to parse skill file, skipped", "file", entry.Name(), "err", err)
 			continue
 		}
 		fileBase := strings.TrimSuffix(entry.Name(), ".md")
@@ -142,7 +142,7 @@ func scanDir(logger *slog.Logger, dir string) ([]Skill, error) {
 			oldPath := filepath.Join(dir, entry.Name())
 			newPath := filepath.Join(dir, sk.Name+".md")
 			if err := os.Rename(oldPath, newPath); err != nil {
-				return nil, fmt.Errorf("重命名 skill 文件失败 %s -> %s: %w", oldPath, newPath, err)
+				return nil, fmt.Errorf("переименование файла скилла %s -> %s не удалось: %w", oldPath, newPath, err)
 			}
 		}
 		skills = append(skills, *sk)

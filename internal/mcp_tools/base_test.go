@@ -64,7 +64,7 @@ func TestRegistryExecute_SystemErrorIncludesCompactDetail(t *testing.T) {
 	if result.ErrKind != ErrKindSystem {
 		t.Errorf("ErrKind = %q, want %q", result.ErrKind, ErrKindSystem)
 	}
-	if !strings.HasPrefix(result.Error, "工具执行失败：正文已回退，标题未更新: database is locked x") {
+	if !strings.HasPrefix(result.Error, "Ошибка выполнения инструмента: 正文已回退，标题未更新: database is locked x") {
 		t.Errorf("Error = %q, want compact detail with operation state", result.Error)
 	}
 	if strings.Contains(result.Error, "\n") {
@@ -73,7 +73,7 @@ func TestRegistryExecute_SystemErrorIncludesCompactDetail(t *testing.T) {
 	if !strings.HasSuffix(result.Error, "…") {
 		t.Errorf("Error = %q, want truncation marker", result.Error)
 	}
-	if got := len([]rune(strings.TrimPrefix(result.Error, "工具执行失败："))); got != maxSystemErrorDetailRunes+1 {
+	if got := len([]rune(strings.TrimPrefix(result.Error, "Ошибка выполнения инструмента: "))); got != maxSystemErrorDetailRunes+1 {
 		t.Errorf("detail rune length = %d, want %d", got, maxSystemErrorDetailRunes+1)
 	}
 }

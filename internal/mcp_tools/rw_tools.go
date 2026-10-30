@@ -26,15 +26,15 @@ import (
 
 // EditArgs 是 edit 工具的参数。
 type EditArgs struct {
-	Path       string `json:"path" jsonschema:"required,description=要编辑的文件路径。章节正文：chapters/id_{章节id}.md（主格式）或 chapters/{卷id}/id_{章节id}.md（等价容错写法）；章节大纲：outlines/id_{章节id}.md 或 outlines/{卷id}/id_{章节id}.md；新建章节：chapters/{卷id}/new.md 或 chapters/new.md（不带卷时默认分进最后一卷，整本书未建卷则创建未分卷章节）；新建大纲：outlines/{卷id}/new.md 或 outlines/new.md（规则同章节，只能 full_replace）；卷纲：volumes/id_{卷id}.md；故事状态 goink.md；小说级技能 skills/<name>.md；用户级技能 ~/.goink/skills/<name>.md" validate:"required"`
-	ChangeType string `json:"change_type" jsonschema:"required,enum=full_replace,enum=search_replace,enum=line_range_replace,description=编辑方式。full_replace：全文替换；search_replace：查找并替换指定文本；line_range_replace：替换指定行范围" validate:"required,oneof=full_replace search_replace line_range_replace"`
-	SearchText string `json:"search_text" jsonschema:"description=要查找的原文片段（search_replace 时必填）。请从文件中精确复制" validate:"omitempty"`
-	NewContent string `json:"new_content" jsonschema:"description=新内容。full_replace 时为完整全文（必填，传空会报错；若要清空整个文件请改用 line_range_replace(1, total_lines, \"\")，total_lines 从 read 返回获取）；search_replace 时为替换后的文本（传空则删除匹配到的文本）；line_range_replace 时为替换该行范围的新内容（传空则删除该范围行）" validate:"omitempty"`
-	ReplaceAll bool   `json:"replace_all" jsonschema:"description=是否替换所有匹配项。默认 false（仅替换第一个匹配）" validate:"omitempty"`
-	StartLine  int    `json:"start_line" jsonschema:"description=起始行号 1-based 含此行（line_range_replace 时必填），必须 <= end_line" validate:"omitempty,min=1"`
-	EndLine    int    `json:"end_line" jsonschema:"description=结束行号 1-based 含此行（line_range_replace 时必填）" validate:"omitempty,min=1"`
-	Reason     string `json:"reason" jsonschema:"required,description=必填。本次修改的原因/意图，供作者审批参考" validate:"required"`
-	Title      string `json:"title" jsonschema:"description=章节标题。new.md 新建时可选；对已有章节/大纲传入时覆盖原标题（chapters/ 与 outlines/ 路径均生效）" validate:"omitempty"`
+	Path       string `json:"path" jsonschema:"required,description=Path of the file to edit. Chapter body: chapters/id_{chapter_id}.md (primary form) or chapters/{volume_id}/id_{chapter_id}.md (equivalent lenient form); chapter outline: outlines/id_{chapter_id}.md or outlines/{volume_id}/id_{chapter_id}.md; new chapter: chapters/{volume_id}/new.md or chapters/new.md (without a volume, defaults to the last volume; if the book has no volumes, creates an unassigned chapter); new outline: outlines/{volume_id}/new.md or outlines/new.md (same rules as chapters, full_replace only); volume outline: volumes/id_{volume_id}.md; story state goink.md; novel-level skill skills/<name>.md; user-level skill ~/.goink/skills/<name>.md" validate:"required"`
+	ChangeType string `json:"change_type" jsonschema:"required,enum=full_replace,enum=search_replace,enum=line_range_replace,description=Editing mode. full_replace: replace the entire file; search_replace: find and replace the specified text; line_range_replace: replace the specified line range" validate:"required,oneof=full_replace search_replace line_range_replace"`
+	SearchText string `json:"search_text" jsonschema:"description=The original text fragment to find (required for search_replace). Copy it exactly from the file" validate:"omitempty"`
+	NewContent string `json:"new_content" jsonschema:"description=New content. For full_replace: the complete full text (required; passing empty will error; to clear the entire file use line_range_replace(1, total_lines, \"\") instead, with total_lines obtained from the read result); for search_replace: the replacement text (passing empty deletes the matched text); for line_range_replace: the new content for that line range (passing empty deletes those lines)" validate:"omitempty"`
+	ReplaceAll bool   `json:"replace_all" jsonschema:"description=Whether to replace all matches. Defaults to false (only replaces the first match)" validate:"omitempty"`
+	StartLine  int    `json:"start_line" jsonschema:"description=Start line number, 1-based inclusive (required for line_range_replace); must be <= end_line" validate:"omitempty,min=1"`
+	EndLine    int    `json:"end_line" jsonschema:"description=End line number, 1-based inclusive (required for line_range_replace)" validate:"omitempty,min=1"`
+	Reason     string `json:"reason" jsonschema:"required,description=Required. The reason/intent for this change, for the author's approval reference" validate:"required"`
+	Title      string `json:"title" jsonschema:"description=Chapter title. Optional when creating via new.md; when passed for an existing chapter/outline, overrides the original title (applies to both chapters/ and outlines/ paths)" validate:"omitempty"`
 }
 
 // EditTool 编辑文件（章节或故事状态），支持全文替换、查找替换、行范围替换。
@@ -54,7 +54,7 @@ func (t *EditTool) Execute(ctx context.Context, args any, tc ToolContext) (*Tool
 
 	// 内置 skill 只读
 	if strings.HasPrefix(a.Path, "/builtin/skills/") {
-		return &ToolResult{Success: false, Error: "内置 skill 为只读，不可编辑"}, nil
+		return &ToolResult{Success: false, Error: "Встроенный skill только для чтения, не изменяется"}, nil
 	}
 
 	if volumeID, ok := git.ParseVolumePath(a.Path); ok {
@@ -72,7 +72,7 @@ func (t *EditTool) Execute(ctx context.Context, args any, tc ToolContext) (*Tool
 }
 
 // invalidPathHint 是 edit/read 共用的非法路径提示。
-const invalidPathHint = "无效文件路径。章节正文 chapters/id_{id}.md、大纲 outlines/id_{id}.md、卷纲 volumes/id_{卷ID}.md、新建 chapters/{卷ID}/new.md 或 chapters/new.md、outlines/{卷ID}/new.md 或 outlines/new.md、goink.md、skills/<name>.md、~/.goink/skills/<name>.md"
+const invalidPathHint = "Недопустимый путь к файлу. Текст главы chapters/id_{id}.md, конспект outlines/id_{id}.md, конспект тома volumes/id_{volume_id}.md, новые chapters/{volume_id}/new.md или chapters/new.md, outlines/{volume_id}/new.md или outlines/new.md, goink.md, skills/<name>.md, ~/.goink/skills/<name>.md"
 
 // readFileForEdit 读取待编辑文件的当前内容。
 // 文件不存在时 full_replace 视为从空文件创建，其余模式返回 os.ErrNotExist。
@@ -92,9 +92,9 @@ func readFileForEdit(novelID int64, path, changeType string) (string, error) {
 func fileReadError(path string, err error) (*ToolResult, bool) {
 	switch {
 	case errors.Is(err, os.ErrNotExist):
-		return &ToolResult{Success: false, Error: "文件不存在: " + path}, true
+		return &ToolResult{Success: false, Error: "Файл не найден: " + path}, true
 	case errors.Is(err, git.ErrPathEscape):
-		return &ToolResult{Success: false, Error: "路径非法: " + path}, true
+		return &ToolResult{Success: false, Error: "Недопустимый путь: " + path}, true
 	default:
 		return nil, false
 	}
@@ -128,18 +128,18 @@ func requestApproval(ctx context.Context, tc ToolContext, payload map[string]any
 	ap, err := tc.Approver.RequestApproval(ctx, tc.ToolID, payload)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
-			return "", &ToolResult{Success: false, Error: "操作被中断"}, nil
+			return "", &ToolResult{Success: false, Error: "Операция прервана"}, nil
 		}
 		return "", nil, fmt.Errorf("approval: %w", err)
 	}
 	if !ap.Approved {
-		info := "你的修改被用户拒绝"
+		info := "Your edit was rejected by the user"
 		if ap.Feedback != "" {
-			info += "。用户反馈：" + ap.Feedback
+			info += ". User feedback: " + ap.Feedback
 		}
 		return "", &ToolResult{
 			Success: false,
-			Error:   "审批未通过",
+			Error:   "Одобрение не пройдено",
 			Data: map[string]any{
 				"path":        payload["path"],
 				"change_type": payload["change_type"],
@@ -156,12 +156,12 @@ func requestApproval(ctx context.Context, tc ToolContext, payload map[string]any
 func writeApproved(ctx context.Context, tc ToolContext, path, current, proposed string) (res *ToolResult, err error) {
 	if err := git.WriteFileIfUnchanged(tc.NovelID, path, current, proposed); err != nil {
 		if errors.Is(err, git.ErrFileChanged) {
-			return &ToolResult{Success: false, Error: "文件已被修改，请重新读取最新内容后重试"}, nil
+			return &ToolResult{Success: false, Error: "Файл был изменён, перезагрузите свежее содержимое и повторите"}, nil
 		}
 		if errors.Is(err, git.ErrPathEscape) {
-			return &ToolResult{Success: false, Error: "路径非法: " + path}, nil
+			return &ToolResult{Success: false, Error: "Недопустимый путь: " + path}, nil
 		}
-		return nil, fmt.Errorf("write file: %w", err)
+		return nil, fmt.Errorf("запись файла: %w", err)
 	}
 	emitFileChanged(ctx, tc.NovelID, path)
 	return nil, nil
@@ -205,21 +205,21 @@ func (t *EditTool) editPlainFile(ctx context.Context, a *EditArgs, tc ToolContex
 		if res, handled := fileReadError(a.Path, err); handled {
 			return res, nil
 		}
-		return nil, fmt.Errorf("read file %s: %w", a.Path, err)
+		return nil, fmt.Errorf("чтение файла %s: %w", a.Path, err)
 	}
 
 	proposed, err := applyChange(a, current)
 	if err != nil {
-		return &ToolResult{Success: false, Error: fmt.Sprintf("编辑操作失败: %s", err.Error())}, nil
+		return &ToolResult{Success: false, Error: fmt.Sprintf("Ошибка редактирования: %s", err.Error())}, nil
 	}
 	if proposed == current {
-		return &ToolResult{Success: true, Data: map[string]any{"path": a.Path, "message": "内容未变化，跳过"}}, nil
+		return &ToolResult{Success: true, Data: map[string]any{"path": a.Path, "message": "Content unchanged, skipped"}}, nil
 	}
 
 	// skill 格式校验（审批前，格式不对直接返回 LLM 修正）
 	if isSkillPath(a.Path) {
 		if _, err := skill.ParseBytes([]byte(proposed), ""); err != nil {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("skill 格式错误: %s", err.Error())}, nil
+			return &ToolResult{Success: false, Error: fmt.Sprintf("Ошибка формата skill: %s", err.Error())}, nil
 		}
 	}
 
@@ -237,7 +237,7 @@ func (t *EditTool) editPlainFile(ctx context.Context, a *EditArgs, tc ToolContex
 
 	var injects []InjectMessage
 	if feedback != "" {
-		injects = append(injects, InjectMessage{Role: "user", Content: "用户通过了审批并反馈：" + feedback})
+		injects = append(injects, InjectMessage{Role: "user", Content: "User approved and provided feedback: " + feedback})
 	}
 	data := map[string]any{
 		"path":        a.Path,
@@ -259,7 +259,7 @@ func (t *EditTool) editVolumeOutline(ctx context.Context, a *EditArgs, tc ToolCo
 		if errors.Is(err, volume.ErrNotFound) {
 			return &ToolResult{Success: false, Error: err.Error()}, nil
 		}
-		return nil, fmt.Errorf("query volume: %w", err)
+		return nil, fmt.Errorf("запрос тома: %w", err)
 	}
 	return t.editPlainFile(ctx, a, tc)
 }
@@ -282,7 +282,7 @@ func (t *EditTool) editChapterLike(ctx context.Context, a *EditArgs, tc ToolCont
 		// 新建通道：只能 full_replace；卷可选——带卷校验归属，
 		// 不带卷时默认最后一卷；无卷则归入未分卷组。
 		if a.ChangeType != "full_replace" {
-			return &ToolResult{Success: false, Error: "new.md 仅支持 full_replace（新建文件无原文可查改）"}, nil
+			return &ToolResult{Success: false, Error: "new.md поддерживает только full_replace (у нового файла нет исходного текста для поиска и замены)"}, nil
 		}
 		if ref.VolumeID != 0 {
 			v, err := volume.NewStore(tc.DB, tc.LoggerOrDefault()).GetByID(ctx, nil, tc.NovelID, ref.VolumeID)
@@ -290,7 +290,7 @@ func (t *EditTool) editChapterLike(ctx context.Context, a *EditArgs, tc ToolCont
 				if errors.Is(err, volume.ErrNotFound) {
 					return &ToolResult{Success: false, Error: err.Error()}, nil
 				}
-				return nil, fmt.Errorf("query volume: %w", err)
+				return nil, fmt.Errorf("запрос тома: %w", err)
 			}
 			volumeID = &v.ID
 		}
@@ -298,10 +298,10 @@ func (t *EditTool) editChapterLike(ctx context.Context, a *EditArgs, tc ToolCont
 		// 已有章节：记录必须存在，新建走 new.md 通道
 		rec, err := getChapterRecord(ctx, tc.DB, tc.NovelID, ref.ID)
 		if err != nil {
-			return nil, fmt.Errorf("query chapter record: %w", err)
+			return nil, fmt.Errorf("запрос записи главы: %w", err)
 		}
 		if rec == nil {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("章节记录不存在: id=%d，新建请用 chapters/{卷ID}/new.md 或 chapters/new.md", ref.ID)}, nil
+			return &ToolResult{Success: false, Error: fmt.Sprintf("Запись главы не найдена: id=%d, для создания используйте chapters/{volume_id}/new.md или chapters/new.md", ref.ID)}, nil
 		}
 		ch = rec
 	}
@@ -316,7 +316,7 @@ func (t *EditTool) editChapterLike(ctx context.Context, a *EditArgs, tc ToolCont
 				if res, handled := fileReadError(physical, err); handled {
 					return res, nil
 				}
-				return nil, fmt.Errorf("read file %s: %w", physical, err)
+				return nil, fmt.Errorf("чтение файла %s: %w", physical, err)
 			}
 		} else {
 			current = content
@@ -325,23 +325,23 @@ func (t *EditTool) editChapterLike(ctx context.Context, a *EditArgs, tc ToolCont
 
 	proposed, err := applyChange(a, current)
 	if err != nil {
-		return &ToolResult{Success: false, Error: fmt.Sprintf("编辑操作失败: %s", err.Error())}, nil
+		return &ToolResult{Success: false, Error: fmt.Sprintf("Ошибка редактирования: %s", err.Error())}, nil
 	}
 	if proposed == current {
 		// 内容未变：title 有变化时仍执行标题更新，否则直接跳过
 		if !ref.IsNew && a.Title != "" && ch.Title != a.Title {
 			if err := chStore.UpdateTitle(ctx, nil, tc.NovelID, ch.ID, a.Title); err != nil {
-				return nil, fmt.Errorf("update chapter title: %w", err)
+				return nil, fmt.Errorf("обновление названия главы: %w", err)
 			}
 			ch.Title = a.Title
 			emitFileMetadataChanged(ctx, tc.NovelID, physical)
 			return &ToolResult{Success: true, Data: map[string]any{
 				"path":    physical,
 				"title":   a.Title,
-				"message": "内容未变化，仅更新标题",
+				"message": "Content unchanged, only title updated",
 			}}, nil
 		}
-		return &ToolResult{Success: true, Data: map[string]any{"path": physical, "message": "内容未变化，跳过"}}, nil
+		return &ToolResult{Success: true, Data: map[string]any{"path": physical, "message": "Content unchanged, skipped"}}, nil
 	}
 
 	// 审批（new 通道展示虚拟路径，已有章节展示物理路径）
@@ -364,7 +364,7 @@ func (t *EditTool) editChapterLike(ctx context.Context, a *EditArgs, tc ToolCont
 		if volumeID == nil {
 			last, err := volume.NewStore(tc.DB, tc.LoggerOrDefault()).LastByNovel(ctx, nil, tc.NovelID)
 			if err != nil {
-				return nil, fmt.Errorf("resolve last volume: %w", err)
+				return nil, fmt.Errorf("определение последнего тома: %w", err)
 			}
 			if last != nil {
 				volumeID = &last.ID
@@ -375,29 +375,29 @@ func (t *EditTool) editChapterLike(ctx context.Context, a *EditArgs, tc ToolCont
 			var err error
 			created, err = chStore.Create(ctx, tx, tc.NovelID, volumeID, a.Title)
 			if err != nil {
-				return fmt.Errorf("create chapter record: %w", err)
+				return fmt.Errorf("создание записи главы: %w", err)
 			}
 			// 物理路径按刚分配的章节 id 重新计算（ref.ID 对新建为 0）。
 			physical = physicalRWPath(ref.IsOutline, created.ID)
 			if err := git.WriteFile(tc.NovelID, physical, proposed); err != nil {
-				return fmt.Errorf("write file: %w", err)
+				return fmt.Errorf("запись файла: %w", err)
 			}
 			return nil
 		}); err != nil {
 			if errors.Is(err, git.ErrPathEscape) {
-				return &ToolResult{Success: false, Error: "路径非法: " + physical}, nil
+				return &ToolResult{Success: false, Error: "Недопустимый путь: " + physical}, nil
 			}
 			return nil, err
 		}
 		ch = created
 	} else if err := git.WriteFileIfUnchanged(tc.NovelID, physical, current, proposed); err != nil {
 		if errors.Is(err, git.ErrFileChanged) {
-			return &ToolResult{Success: false, Error: "文件已被修改，请重新读取最新内容后重试"}, nil
+			return &ToolResult{Success: false, Error: "Файл был изменён, перезагрузите свежее содержимое и повторите"}, nil
 		}
 		if errors.Is(err, git.ErrPathEscape) {
-			return &ToolResult{Success: false, Error: "路径非法: " + physical}, nil
+			return &ToolResult{Success: false, Error: "Недопустимый путь: " + physical}, nil
 		}
-		return nil, fmt.Errorf("write file: %w", err)
+		return nil, fmt.Errorf("запись файла: %w", err)
 	}
 
 	// 标题更新放在正文写入成功之后：写文件失败时不会留下「标题已改、正文未写」的不一致状态，
@@ -407,11 +407,11 @@ func (t *EditTool) editChapterLike(ctx context.Context, a *EditArgs, tc ToolCont
 		if err := chStore.UpdateTitle(ctx, nil, tc.NovelID, ch.ID, a.Title); err != nil {
 			if rollbackErr := git.WriteFileIfUnchanged(tc.NovelID, physical, proposed, current); rollbackErr != nil {
 				if errors.Is(rollbackErr, git.ErrFileChanged) {
-					return nil, fmt.Errorf("update chapter title（标题未更新，正文已被后续修改，未回退 %s）: %w", physical, err)
+					return nil, fmt.Errorf("обновление названия главы (название не обновлено, текст уже изменён последующей операцией, откат %s не выполнен): %w", physical, err)
 				}
-				return nil, fmt.Errorf("update chapter title（正文已写入 %s，标题未更新）: %v；回退正文失败: %w", physical, err, rollbackErr)
+				return nil, fmt.Errorf("обновление названия главы (текст записан %s, название не обновлено): %v; откат текста не удался: %w", physical, err, rollbackErr)
 			}
-			return nil, fmt.Errorf("update chapter title（正文已回退 %s）: %w", physical, err)
+			return nil, fmt.Errorf("обновление названия главы (текст откатан %s): %w", physical, err)
 		}
 		ch.Title = a.Title
 	}
@@ -439,19 +439,19 @@ func (t *EditTool) editChapterLike(ctx context.Context, a *EditArgs, tc ToolCont
 
 	var injects []InjectMessage
 	if feedback != "" {
-		injects = append(injects, InjectMessage{Role: "user", Content: "用户通过了审批并反馈：" + feedback})
+		injects = append(injects, InjectMessage{Role: "user", Content: "User approved and provided feedback: " + feedback})
 	}
 	// 章节正文全量替换且内容较长时注入维护提醒
 	if !ref.IsOutline && a.ChangeType == "full_replace" && len([]rune(proposed)) > 500 {
-		reminder := fmt.Sprintf("你刚刚完成了《%s》的全量替换。", ch.Title)
+		reminder := fmt.Sprintf("You just completed a full replacement of %q.", ch.Title)
 		if number, err := chStore.GetReadingNumberByID(ctx, nil, tc.NovelID, ch.ID); err != nil {
-			tc.LoggerOrDefault().Warn("计算实时章节号失败", "chapter_id", ch.ID, "err", err)
+			tc.LoggerOrDefault().Warn("failed to compute live chapter number", "chapter_id", ch.ID, "err", err)
 		} else {
-			reminder = fmt.Sprintf("你刚刚完成了《%s》（第%d章）的全量替换。", ch.Title, number)
+			reminder = fmt.Sprintf("You just completed a full replacement of %q (chapter %d).", ch.Title, number)
 		}
 		injects = append(injects, InjectMessage{
 			Role:    "user",
-			Content: reminder + "请执行以下维护操作：\n1. 检查并更新角色设定（性格变化、新能力、身份转变等）\n2. 更新故事时间线（伏笔回收、新伏笔记录、章节计划推进）\n3. 更新读者认知（新悬念、已回收悬念）\n4. 更新故事弧线节点进度\n完成后向用户汇报修改摘要。",
+			Content: reminder + "Please perform the following maintenance tasks:\n1. Review and update character settings (personality changes, new abilities, identity shifts, etc.)\n2. Update the story timeline (payoff of foreshadowing, recording new foreshadowing, advancing the chapter plan)\n3. Update reader perception (new suspense, resolved suspense)\n4. Update the progress of story arc nodes\nAfter finishing, report a summary of the changes to the user.",
 		})
 	}
 	if a.ChangeType == "line_range_replace" {
@@ -487,11 +487,11 @@ func linePreview(content string, start, end int) string {
 	var b strings.Builder
 	for i := preStart; i < postEnd; i++ {
 		if i == ctxStart {
-			b.WriteString("─── 改动区间 ───\n")
+			b.WriteString("─── Change range ───\n")
 		}
 		fmt.Fprintf(&b, "%d|%s\n", i+1, lines[i])
 		if i == ctxEnd-1 {
-			b.WriteString("─── 改动结束 ───\n")
+			b.WriteString("─── Change end ───\n")
 		}
 	}
 	return b.String()
@@ -503,34 +503,34 @@ func applyChange(a *EditArgs, current string) (string, error) {
 	switch a.ChangeType {
 	case "full_replace":
 		if a.NewContent == "" {
-			return "", fmt.Errorf("full_replace 模式需要提供 new_content；若要清空整个文件请用 line_range_replace(1, 总行数, \"\")")
+			return "", fmt.Errorf("Для режима full_replace требуется new_content; чтобы очистить весь файл, используйте line_range_replace(1, total_lines, \"\")")
 		}
 		return a.NewContent, nil
 
 	case "search_replace":
 		if a.SearchText == "" {
-			return "", fmt.Errorf("search_replace 模式需要提供 search_text")
+			return "", fmt.Errorf("Для режима search_replace требуется search_text")
 		}
 		result, found, hint := searchReplace(current, a.SearchText, a.NewContent, a.ReplaceAll)
 		if !found {
 			if hint != "" {
 				return "", fmt.Errorf("%s", hint)
 			}
-			return "", fmt.Errorf("未找到匹配文本，请用精确文本重试")
+			return "", fmt.Errorf("Совпадающий текст не найден, повторите с точным текстом")
 		}
 		return result, nil
 
 	case "line_range_replace":
 		if a.StartLine <= 0 || a.EndLine <= 0 {
-			return "", fmt.Errorf("line_range_replace 模式需要提供 start_line 和 end_line")
+			return "", fmt.Errorf("Для режима line_range_replace требуются start_line и end_line")
 		}
 		if a.StartLine > a.EndLine {
-			return "", fmt.Errorf("start_line 不能大于 end_line")
+			return "", fmt.Errorf("start_line не может быть больше end_line")
 		}
 		return lineRangeReplace(current, a.StartLine, a.EndLine, a.NewContent)
 
 	default:
-		return "", fmt.Errorf("未知的 change_type: %s", a.ChangeType)
+		return "", fmt.Errorf("Неизвестный change_type: %s", a.ChangeType)
 	}
 }
 
@@ -657,7 +657,7 @@ func fuzzyHint(searchText, content string) string {
 	}
 
 	if bestScore < 0.4 {
-		return "未找到任何相似内容，请用精确文本或 line_range_replace 重试。"
+		return "Не найдено ни одного похожего содержимого, повторите с точным текстом или line_range_replace."
 	}
 
 	contextStart := bestStart
@@ -678,7 +678,7 @@ func fuzzyHint(searchText, content string) string {
 	nearby := strings.Join(contextLines, "\n")
 
 	return fmt.Sprintf(
-		"未找到精确匹配。以下为模糊匹配到的最相似片段（相似度 %.0f%%，第 %d-%d 行附近），仅供参考——请自行判断是否就是你想要修改的位置：\n%s\n如果确认就是此处，可直接用 line_range_replace(start_line=%d, end_line=%d) 修改，或根据实际内容修正 search_text 后重新调用 search_replace。",
+		"Точное совпадение не найдено. Ниже приведён наиболее похожий фрагмент по нечёткому совпадению (степень сходства %.0f%%, около строк %d-%d), только для справки — решите сами, это ли место, которое вы хотите изменить:\n%s\nЕсли уверены, что это именно оно, можно изменить его напрямую через line_range_replace(start_line=%d, end_line=%d) или исправить search_text по фактическому содержимому и повторно вызвать search_replace.",
 		bestScore*100, bestStart+1, bestStart+bestW, nearby, bestStart+1, bestStart+bestW,
 	)
 }
@@ -722,7 +722,7 @@ func partialRatio(a, b string) float64 {
 func lineRangeReplace(content string, startLine, endLine int, newContent string) (string, error) {
 	lines := strings.Split(content, "\n")
 	if startLine < 1 || endLine > len(lines) || startLine > endLine {
-		return "", fmt.Errorf("行号超出范围: start=%d end=%d 总行数=%d", startLine, endLine, len(lines))
+		return "", fmt.Errorf("Номер строки вне диапазона: start=%d end=%d всего строк=%d", startLine, endLine, len(lines))
 	}
 
 	var result []string
@@ -788,32 +788,32 @@ func maintainChapterAfterEdit(ctx context.Context, tc ToolContext, ch *chapter.C
 
 // ── 工具描述 ──────────────────────────────────────────────
 
-const editDescription = `编辑小说文件（章节正文、大纲、卷纲、故事状态 goink.md 或技能文件）。支持三种编辑模式：full_replace（全文替换）、search_replace（查找替换）、line_range_replace（行范围替换）。
+const editDescription = `Edit a novel file (chapter body, outline, volume outline, story state goink.md, or skill file). Three editing modes are supported: full_replace (replace the entire file), search_replace (find and replace), line_range_replace (replace a line range).
 
-新建章节或大纲：path 使用 new.md 形式（格式见 path 参数说明），且只能 full_replace；成功后返回值携带分配的 chapter_id、volume_id 与物理路径，后续编辑一律使用返回的物理路径。
-卷纲：path 使用 volumes/id_{卷ID}.md；卷必须存在，full_replace 可首次创建对应卷纲文件。
+Creating a new chapter or outline: use the new.md form for path (see the path parameter description for the format), and only full_replace is allowed; on success the result carries the assigned chapter_id, volume_id, and physical path, and all subsequent edits must use the returned physical path.
+Volume outline: use volumes/id_{volume_id}.md for path; the volume must exist, and full_replace can create the corresponding volume outline file for the first time.
 
-各模式必填参数：
-- full_replace：new_content
-- search_replace：search_text + new_content
-- line_range_replace：start_line + end_line + new_content
-所有模式都必填：path、change_type、reason
-（new_content 传空的具体行为见 new_content 参数说明）
+Required parameters per mode:
+- full_replace: new_content
+- search_replace: search_text + new_content
+- line_range_replace: start_line + end_line + new_content
+Required for all modes: path, change_type, reason
+(see the new_content parameter description for the specific behavior when new_content is empty)
 
-模式选择策略：
-- search_replace 连续两次因"未找到匹配"失败，直接换 line_range_replace，不要在同一种模式上反复重试
-- line_range_replace 使用前务必重新 read 确认行号（行号可能因前序操作偏移）；执行后会返回 before/after 上下文，若 before 与预期不符说明行号偏移，需重新 read 修正后再试
+Mode selection strategy:
+- If search_replace fails twice in a row with "no match found", switch directly to line_range_replace; do not keep retrying the same mode
+- Before using line_range_replace, always re-read to confirm the line numbers (they may have shifted due to earlier operations); after running, before/after context is returned — if before does not match expectations, the line numbers have shifted and you must re-read and correct them before retrying
 
-所有修改会先生成 git diff 提交用户审批，审批通过后才写入文件。被拒绝时返回用户反馈，可根据反馈修正后重试。`
+All changes first generate a git diff for user approval; the file is written only after approval is granted. When rejected, the user's feedback is returned, and you can revise and retry based on the feedback.`
 
 // ── read ──────────────────────────────────────────────────
 
 // ReadArgs 是 read 工具的参数。
 type ReadArgs struct {
-	Path         string `json:"path" jsonschema:"required,description=要读取的文件路径。章节正文：chapters/id_{章节id}.md（主格式）或 chapters/{卷id}/id_{章节id}.md（等价容错写法）；章节大纲：outlines/id_{章节id}.md 或 outlines/{卷id}/id_{章节id}.md；卷纲：volumes/id_{卷id}.md；故事状态 goink.md；小说级技能 skills/<name>.md；用户级技能 ~/.goink/skills/<name>.md；内置技能 /builtin/skills/<name>.md（只读）；拓展工具目录 mcp/index.md；工具说明与参数 schema mcp/schemas/<tool_name>.json（虚拟只读路径）" validate:"required"`
-	IncludeLines *bool  `json:"include_lines" jsonschema:"default=true,description=是否包含行号前缀（如 123|）。默认 true，用于精确引用和行范围编辑。传 false 获取纯文本"`
-	StartLine    int    `json:"start_line" jsonschema:"default=1,description=起始行号 1-based 含此行，必须 <= end_line" validate:"omitempty,min=1"`
-	EndLine      int    `json:"end_line" jsonschema:"default=2000,description=结束行号 1-based 含此行，超出自动截到文末。不传或传 0 均按默认 2000 处理" validate:"omitempty,min=0"`
+	Path         string `json:"path" jsonschema:"required,description=Path of the file to read. Chapter body: chapters/id_{chapter_id}.md (primary form) or chapters/{volume_id}/id_{chapter_id}.md (equivalent lenient form); chapter outline: outlines/id_{chapter_id}.md or outlines/{volume_id}/id_{chapter_id}.md; volume outline: volumes/id_{volume_id}.md; story state goink.md; novel-level skill skills/<name>.md; user-level skill ~/.goink/skills/<name>.md; builtin skill /builtin/skills/<name>.md (read-only); extended tools directory mcp/index.md; tool description and parameter schema mcp/schemas/<tool_name>.json (virtual read-only path)" validate:"required"`
+	IncludeLines *bool  `json:"include_lines" jsonschema:"default=true,description=Whether to include the line number prefix (e.g. 123|). Defaults to true, used for precise referencing and line range editing. Pass false to get plain text"`
+	StartLine    int    `json:"start_line" jsonschema:"default=1,description=Start line number, 1-based inclusive; must be <= end_line" validate:"omitempty,min=1"`
+	EndLine      int    `json:"end_line" jsonschema:"default=2000,description=End line number, 1-based inclusive; values beyond the end are auto-truncated to the end of the file. Omitting or passing 0 both use the default 2000" validate:"omitempty,min=0"`
 }
 
 // ReadTool 读取文件内容（章节正文或故事状态 goink.md）。
@@ -872,7 +872,7 @@ func (t *ReadTool) Execute(ctx context.Context, args any, tc ToolContext) (*Tool
 		if res, handled := fileReadError(a.Path, err); handled {
 			return res, nil
 		}
-		return nil, fmt.Errorf("read file %s: %w", a.Path, err)
+		return nil, fmt.Errorf("чтение файла %s: %w", a.Path, err)
 	}
 	return renderReadResult(a, a.Path, a.Path, content)
 }
@@ -881,14 +881,14 @@ func (t *ReadTool) Execute(ctx context.Context, args any, tc ToolContext) (*Tool
 // 物理文件永远按 id 扁平路径读，两级路径仅作容错别名归一化。
 func (t *ReadTool) readChapterLike(ctx context.Context, a *ReadArgs, tc ToolContext, ref git.ChapterPathRef) (*ToolResult, error) {
 	if ref.IsNew {
-		return &ToolResult{Success: false, Error: "new.md 仅用于 edit 新建章节/大纲，不可读取"}, nil
+		return &ToolResult{Success: false, Error: "new.md предназначен только для создания новой главы/конспекта через edit; его нельзя читать"}, nil
 	}
 
 	physical := git.ChapterPath(ref.ID)
 	suffix := ""
 	if ref.IsOutline {
 		physical = git.OutlinePath(ref.ID)
-		suffix = "（大纲）"
+		suffix = " (outline)"
 	}
 
 	content, err := git.ReadFile(tc.NovelID, physical)
@@ -896,7 +896,7 @@ func (t *ReadTool) readChapterLike(ctx context.Context, a *ReadArgs, tc ToolCont
 		if res, handled := fileReadError(physical, err); handled {
 			return res, nil
 		}
-		return nil, fmt.Errorf("read file %s: %w", physical, err)
+		return nil, fmt.Errorf("чтение файла %s: %w", physical, err)
 	}
 
 	display := physical
@@ -918,7 +918,7 @@ func (t *ReadTool) readVolumeOutline(ctx context.Context, a *ReadArgs, tc ToolCo
 		if errors.Is(err, volume.ErrNotFound) {
 			return &ToolResult{Success: false, Error: err.Error()}, nil
 		}
-		return nil, fmt.Errorf("query volume: %w", err)
+		return nil, fmt.Errorf("запрос тома: %w", err)
 	}
 
 	path := git.VolumePath(volumeID)
@@ -927,9 +927,9 @@ func (t *ReadTool) readVolumeOutline(ctx context.Context, a *ReadArgs, tc ToolCo
 		if res, handled := fileReadError(path, err); handled {
 			return res, nil
 		}
-		return nil, fmt.Errorf("read file %s: %w", path, err)
+		return nil, fmt.Errorf("чтение файла %s: %w", path, err)
 	}
-	return renderReadResult(a, path, v.Name+"（卷纲）", content)
+	return renderReadResult(a, path, v.Name+" (volume outline)", content)
 }
 
 // renderReadResult 按行窗口切片并渲染读取结果（行号前缀、截断标记）。
@@ -947,10 +947,10 @@ func renderReadResult(a *ReadArgs, path, display, content string) (*ToolResult, 
 	totalLines := len(lines)
 
 	if start > end {
-		return &ToolResult{Success: false, Error: fmt.Sprintf("start_line(%d) 不能大于 end_line(%d)", start, end)}, nil
+		return &ToolResult{Success: false, Error: fmt.Sprintf("start_line(%d) не может быть больше end_line(%d)", start, end)}, nil
 	}
 	if start > totalLines {
-		return &ToolResult{Success: false, Error: fmt.Sprintf("起始行 %d 超出文件总行数 %d", start, totalLines)}, nil
+		return &ToolResult{Success: false, Error: fmt.Sprintf("Стартовая строка %d выходит за пределы общего числа строк %d", start, totalLines)}, nil
 	}
 	if end > totalLines {
 		end = totalLines
@@ -989,38 +989,38 @@ func renderReadResult(a *ReadArgs, path, display, content string) (*ToolResult, 
 // readBuiltinSkill 从 store 内存读取内置 skill，全量返回。
 func (t *ReadTool) readBuiltinSkill(a *ReadArgs, tc ToolContext) (*ToolResult, error) {
 	if tc.SkillStore == nil {
-		return &ToolResult{Success: false, Error: "skill store 未初始化"}, nil
+		return &ToolResult{Success: false, Error: "хранилище skill не инициализировано"}, nil
 	}
 
 	name := strings.TrimSuffix(strings.TrimPrefix(a.Path, "/builtin/skills/"), ".md")
 	if name == "" {
-		return &ToolResult{Success: false, Error: "无效的 skill 路径: " + a.Path}, nil
+		return &ToolResult{Success: false, Error: "Недопустимый путь skill: " + a.Path}, nil
 	}
 
 	sk, ok := tc.SkillStore.Get(tc.NovelID, name)
 	if !ok {
-		return &ToolResult{Success: false, Error: fmt.Sprintf("内置 skill %q 不存在", name)}, nil
+		return &ToolResult{Success: false, Error: fmt.Sprintf("Встроенный skill %q не найден", name)}, nil
 	}
 
 	return &ToolResult{Success: true, Data: map[string]any{
 		"path":    a.Path,
-		"display": fmt.Sprintf("技能: %s", sk.Name),
+		"display": fmt.Sprintf("Skill: %s", sk.Name),
 		"content": sk.RawContent,
 	}}, nil
 }
 
 // ── 工具描述 ──────────────────────────────────────────────
 
-const readDescription = `读取小说文件、卷纲、技能文件或拓展工具目录。
+const readDescription = `Read a novel file, volume outline, skill file, or the extended tools directory.
 
-工具目录（虚拟只读内容，不对应磁盘文件）：
-- mcp/index.md：拓展工具名称、简短说明和 schema 路径
-- mcp/schemas/<tool_name>.json：工具完整说明及 inputSchema，tool_name 与 run_mcp 的参数一致
+Tools directory (virtual read-only content, not corresponding to disk files):
+- mcp/index.md: extended tool names, brief descriptions, and schema paths
+- mcp/schemas/<tool_name>.json: full tool description and inputSchema; tool_name matches the run_mcp argument
 
-特性：
-- 默认添加行号前缀，方便后续 edit 工具进行 line_range_replace 和 search_replace
-- 返回 total_lines 表示全文行数，用于判断是否被截断；可用 line_range_replace(1, total_lines, "") 清空整个文件
-- start_line 和 end_line 支持行范围读取，用于翻页或精确引用`
+Features:
+- Adds a line number prefix by default, to facilitate later line_range_replace and search_replace by the edit tool
+- Returns total_lines, the total line count of the full text, used to determine whether content was truncated; use line_range_replace(1, total_lines, "") to clear the entire file
+- start_line and end_line support line range reading, for pagination or precise referencing`
 
 // ── 注册 ──────────────────────────────────────────────────
 

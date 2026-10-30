@@ -17,10 +17,10 @@ import (
 
 // GetLocationsArgs 是 get_locations 的参数。
 type GetLocationsArgs struct {
-	Mode         string `json:"mode" jsonschema:"required,description=查询模式：list=列表 detail=详情 network=全图,enum=list,enum=detail,enum=network,default=list" validate:"required,oneof=list detail network"`
-	LocationID   int64  `json:"location_id" jsonschema:"description=地点ID（detail模式必填）"                                                                    validate:"omitempty,min=1"`
-	LocationType string `json:"location_type" jsonschema:"description=按类型筛选（list模式可选）"`
-	Search       string `json:"search" jsonschema:"description=按名称搜索（list模式可选）"`
+	Mode         string `json:"mode" jsonschema:"required,description=Query mode: list=listing, detail=details, network=full graph,enum=list,enum=detail,enum=network,default=list" validate:"required,oneof=list detail network"`
+	LocationID   int64  `json:"location_id" jsonschema:"description=Location ID (required for detail mode)"                                                                    validate:"omitempty,min=1"`
+	LocationType string `json:"location_type" jsonschema:"description=Filter by type (optional for list mode)"`
+	Search       string `json:"search" jsonschema:"description=Search by name (optional for list mode)"`
 	PageArgs            // 嵌入分页参数
 }
 
@@ -29,10 +29,10 @@ type GetLocationsTool struct{}
 
 func (t *GetLocationsTool) Name() string { return "get_locations" }
 func (t *GetLocationsTool) Description() string {
-	return "获取当前小说的地点信息，支持三种模式：\n" +
-		"- list：分页列表，支持按类型和名称搜索\n" +
-		"- detail：地点详情，含子地点列表和内部连通关系\n" +
-		"- network：大地图——只显示根节点之间的连通关系，用于宏观空间感知"
+	return "Get location information for the current novel. Three modes are supported:\n" +
+		"- list: paginated listing, with search by type and name\n" +
+		"- detail: location details, including the child location list and internal connectivity\n" +
+		"- network: big map — only shows connectivity between root nodes, for macro spatial awareness"
 }
 func (t *GetLocationsTool) Category() ToolCategory { return CategoryNovelManagement }
 
@@ -90,13 +90,13 @@ func (t *GetLocationsTool) executeList(ctx context.Context, a *GetLocationsArgs,
 
 func (t *GetLocationsTool) executeDetail(ctx context.Context, a *GetLocationsArgs, tc ToolContext, store *location.Store) (*ToolResult, error) {
 	if a.LocationID == 0 {
-		return &ToolResult{Success: false, Error: "detail 模式需要 location_id"}, nil
+		return &ToolResult{Success: false, Error: "Для режима detail требуется location_id"}, nil
 	}
 
 	var loc location.Location
 	if err := tc.DB.WithContext(ctx).Where("id = ? AND novel_id = ?", a.LocationID, tc.NovelID).First(&loc).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("地点 %d 不存在", a.LocationID)}, nil
+			return &ToolResult{Success: false, Error: fmt.Sprintf("Местоположение %d не найдено", a.LocationID)}, nil
 		}
 		return nil, fmt.Errorf("query location: %w", err)
 	}
@@ -205,17 +205,17 @@ func (t *GetLocationsTool) executeNetwork(ctx context.Context, tc ToolContext, s
 
 // CreateLocationItem 是 create_location 的单条参数。
 type CreateLocationItem struct {
-	Name             string `json:"name" jsonschema:"required,description=地点名称"             validate:"required"`
-	LocationType     string `json:"location_type" jsonschema:"description=地点类型，自由文本，如'森林'、'城市'、'洞穴'"`
-	Description      string `json:"description" jsonschema:"description=环境氛围、特色等描述"`
-	DetailJSON       string `json:"detail_json" jsonschema:"description=字符串形式的JSON对象，结构化信息：气候、氛围、历史事件等"`
-	Tags             string `json:"tags" jsonschema:"description=字符串形式的JSON数组，自由标签，如[\"危险\"，\"神秘\"]"`
-	ParentLocationID *int64 `json:"parent_location_id" jsonschema:"description=父级地点ID，用于构建层级树"`
+	Name             string `json:"name" jsonschema:"required,description=Location name"             validate:"required"`
+	LocationType     string `json:"location_type" jsonschema:"description=Location type, free text, e.g. 'forest', 'city', 'cave'"`
+	Description      string `json:"description" jsonschema:"description=Description of the environment, atmosphere, features, etc."`
+	DetailJSON       string `json:"detail_json" jsonschema:"description=JSON object in string form; structured info: climate, atmosphere, historical events, etc."`
+	Tags             string `json:"tags" jsonschema:"description=JSON array in string form; free tags, e.g. [\"dangerous\",\"mysterious\"]"`
+	ParentLocationID *int64 `json:"parent_location_id" jsonschema:"description=Parent location ID, used to build the hierarchy tree"`
 }
 
 // CreateLocationArgs 是 create_location 的参数。
 type CreateLocationArgs struct {
-	Locations []CreateLocationItem `json:"locations" jsonschema:"required,description=要创建的地点列表（1-10个）" validate:"required,min=1,max=10,dive"`
+	Locations []CreateLocationItem `json:"locations" jsonschema:"required,description=List of locations to create (1-10)" validate:"required,min=1,max=10,dive"`
 }
 
 // CreateLocationTool 创建新地点。
@@ -223,9 +223,9 @@ type CreateLocationTool struct{}
 
 func (t *CreateLocationTool) Name() string { return "create_location" }
 func (t *CreateLocationTool) Description() string {
-	return "批量创建地点（1-10个）。保证原子性，失败时返回具体条目原因。" +
-		"name 必填，location_type 自由文本。" +
-		"parent_location_id 可接入已有层级树，如创建'大殿'时设为'王宫'的 ID。"
+	return "Batch-create locations (1-10). Guarantees atomicity; on failure, returns the specific entry reason. " +
+		"name is required, location_type is free text. " +
+		"parent_location_id can attach to an existing hierarchy tree, e.g. set it to the ID of 'palace' when creating 'great hall'."
 }
 func (t *CreateLocationTool) Category() ToolCategory { return CategoryNovelManagement }
 
@@ -255,7 +255,7 @@ func (t *CreateLocationTool) Execute(ctx context.Context, args any, tc ToolConte
 			return nil, fmt.Errorf("verify parent locations: %w", err)
 		}
 		if int(count) != len(parentIDs) {
-			return &ToolResult{Success: false, Error: "父地点不存在或不属于当前小说"}, nil
+			return &ToolResult{Success: false, Error: "Родительское местоположение не найдено или не принадлежит текущему роману"}, nil
 		}
 	}
 
@@ -285,7 +285,7 @@ func (t *CreateLocationTool) Execute(ctx context.Context, args any, tc ToolConte
 	if err != nil {
 		return &ToolResult{
 			Success: false,
-			Error:   fmt.Sprintf("创建地点 [%s] 失败: %s", failedName, failedErr),
+			Error:   fmt.Sprintf("Не удалось создать местоположение [%s]: %s", failedName, failedErr),
 		}, nil
 	}
 
@@ -301,13 +301,13 @@ func (t *CreateLocationTool) Execute(ctx context.Context, args any, tc ToolConte
 
 // UpdateLocationArgs 是 update_location 的参数。
 type UpdateLocationArgs struct {
-	LocationID       int64  `json:"location_id" jsonschema:"required,description=地点ID"               validate:"required,min=1"`
-	Name             string `json:"name" jsonschema:"description=新的名称"`
-	LocationType     string `json:"location_type" jsonschema:"description=新的类型"`
-	Description      string `json:"description" jsonschema:"description=新的描述"`
-	DetailJSON       string `json:"detail_json" jsonschema:"description=新的结构化信息，字符串形式JSON（完全替换旧的）"`
-	Tags             string `json:"tags" jsonschema:"description=新的标签，字符串形式JSON数组（完全替换旧的）"`
-	ParentLocationID *int64 `json:"parent_location_id" jsonschema:"description=新的父级地点ID（不传不变，传null变根节点）"`
+	LocationID       int64  `json:"location_id" jsonschema:"required,description=Location ID"               validate:"required,min=1"`
+	Name             string `json:"name" jsonschema:"description=New name"`
+	LocationType     string `json:"location_type" jsonschema:"description=New type"`
+	Description      string `json:"description" jsonschema:"description=New description"`
+	DetailJSON       string `json:"detail_json" jsonschema:"description=New structured info, JSON in string form (fully replaces the old one)"`
+	Tags             string `json:"tags" jsonschema:"description=New tags, JSON array in string form (fully replaces the old one)"`
+	ParentLocationID *int64 `json:"parent_location_id" jsonschema:"description=New parent location ID (omit to keep unchanged, pass null to become a root node)"`
 }
 
 // UpdateLocationTool 更新地点字段。
@@ -315,8 +315,8 @@ type UpdateLocationTool struct{}
 
 func (t *UpdateLocationTool) Name() string { return "update_location" }
 func (t *UpdateLocationTool) Description() string {
-	return "更新已有地点的设定。只需传入要修改的字段，未传入的保持不变。" +
-		"parent_location_id 传入 null 可将地点从树中移除变为根节点。"
+	return "Update the settings of an existing location. Only pass the fields you want to change; unpassed fields stay unchanged. " +
+		"Passing null for parent_location_id removes the location from the tree and makes it a root node."
 }
 func (t *UpdateLocationTool) Category() ToolCategory { return CategoryNovelManagement }
 
@@ -331,18 +331,18 @@ func (t *UpdateLocationTool) Execute(ctx context.Context, args any, tc ToolConte
 	// 前者不应视为"有修改"，后者应（清除父节点）。检查 RawArgs 区分。
 	var raw map[string]any
 	if err := json.Unmarshal(tc.RawArgs, &raw); err != nil {
-		return &ToolResult{Success: false, Error: "参数格式不正确: " + err.Error()}, nil
+		return &ToolResult{Success: false, Error: "Неверный формат параметров: " + err.Error()}, nil
 	}
 	_, hasParent := raw["parent_location_id"]
 
 	if a.Name == "" && a.LocationType == "" && a.Description == "" && a.DetailJSON == "" && a.Tags == "" && !hasParent {
-		return &ToolResult{Success: false, Error: "至少需要提供一个要修改的字段"}, nil
+		return &ToolResult{Success: false, Error: "Требуется указать хотя бы одно поле для изменения"}, nil
 	}
 
 	var loc location.Location
 	if err := tc.DB.WithContext(ctx).Where("id = ? AND novel_id = ?", a.LocationID, tc.NovelID).First(&loc).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("地点 %d 不存在", a.LocationID)}, nil
+			return &ToolResult{Success: false, Error: fmt.Sprintf("Местоположение %d не найдено", a.LocationID)}, nil
 		}
 		return nil, fmt.Errorf("query location: %w", err)
 	}
@@ -356,12 +356,12 @@ func (t *UpdateLocationTool) Execute(ctx context.Context, args any, tc ToolConte
 			return nil, fmt.Errorf("verify parent location: %w", err)
 		}
 		if parentCount == 0 {
-			return &ToolResult{Success: false, Error: "父地点不存在或不属于当前小说"}, nil
+			return &ToolResult{Success: false, Error: "Родительское местоположение не найдено или не принадлежит текущему роману"}, nil
 		}
 	}
 
 	if err := json.Unmarshal(tc.RawArgs, &loc); err != nil {
-		return &ToolResult{Success: false, Error: "参数格式不正确: " + err.Error()}, nil
+		return &ToolResult{Success: false, Error: "Неверный формат параметров: " + err.Error()}, nil
 	}
 
 	if err := tc.DB.WithContext(ctx).Save(&loc).Error; err != nil {
@@ -378,15 +378,15 @@ func (t *UpdateLocationTool) Execute(ctx context.Context, args any, tc ToolConte
 
 // CreateLocationRelationItem 是 create_location_relation 的单条参数。
 type CreateLocationRelationItem struct {
-	LocationA    int64  `json:"location_a_id" jsonschema:"required,description=地点A的ID"               validate:"required,min=1"`
-	LocationB    int64  `json:"location_b_id" jsonschema:"required,description=地点B的ID"               validate:"required,min=1"`
-	RelationType string `json:"relation_type" jsonschema:"required,description=空间关系描述，如'相邻''由山路连通'" validate:"required"`
-	Description  string `json:"description" jsonschema:"description=补充细节"`
+	LocationA    int64  `json:"location_a_id" jsonschema:"required,description=ID of location A"               validate:"required,min=1"`
+	LocationB    int64  `json:"location_b_id" jsonschema:"required,description=ID of location B"               validate:"required,min=1"`
+	RelationType string `json:"relation_type" jsonschema:"required,description=Spatial relation description, e.g. 'adjacent', 'connected by a mountain road'" validate:"required"`
+	Description  string `json:"description" jsonschema:"description=Supplementary details"`
 }
 
 // CreateLocationRelationArgs 是 create_location_relation 的参数。
 type CreateLocationRelationArgs struct {
-	Relations []CreateLocationRelationItem `json:"relations" jsonschema:"required,description=要创建的关系列表（1-10个）" validate:"required,min=1,max=10,dive"`
+	Relations []CreateLocationRelationItem `json:"relations" jsonschema:"required,description=List of relations to create (1-10)" validate:"required,min=1,max=10,dive"`
 }
 
 // CreateLocationRelationTool 创建地点之间的无向空间关系边。
@@ -394,8 +394,8 @@ type CreateLocationRelationTool struct{}
 
 func (t *CreateLocationRelationTool) Name() string { return "create_location_relation" }
 func (t *CreateLocationRelationTool) Description() string {
-	return "批量创建地点间的空间连通关系（1-10个）。保证原子性，失败时返回具体条目原因。" +
-		"关系为无向边（A-B 等价 B-A），已存在边时返回错误，需修改已有边请用 update_location_relation。"
+	return "Batch-create spatial connectivity relations between locations (1-10). Guarantees atomicity; on failure, returns the specific entry reason. " +
+		"Relations are undirected edges (A-B is equivalent to B-A); if the edge already exists, an error is returned — use update_location_relation to modify an existing edge."
 }
 func (t *CreateLocationRelationTool) Category() ToolCategory { return CategoryWritingAssistant }
 
@@ -411,7 +411,7 @@ func (t *CreateLocationRelationTool) Execute(ctx context.Context, args any, tc T
 	// 预校验：自环检查 + 归一化
 	for i := range a.Relations {
 		if a.Relations[i].LocationA == a.Relations[i].LocationB {
-			return &ToolResult{Success: false, Error: "不能创建地点与自身的空间关系"}, nil
+			return &ToolResult{Success: false, Error: "Нельзя создать пространственное отношение местоположения с самим собой"}, nil
 		}
 		if a.Relations[i].LocationA > a.Relations[i].LocationB {
 			a.Relations[i].LocationA, a.Relations[i].LocationB = a.Relations[i].LocationB, a.Relations[i].LocationA
@@ -435,7 +435,7 @@ func (t *CreateLocationRelationTool) Execute(ctx context.Context, args any, tc T
 		return nil, fmt.Errorf("verify locations: %w", err)
 	}
 	if int(count) != len(allIDs) {
-		return &ToolResult{Success: false, Error: "部分地点不存在或不属于当前小说"}, nil
+		return &ToolResult{Success: false, Error: "Некоторые местоположения не найдены или не принадлежат текущему роману"}, nil
 	}
 
 	// 预校验：批量检查是否已存在关系边
@@ -445,7 +445,7 @@ func (t *CreateLocationRelationTool) Execute(ctx context.Context, args any, tc T
 	for _, item := range a.Relations {
 		p := pair{item.LocationA, item.LocationB}
 		if seen[p] {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("参数中存在重复的关系：地点 %d 和 %d", item.LocationA, item.LocationB)}, nil
+			return &ToolResult{Success: false, Error: fmt.Sprintf("В параметрах есть дублирующееся отношение: местоположение %d и %d", item.LocationA, item.LocationB)}, nil
 		}
 		seen[p] = true
 		pairs = append(pairs, p)
@@ -463,7 +463,7 @@ func (t *CreateLocationRelationTool) Execute(ctx context.Context, args any, tc T
 		}
 	}
 	if len(existing) > 0 {
-		return &ToolResult{Success: false, Error: fmt.Sprintf("地点 %d 和 %d 之间已存在关系边，请使用 update_location_relation 修改", existing[0].LocationA, existing[0].LocationB)}, nil
+		return &ToolResult{Success: false, Error: fmt.Sprintf("Между местоположениями %d и %d уже есть ребро отношения, используйте update_location_relation для изменения", existing[0].LocationA, existing[0].LocationB)}, nil
 	}
 
 	var ids []int64
@@ -490,7 +490,7 @@ func (t *CreateLocationRelationTool) Execute(ctx context.Context, args any, tc T
 	if err != nil {
 		return &ToolResult{
 			Success: false,
-			Error:   fmt.Sprintf("创建关系第 %d 条失败: %s", failedIdx, failedErr),
+			Error:   fmt.Sprintf("Не удалось создать отношение %d: %s", failedIdx, failedErr),
 		}, nil
 	}
 
@@ -501,9 +501,9 @@ func (t *CreateLocationRelationTool) Execute(ctx context.Context, args any, tc T
 
 // UpdateLocationRelationArgs 是 update_location_relation 的参数。
 type UpdateLocationRelationArgs struct {
-	RelationID   int64  `json:"relation_id" jsonschema:"required,description=关系边ID" validate:"required,min=1"`
-	RelationType string `json:"relation_type" jsonschema:"description=新的空间关系描述"`
-	Description  string `json:"description" jsonschema:"description=新的补充细节"`
+	RelationID   int64  `json:"relation_id" jsonschema:"required,description=Relation edge ID" validate:"required,min=1"`
+	RelationType string `json:"relation_type" jsonschema:"description=New spatial relation description"`
+	Description  string `json:"description" jsonschema:"description=New supplementary details"`
 }
 
 // UpdateLocationRelationTool 更新地点空间关系边（PATCH 语义）。
@@ -511,8 +511,8 @@ type UpdateLocationRelationTool struct{}
 
 func (t *UpdateLocationRelationTool) Name() string { return "update_location_relation" }
 func (t *UpdateLocationRelationTool) Description() string {
-	return "更新已有的地点空间连通关系。只需传入要修改的字段，未传入的保持不变。" +
-		"通过 relation_id 定位要修改的边。"
+	return "Update an existing location spatial connectivity relation. Only pass the fields you want to change; unpassed fields stay unchanged. " +
+		"Locate the edge to modify via relation_id."
 }
 func (t *UpdateLocationRelationTool) Category() ToolCategory { return CategoryWritingAssistant }
 
@@ -526,7 +526,7 @@ func (t *UpdateLocationRelationTool) Execute(ctx context.Context, args any, tc T
 	a := args.(*UpdateLocationRelationArgs)
 
 	if a.RelationType == "" && a.Description == "" {
-		return &ToolResult{Success: false, Error: "至少需要提供一个要修改的字段"}, nil
+		return &ToolResult{Success: false, Error: "Требуется указать хотя бы одно поле для изменения"}, nil
 	}
 
 	var rel location.LocationRelation
@@ -534,13 +534,13 @@ func (t *UpdateLocationRelationTool) Execute(ctx context.Context, args any, tc T
 		Where("id = ? AND novel_id = ?", a.RelationID, tc.NovelID).
 		First(&rel).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return &ToolResult{Success: false, Error: fmt.Sprintf("关系边 %d 不存在", a.RelationID)}, nil
+			return &ToolResult{Success: false, Error: fmt.Sprintf("Ребро отношения %d не найдено", a.RelationID)}, nil
 		}
 		return nil, fmt.Errorf("query relation: %w", err)
 	}
 
 	if err := json.Unmarshal(tc.RawArgs, &rel); err != nil {
-		return &ToolResult{Success: false, Error: "参数格式不正确: " + err.Error()}, nil
+		return &ToolResult{Success: false, Error: "Неверный формат параметров: " + err.Error()}, nil
 	}
 
 	if err := tc.DB.WithContext(ctx).Save(&rel).Error; err != nil {
@@ -560,24 +560,24 @@ func formatLocationDetail(loc location.Location, parentName string, children []l
 
 	// 基本信息
 	if loc.LocationType != "" {
-		parts = append(parts, fmt.Sprintf("- 类型：%s", loc.LocationType))
+		parts = append(parts, fmt.Sprintf("- Type: %s", loc.LocationType))
 	}
 	if parentName != "" {
-		parts = append(parts, fmt.Sprintf("- 父地点：%s", parentName))
+		parts = append(parts, fmt.Sprintf("- Parent location: %s", parentName))
 	}
 	if loc.Description != "" {
-		parts = append(parts, fmt.Sprintf("- 描述：%s", loc.Description))
+		parts = append(parts, fmt.Sprintf("- Description: %s", loc.Description))
 	}
 	if v := parseJSONField(loc.DetailJSON); v != nil {
-		parts = append(parts, fmt.Sprintf("- 结构化信息：%v", v))
+		parts = append(parts, fmt.Sprintf("- Structured info: %v", v))
 	}
 	if v := parseJSONField(loc.Tags); v != nil {
-		parts = append(parts, fmt.Sprintf("- 标签：%v", v))
+		parts = append(parts, fmt.Sprintf("- Tags: %v", v))
 	}
 
 	// 子地点
 	if len(children) > 0 {
-		lines := []string{fmt.Sprintf("\n#### 子地点（%d个）", len(children))}
+		lines := []string{fmt.Sprintf("\n#### Child locations (%d)", len(children))}
 		for _, ch := range children {
 			lines = append(lines, fmt.Sprintf("- %s [location_id:%d]", ch.Name, ch.ID))
 		}
@@ -586,12 +586,12 @@ func formatLocationDetail(loc location.Location, parentName string, children []l
 
 	// 连通
 	if len(rels) > 0 {
-		lines := []string{"\n#### 连通"}
+		lines := []string{"\n#### Connectivity"}
 		for _, rel := range rels {
-			line := fmt.Sprintf("- %s — %s [relation_id:%d]：%s",
+			line := fmt.Sprintf("- %s — %s [relation_id:%d]: %s",
 				nameMap[rel.LocationA], nameMap[rel.LocationB], rel.ID, rel.RelationType)
 			if rel.Description != "" {
-				line += fmt.Sprintf("（%s）", rel.Description)
+				line += fmt.Sprintf(" (%s)", rel.Description)
 			}
 			lines = append(lines, line)
 		}
@@ -603,19 +603,19 @@ func formatLocationDetail(loc location.Location, parentName string, children []l
 
 func formatLocationNetwork(roots []location.Location, rootRels []location.LocationRelation, childCounts map[int64]int) string {
 	var parts []string
-	parts = append(parts, "### 大地图")
+	parts = append(parts, "### Big Map")
 
 	// 摘要
 	var rootDescs []string
 	for _, r := range roots {
 		n := childCounts[r.ID]
 		if n > 0 {
-			rootDescs = append(rootDescs, fmt.Sprintf("%s [location_id:%d]（含%d个子地点）", r.Name, r.ID, n))
+			rootDescs = append(rootDescs, fmt.Sprintf("%s [location_id:%d] (with %d child locations)", r.Name, r.ID, n))
 		} else {
 			rootDescs = append(rootDescs, fmt.Sprintf("%s [location_id:%d]", r.Name, r.ID))
 		}
 	}
-	parts = append(parts, fmt.Sprintf("\n共 %d 个根节点：%s。", len(roots), strings.Join(rootDescs, "、")))
+	parts = append(parts, fmt.Sprintf("\nTotal %d root nodes: %s.", len(roots), strings.Join(rootDescs, ", ")))
 
 	// 根节点连通
 	if len(rootRels) > 0 {
@@ -625,17 +625,17 @@ func formatLocationNetwork(roots []location.Location, rootRels []location.Locati
 		}
 		parts = append(parts, "")
 		for _, rel := range rootRels {
-			line := fmt.Sprintf("- %s — %s [relation_id:%d]：%s",
+			line := fmt.Sprintf("- %s — %s [relation_id:%d]: %s",
 				nameMap[rel.LocationA], nameMap[rel.LocationB], rel.ID, rel.RelationType)
 			if rel.Description != "" {
-				line += fmt.Sprintf("（%s）", rel.Description)
+				line += fmt.Sprintf(" (%s)", rel.Description)
 			}
 			parts = append(parts, line)
 		}
 	}
 
 	if len(rootRels) == 0 {
-		parts = append(parts, "\n暂无根节点间的连通关系。")
+		parts = append(parts, "\nNo connectivity between root nodes yet.")
 	}
 
 	return strings.Join(parts, "\n")

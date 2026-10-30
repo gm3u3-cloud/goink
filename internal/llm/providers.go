@@ -6,7 +6,7 @@ var Builtin = map[string]Provider{
 		Name:        "DeepSeek",
 		ChatURL:     "https://api.deepseek.com/v1/chat/completions",
 		PlatformURL: "https://platform.deepseek.com",
-		HelpText:    "使用邮箱或手机号注册。完成实名认证后，进入「API Keys」创建密钥。预付费模式，最低充值 ¥1。",
+		HelpText:    "Зарегистрируйтесь по электронной почте или номеру телефона. После прохождения верификации личности перейдите в раздел «API Keys» и создайте ключ. Модель предоплаты, минимальное пополнение 1 юань.",
 		Temperature: floatPtr(0.7),
 		Models: []ModelInfo{
 			{
@@ -34,7 +34,7 @@ var Builtin = map[string]Provider{
 		Name:         "OpenCode Zen",
 		ChatURL:      "https://opencode.ai/zen/v1/chat/completions",
 		PlatformURL:  "https://opencode.ai/auth",
-		HelpText:     "OpenCode Zen 是 opencode.ai 的按量付费网关，提供 DeepSeek/GLM/Kimi/MiniMax 等精选模型及多个免费模型（均兼容 OpenAI chat/completions）。在 opencode.ai/auth 注册、添加账单信息后复制 API Key 填入。OpenCode 网关要求携带 x-opencode-session 会话头与自定义 User-Agent，Goink 已自动处理，无需额外配置。模型列表随时变动，可用下方「自动发现模型」拉取最新。",
+		HelpText:     "OpenCode Zen — платёжный по потреблению шлюз opencode.ai, предлагающий отобранные модели DeepSeek/GLM/Kimi/MiniMax и несколько бесплатных моделей (все совместимы с OpenAI chat/completions). Зарегистрируйтесь на opencode.ai/auth, добавьте платёжные данные и вставьте скопированный API Key. Шлюз OpenCode требует заголовок сессии x-opencode-session и собственный User-Agent; Goink обрабатывает это автоматически, дополнительная настройка не требуется. Список моделей меняется в любой момент — актуальный список можно получить через «Автообнаружение моделей» ниже.",
 		Temperature:  floatPtr(0.7),
 		BuildHeaders: opencodeBuildHeaders,
 		Models: []ModelInfo{
@@ -245,7 +245,7 @@ var Builtin = map[string]Provider{
 		Name:         "OpenCode Go",
 		ChatURL:      "https://opencode.ai/zen/go/v1/chat/completions",
 		PlatformURL:  "https://opencode.ai/auth",
-		HelpText:     "OpenCode Go 是 opencode.ai 的订阅制服务（$10/月），覆盖 Kimi/GLM/DeepSeek/MiMo/Hy 等开源模型。在 opencode.ai/auth 注册并订阅 Go 后复制 API Key 填入。OpenCode Go 强制要求携带 x-opencode-session 会话头与自定义 User-Agent，Goink 已自动处理，无需额外配置。模型列表随订阅变动，可用下方「自动发现模型」拉取最新。",
+		HelpText:     "OpenCode Go — подписочный сервис opencode.ai ($10/мес), охватывающий открытые модели Kimi/GLM/DeepSeek/MiMo/Hy и другие. Зарегистрируйтесь на opencode.ai/auth, оформите подписку Go и вставьте скопированный API Key. OpenCode Go требует заголовок сессии x-opencode-session и собственный User-Agent; Goink обрабатывает это автоматически, дополнительная настройка не требуется. Список моделей меняется вместе с подпиской — актуальный список можно получить через «Автообнаружение моделей» ниже.",
 		Temperature:  floatPtr(0.7),
 		BuildHeaders: opencodeBuildHeaders,
 		Models: []ModelInfo{
@@ -432,7 +432,7 @@ var Builtin = map[string]Provider{
 		Name:        "Doubao",
 		ChatURL:     "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
 		PlatformURL: "https://console.volcengine.com/ark/",
-		HelpText:    "注册火山引擎并实名认证，进入火山方舟控制台。① 在「API 密钥管理」创建 API Key；② 在「开通管理」开通所需模型，每个模型有试用额度。",
+		HelpText:    "Зарегистрируйтесь на Volcengine и пройдите верификацию личности, затем перейдите в консоль Volcano Ark. ① Создайте API Key в разделе «Управление API-ключами»; ② активируйте нужные модели в разделе «Управление активацией» — у каждой модели есть пробный лимит.",
 		Temperature: floatPtr(0.1),
 		Models: []ModelInfo{
 			{
@@ -473,7 +473,7 @@ var Builtin = map[string]Provider{
 		Name:         "Qwen",
 		ChatURL:      "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
 		PlatformURL:  "https://platform.qianwenai.com",
-		HelpText:     "注册后在「工作台 → API Key 管理」创建密钥。新用户有免费额度，API 地址统一使用 dashscope.aliyuncs.com，无需区分地域。如使用阿里云百炼平台，需自行将上方 Chat URL 替换为百炼地址。",
+		HelpText:     "После регистрации создайте ключ в разделе «Рабочий стол → Управление API-ключами». Новым пользователям выделен бесплатный лимит; адрес API — dashscope.aliyuncs.com, разделение по регионам не требуется. Если вы используете платформу Alibaba Cloud Bailian, замените Chat URL выше адресом Bailian.",
 		Temperature:  floatPtr(0.7),
 		BuildRequest: qwenBuildRequest,
 		Models: []ModelInfo{
@@ -515,7 +515,7 @@ var Builtin = map[string]Provider{
 		Name:        "GLM",
 		ChatURL:     "https://open.bigmodel.cn/api/paas/v4/chat/completions",
 		PlatformURL: "https://open.bigmodel.cn",
-		HelpText:    "手机号或微信注册。注册后点击「控制台」→「API Keys」→「新建」创建密钥。注册赠送体验额度。",
+		HelpText:    "Регистрация по номеру телефона или через WeChat. После регистрации перейдите в «Консоль» → «API Keys» → «Создать» и создайте ключ. При регистрации выдаётся пробный лимит.",
 		Temperature: floatPtr(1.0),
 		Models: []ModelInfo{
 			{
@@ -608,7 +608,7 @@ var Builtin = map[string]Provider{
 		Name:         "MiniMax",
 		ChatURL:      "https://api.minimaxi.com/v1/chat/completions",
 		PlatformURL:  "https://platform.minimaxi.com",
-		HelpText:     "手机号注册。赠送 ¥15 体验金。点击控制台 →「接口管理」→「创建 API Key」获取密钥。按量付费需在「余额」页面充值。",
+		HelpText:     "Регистрация по номеру телефона. Начисляется 15 юаней на пробный баланс. Перейдите в «Консоль» → «Управление интерфейсами» → «Создать API Key», чтобы получить ключ. Для оплаты по потреблению пополните баланс на странице «Баланс».",
 		Temperature:  floatPtr(1.0),
 		BuildRequest: minimaxBuildRequest,
 		Models: []ModelInfo{
@@ -626,7 +626,7 @@ var Builtin = map[string]Provider{
 		Name:         "MiMo",
 		ChatURL:      "https://api.xiaomimimo.com/v1/chat/completions",
 		PlatformURL:  "https://platform.xiaomimimo.com",
-		HelpText:     "手机号注册。在控制台左侧「邀请有礼」输入邀请码领取 ¥10 体验金（有效期 40 天），然后在「API Keys」创建密钥。",
+		HelpText:     "Регистрация по номеру телефона. Введите приглашательный код в разделе «Пригласи и получи» слева в консоли, чтобы получить 10 юаней на пробный баланс (срок действия 40 дней), затем создайте ключ в разделе «API Keys».",
 		Temperature:  floatPtr(1.0),
 		BuildHeaders: mimoBuildHeaders,
 		Models: []ModelInfo{
@@ -653,7 +653,7 @@ var Builtin = map[string]Provider{
 		Name:         "Kimi",
 		ChatURL:      "https://api.moonshot.cn/v1/chat/completions",
 		PlatformURL:  "https://platform.kimi.com",
-		HelpText:     "手机号或微信登录。在控制台「API Key 管理」创建密钥。新用户赠送 ¥15 体验金，初始 RPM=3。累计充值 ¥50 升 Tier 1（RPM=200）。",
+		HelpText:     "Вход по номеру телефона или через WeChat. Создайте ключ в разделе «Управление API-ключами» консоли. Новым пользователям начисляется 15 юаней на пробный баланс, начальный RPM=3. После накопленных пополнений на 50 юаней — переход на Tier 1 (RPM=200).",
 		BuildRequest: moonshotBuildRequest,
 		Models: []ModelInfo{
 			{

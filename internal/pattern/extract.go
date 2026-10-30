@@ -39,16 +39,16 @@ type Extractor struct {
 // Extract 执行完整的模式提取 Pipeline：Pre-step 边界分析 → Step 1 章节摘要 → Step 2 递归压缩 → Step 3 生成技能
 func (e *Extractor) Extract(ctx context.Context, input ExtractPatternInput) (*ExtractPatternResult, error) {
 	if e.Chapters == nil {
-		return nil, fmt.Errorf("章节存储未初始化")
+		return nil, fmt.Errorf("Хранилище глав не инициализировано")
 	}
 	if e.LLMClient == nil {
-		return nil, fmt.Errorf("LLM 客户端未初始化")
+		return nil, fmt.Errorf("Клиент LLM не инициализирован")
 	}
 	if input.NovelID <= 0 {
-		return nil, fmt.Errorf("novel_id 不能为空")
+		return nil, fmt.Errorf("novel_id не может быть пустым")
 	}
 	if input.ProviderName == "" || input.ModelID == "" {
-		return nil, fmt.Errorf("provider_name 和 model_id 不能为空")
+		return nil, fmt.Errorf("provider_name и model_id не могут быть пустыми")
 	}
 	if input.TaskID == "" {
 		input.TaskID = fmt.Sprintf("pattern-%d", time.Now().UnixNano())
@@ -59,10 +59,10 @@ func (e *Extractor) Extract(ctx context.Context, input ExtractPatternInput) (*Ex
 		return nil, err
 	}
 	if len(chapters) == 0 {
-		return nil, fmt.Errorf("请先导入或创建章节，然后再提取模式")
+		return nil, fmt.Errorf("Сначала импортируйте или создайте главы, а затем извлекайте паттерны")
 	}
 	if len(chapters) < 5 {
-		return nil, fmt.Errorf("章节数量不足，模式提取至少需要 5 个有内容的章节")
+		return nil, fmt.Errorf("Недостаточно глав: для извлечения паттернов нужно как минимум 5 глав с содержимым")
 	}
 	readingNumbers := readingNumbersFromChapters(chapters)
 
@@ -77,13 +77,13 @@ func (e *Extractor) Extract(ctx context.Context, input ExtractPatternInput) (*Ex
 	}
 	e.emit(input, Progress{
 		Stage:   StageLoaded,
-		Message: fmt.Sprintf("已加载 %d 章，开始分析结构边界", len(chapters)),
+		Message: fmt.Sprintf("Загружено глав: %d, начинаем анализ структурных границ", len(chapters)),
 	})
 
 	// Pre-step：章节标题分析，获取疑似阶段边界
 	e.emit(input, Progress{
 		Stage:   StageBoundaries,
-		Message: "正在分析结构边界...",
+		Message: "Анализируем структурные границы...",
 	})
 	boundaries, err := e.preAnalyzeBoundaries(ctx, input, chapters)
 	if err != nil {
@@ -92,7 +92,7 @@ func (e *Extractor) Extract(ctx context.Context, input ExtractPatternInput) (*Ex
 	trace.Boundaries = boundaries
 	e.emit(input, Progress{
 		Stage:      StageBoundaries,
-		Message:    fmt.Sprintf("已找到 %d 条疑似叙事边界", len(boundaries)),
+		Message:    fmt.Sprintf("Найдено предполагаемых нарративных границ: %d", len(boundaries)),
 		Boundaries: boundaries,
 	})
 	if err := ctx.Err(); err != nil {
@@ -107,16 +107,16 @@ func (e *Extractor) Extract(ctx context.Context, input ExtractPatternInput) (*Ex
 	trace.Summaries = summaries
 	e.emit(input, Progress{
 		Stage:   StageSummaries,
-		Message: fmt.Sprintf("已准备 %d 条章节摘要", len(summaries)),
+		Message: fmt.Sprintf("Подготовлено резюме глав: %d", len(summaries)),
 	})
 	if len(summaries) == 0 {
-		return nil, fmt.Errorf("没有可用的章节摘要，无法提取模式")
+		return nil, fmt.Errorf("Нет доступных резюме глав, невозможно извлечь паттерны")
 	}
 
 	// Step 2 第 1 轮：摘要 → 初始叙事阶段块
 	e.emit(input, Progress{
 		Stage:   StageInitialChunks,
-		Message: "正在生成初始叙事阶段块...",
+		Message: "Генерируем начальные блоки нарративных этапов...",
 		Round:   1,
 	})
 	chunks, roundTrace, err := e.initialChunks(ctx, input, summaries, budget)
@@ -126,13 +126,13 @@ func (e *Extractor) Extract(ctx context.Context, input ExtractPatternInput) (*Ex
 	trace.ChunkRounds = append(trace.ChunkRounds, roundTrace)
 	e.emit(input, Progress{
 		Stage:   StageInitialChunks,
-		Message: fmt.Sprintf("第 1 轮生成 %d 个叙事阶段块", len(chunks)),
+		Message: fmt.Sprintf("Раунд 1: создано блоков нарративных этапов: %d", len(chunks)),
 		Round:   1,
 		Tokens:  tokensOfChunks(chunks),
 		Chunks:  chunks,
 	})
 	if len(chunks) == 0 {
-		return nil, fmt.Errorf("LLM 未返回任何叙事阶段块")
+		return nil, fmt.Errorf("LLM не вернул ни одного блока нарративного этапа")
 	}
 
 	// Step 2 后续轮：递归压缩，直到总 token ≤ 阈值
@@ -145,7 +145,7 @@ func (e *Extractor) Extract(ctx context.Context, input ExtractPatternInput) (*Ex
 		}
 		e.emit(input, Progress{
 			Stage:   StageCompressChunks,
-			Message: fmt.Sprintf("第 %d 轮压缩中...", round),
+			Message: fmt.Sprintf("Сжатие, раунд %d...", round),
 			Round:   round,
 			Tokens:  tokensOfChunks(chunks),
 		})
@@ -164,15 +164,15 @@ func (e *Extractor) Extract(ctx context.Context, input ExtractPatternInput) (*Ex
 			}
 			next, roundTrace, err = e.compressChunks(ctx, input, chunks, readingNumbers, budget, round)
 			if err != nil {
-				return nil, fmt.Errorf("第%d轮压缩未返回任何叙事阶段块，重试也失败: %w", round, err)
+				return nil, fmt.Errorf("Сжатие в раунде %d не вернуло ни одного блока нарративного этапа, повторная попытка также не удалась: %w", round, err)
 			}
 			if len(next) == 0 {
-				return nil, fmt.Errorf("第%d轮压缩重试后仍未返回任何叙事阶段块，无法继续生成最终技能", round)
+				return nil, fmt.Errorf("После повторной попытки сжатие в раунде %d по-прежнему не вернуло ни одного блока нарративного этапа, невозможно продолжить генерацию окончательного навыка", round)
 			}
 			nextTokens = tokensOfChunks(next)
 			e.emit(input, Progress{
 				Stage:   StageCompressChunks,
-				Message: fmt.Sprintf("第 %d 轮重试后得到 %d 个叙事阶段块", round, len(next)),
+				Message: fmt.Sprintf("После повторной попытки в раунде %d получено блоков нарративных этапов: %d", round, len(next)),
 				Round:   round,
 				Tokens:  nextTokens,
 				Chunks:  next,
@@ -180,7 +180,7 @@ func (e *Extractor) Extract(ctx context.Context, input ExtractPatternInput) (*Ex
 		} else {
 			e.emit(input, Progress{
 				Stage:   StageCompressChunks,
-				Message: fmt.Sprintf("第 %d 轮压缩为 %d 个叙事阶段块", round, len(next)),
+				Message: fmt.Sprintf("Сжатие в раунде %d: %d блоков нарративных этапов", round, len(next)),
 				Round:   round,
 				Tokens:  nextTokens,
 				Chunks:  next,
@@ -192,7 +192,7 @@ func (e *Extractor) Extract(ctx context.Context, input ExtractPatternInput) (*Ex
 			if prevTokens < int(float64(contextWindow)*0.8) {
 				break
 			}
-			return nil, fmt.Errorf("第%d轮压缩未降低 token 量（%d -> %d），最终输入仍超过预算 %d", round, prevTokens, nextTokens, finalChunkBudget)
+			return nil, fmt.Errorf("Сжатие в раунде %d не снизило количество токенов (%d -> %d), итоговый вход по-прежнему превышает бюджет %d", round, prevTokens, nextTokens, finalChunkBudget)
 		}
 		reduction := float64(prevTokens-nextTokens) / float64(prevTokens)
 		if reduction < minReductionRatio {
@@ -202,7 +202,7 @@ func (e *Extractor) Extract(ctx context.Context, input ExtractPatternInput) (*Ex
 					chunks = next
 					break
 				}
-				return nil, fmt.Errorf("连续%d轮压缩收敛不足（降幅<%.0f%%），最终输入仍超过预算 %d", maxStallRounds, minReductionRatio*100, finalChunkBudget)
+				return nil, fmt.Errorf("Недостаточная сходимость на протяжении %d раундов сжатия подряд (снижение < %.0f%%), итоговый вход по-прежнему превышает бюджет %d", maxStallRounds, minReductionRatio*100, finalChunkBudget)
 			}
 		} else {
 			stallCount = 0
@@ -214,7 +214,7 @@ func (e *Extractor) Extract(ctx context.Context, input ExtractPatternInput) (*Ex
 	trace.FinalTokens = tokensOfChunks(chunks)
 	e.emit(input, Progress{
 		Stage:   StageFinalizing,
-		Message: "正在生成最终套路技能...",
+		Message: "Генерируем окончательный навык шаблона...",
 		Tokens:  trace.FinalTokens,
 		Chunks:  chunks,
 	})
@@ -224,13 +224,13 @@ func (e *Extractor) Extract(ctx context.Context, input ExtractPatternInput) (*Ex
 	}
 	sk, err := skill.ParseBytes([]byte(raw), "ai")
 	if err != nil {
-		return nil, fmt.Errorf("解析生成的技能失败: %w", err)
+		return nil, fmt.Errorf("Не удалось разобрать сгенерированный навык: %w", err)
 	}
 
 	safeName := skill.SanitizeFileName(sk.Name)
 	e.emit(input, Progress{
 		Stage:   StageDone,
-		Message: fmt.Sprintf("已生成「%s」", sk.Name),
+		Message: fmt.Sprintf("Создан «%s»", sk.Name),
 		Tokens:  trace.FinalTokens,
 	})
 	return &ExtractPatternResult{
@@ -262,7 +262,7 @@ func (e *Extractor) loadChapters(ctx context.Context, novelID int64, ids []int64
 		}
 		content, err := git.ReadFile(novelID, git.ChapterPath(ch.ID))
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
-			return nil, fmt.Errorf("读取第%d章失败: %w", ch.ReadingNumber, err)
+			return nil, fmt.Errorf("Не удалось прочитать главу %d: %w", ch.ReadingNumber, err)
 		}
 		out = append(out, ChapterSource{
 			ID:            ch.ID,
@@ -283,11 +283,11 @@ func (e *Extractor) preAnalyzeBoundaries(ctx context.Context, input ExtractPatte
 	}
 	raw, err := e.callTool(ctx, input, outputBoundariesTool, BoundaryHintsOutput{}, boundaryMessages(chapters), 1, 0, onStatus)
 	if err != nil {
-		return nil, fmt.Errorf("分析章节标题边界失败: %w", err)
+		return nil, fmt.Errorf("Не удалось проанализировать границы по заголовкам глав: %w", err)
 	}
 	var out BoundaryHintsOutput
 	if err := json.Unmarshal(raw, &out); err != nil {
-		return nil, fmt.Errorf("解析边界提示失败: %w", err)
+		return nil, fmt.Errorf("Не удалось разобрать подсказки о границах: %w", err)
 	}
 	return normalizeBoundaries(out.Boundaries, readingNumbersFromChapters(chapters)), nil
 }
@@ -316,7 +316,7 @@ func (e *Extractor) ensureSummaries(ctx context.Context, input ExtractPatternInp
 		if len(missing) == 0 {
 			e.emit(input, Progress{
 				Stage:      StageSummaries,
-				Message:    fmt.Sprintf("摘要第 %d/%d 批已复用缓存", i+1, len(batches)),
+				Message:    fmt.Sprintf("Резюме: партия %d/%d, использован кэш", i+1, len(batches)),
 				BatchIndex: i + 1,
 				BatchTotal: len(batches),
 			})
@@ -325,17 +325,17 @@ func (e *Extractor) ensureSummaries(ctx context.Context, input ExtractPatternInp
 
 		e.emit(input, Progress{
 			Stage:      StageSummaries,
-			Message:    fmt.Sprintf("摘要第 %d/%d 批...", i+1, len(batches)),
+			Message:    fmt.Sprintf("Резюме: партия %d/%d...", i+1, len(batches)),
 			BatchIndex: i + 1,
 			BatchTotal: len(batches),
 		})
 		raw, err := e.callTool(ctx, input, outputChapterSummariesTool, ChapterSummariesOutput{}, summaryMessages(batch, boundaries), 2, 0, nil)
 		if err != nil {
-			return nil, fmt.Errorf("生成章节摘要失败: %w", err)
+			return nil, fmt.Errorf("Не удалось сгенерировать резюме глав: %w", err)
 		}
 		var out ChapterSummariesOutput
 		if err := json.Unmarshal(raw, &out); err != nil {
-			return nil, fmt.Errorf("解析章节摘要失败: %w", err)
+			return nil, fmt.Errorf("Не удалось разобрать резюме глав: %w", err)
 		}
 		for i := range out.Summaries {
 			item := &out.Summaries[i]
@@ -352,12 +352,12 @@ func (e *Extractor) ensureSummaries(ctx context.Context, input ExtractPatternInp
 				Model(&chapter.Chapter{}).
 				Where("novel_id = ? AND id = ?", input.NovelID, item.ChapterID).
 				Update("summary", item.Summary).Error; err != nil {
-				return nil, fmt.Errorf("保存第%d章摘要失败: %w", readingNumbers[item.ChapterID], err)
+				return nil, fmt.Errorf("Не удалось сохранить резюме главы %d: %w", readingNumbers[item.ChapterID], err)
 			}
 		}
 		e.emit(input, Progress{
 			Stage:      StageSummaries,
-			Message:    fmt.Sprintf("摘要第 %d/%d 批完成，新增 %d 条", i+1, len(batches), len(out.Summaries)),
+			Message:    fmt.Sprintf("Резюме: партия %d/%d завершена, добавлено: %d", i+1, len(batches), len(out.Summaries)),
 			BatchIndex: i + 1,
 			BatchTotal: len(batches),
 			Summaries:  out.Summaries,
@@ -368,7 +368,7 @@ func (e *Extractor) ensureSummaries(ctx context.Context, input ExtractPatternInp
 	for _, ch := range chapters {
 		summary := summaryByID[ch.ID]
 		if summary == "" && ch.Content == "" {
-			summary = "无内容。"
+			summary = "No content."
 		}
 		if summary == "" {
 			continue
@@ -389,18 +389,18 @@ func (e *Extractor) initialChunks(ctx context.Context, input ExtractPatternInput
 		}
 		e.emit(input, Progress{
 			Stage:      StageInitialChunks,
-			Message:    fmt.Sprintf("第 1 轮第 %d/%d 批...", i+1, len(batches)),
+			Message:    fmt.Sprintf("Раунд 1, партия %d/%d...", i+1, len(batches)),
 			Round:      1,
 			BatchIndex: i + 1,
 			BatchTotal: len(batches),
 		})
 		raw, err := e.callTool(ctx, input, outputChunksTool, ChunksOutput{}, initialChunkMessages(batch), 2, 0, nil)
 		if err != nil {
-			return nil, trace, fmt.Errorf("生成初始阶段块失败: %w", err)
+			return nil, trace, fmt.Errorf("Не удалось сгенерировать начальные блоки этапов: %w", err)
 		}
 		var out ChunksOutput
 		if err := json.Unmarshal(raw, &out); err != nil {
-			return nil, trace, fmt.Errorf("解析初始阶段块失败: %w", err)
+			return nil, trace, fmt.Errorf("Не удалось разобрать начальные блоки этапов: %w", err)
 		}
 		normalized := normalizeChunks(out.Chunks, readingNumbersFromSummaries(batch))
 		all = append(all, normalized...)
@@ -412,7 +412,7 @@ func (e *Extractor) initialChunks(ctx context.Context, input ExtractPatternInput
 		})
 		e.emit(input, Progress{
 			Stage:      StageInitialChunks,
-			Message:    fmt.Sprintf("第 1 轮第 %d/%d 批生成 %d 个阶段块", i+1, len(batches), len(normalized)),
+			Message:    fmt.Sprintf("Раунд 1, партия %d/%d: создано блоков этапов: %d", i+1, len(batches), len(normalized)),
 			Round:      1,
 			BatchIndex: i + 1,
 			BatchTotal: len(batches),
@@ -436,7 +436,7 @@ func (e *Extractor) compressChunks(ctx context.Context, input ExtractPatternInpu
 		}
 		e.emit(input, Progress{
 			Stage:      StageCompressChunks,
-			Message:    fmt.Sprintf("第 %d 轮第 %d/%d 批...", round, i+1, len(batches)),
+			Message:    fmt.Sprintf("Раунд %d, партия %d/%d...", round, i+1, len(batches)),
 			Round:      round,
 			BatchIndex: i + 1,
 			BatchTotal: len(batches),
@@ -444,11 +444,11 @@ func (e *Extractor) compressChunks(ctx context.Context, input ExtractPatternInpu
 		batchReadingNumbers := readingNumbersForChunks(batch, readingNumbers)
 		raw, err := e.callTool(ctx, input, outputChunksTool, ChunksOutput{}, compressChunkMessages(batch, batchReadingNumbers, round), 2, 0, nil)
 		if err != nil {
-			return nil, trace, fmt.Errorf("第%d轮压缩失败: %w", round, err)
+			return nil, trace, fmt.Errorf("Сжатие в раунде %d не удалось: %w", round, err)
 		}
 		var out ChunksOutput
 		if err := json.Unmarshal(raw, &out); err != nil {
-			return nil, trace, fmt.Errorf("解析第%d轮压缩结果失败: %w", round, err)
+			return nil, trace, fmt.Errorf("Не удалось разобрать результаты сжатия раунда %d: %w", round, err)
 		}
 		normalized := normalizeChunks(out.Chunks, batchReadingNumbers)
 		all = append(all, normalized...)
@@ -460,7 +460,7 @@ func (e *Extractor) compressChunks(ctx context.Context, input ExtractPatternInpu
 		})
 		e.emit(input, Progress{
 			Stage:      StageCompressChunks,
-			Message:    fmt.Sprintf("第 %d 轮第 %d/%d 批压缩为 %d 个阶段块", round, i+1, len(batches), len(normalized)),
+			Message:    fmt.Sprintf("Раунд %d, партия %d/%d: сжато до блоков этапов: %d", round, i+1, len(batches), len(normalized)),
 			Round:      round,
 			BatchIndex: i + 1,
 			BatchTotal: len(batches),
@@ -484,10 +484,10 @@ func (e *Extractor) finalSkill(ctx context.Context, input ExtractPatternInput, c
 	}
 	var out SkillOutput
 	if err := json.Unmarshal(raw, &out); err != nil {
-		return "", fmt.Errorf("解析生成的技能失败: %w", err)
+		return "", fmt.Errorf("Не удалось разобрать сгенерированный навык: %w", err)
 	}
 	if strings.TrimSpace(out.Name) == "" || strings.TrimSpace(out.Content) == "" {
-		return "", fmt.Errorf("LLM 返回的技能内容不完整")
+		return "", fmt.Errorf("LLM вернул неполное содержимое навыка")
 	}
 	return buildSkillMarkdown(out.Name, out.Description, out.Content), nil
 }
@@ -515,7 +515,7 @@ func (e *Extractor) callTool(ctx context.Context, input ExtractPatternInput, too
 		"type": "function",
 		"function": map[string]any{
 			"name":        toolName,
-			"description": "返回模式提取的结构化输出。",
+			"description": "Returns the structured output of pattern extraction.",
 			"parameters":  mcp_tools.SchemaOf(schema),
 		},
 	}}

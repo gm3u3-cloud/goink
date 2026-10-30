@@ -16,11 +16,11 @@ import (
 
 // SearchStoryMemoryArgs 是 search_story_memory 的参数。
 type SearchStoryMemoryArgs struct {
-	Query        string   `json:"query" jsonschema:"required,description=语义搜索查询。用自然语言描述你想找的内容" validate:"required"`
-	TopK         int      `json:"top_k" jsonschema:"description=返回结果数量,default=5,minimum=1,maximum=20" validate:"omitempty,min=1,max=20"`
-	MinRelevance float64  `json:"min_relevance" jsonschema:"description=相关度阈值 0-1,default=0.5" validate:"omitempty,min=0,max=1"`
-	ChapterIDs   []int64  `json:"chapter_ids" jsonschema:"description=限定章节 ID，空表示不限制" validate:"omitempty,dive,min=1"`
-	ChunkTypes   []string `json:"chunk_types" jsonschema:"description=限定块类型：summary(章节摘要) / chapter_brief(章节概要) / content(正文内容)，空表示全部"`
+	Query        string   `json:"query" jsonschema:"required,description=semantic search query; describe what you want to find in natural language" validate:"required"`
+	TopK         int      `json:"top_k" jsonschema:"description=number of results to return,default=5,minimum=1,maximum=20" validate:"omitempty,min=1,max=20"`
+	MinRelevance float64  `json:"min_relevance" jsonschema:"description=relevance threshold 0-1,default=0.5" validate:"omitempty,min=0,max=1"`
+	ChapterIDs   []int64  `json:"chapter_ids" jsonschema:"description=restrict to chapter IDs; empty means no restriction" validate:"omitempty,dive,min=1"`
+	ChunkTypes   []string `json:"chunk_types" jsonschema:"description=restrict to chunk types: summary / chapter_brief / content; empty means all"`
 }
 
 // SearchStoryMemoryTool 语义检索小说记忆。
@@ -48,7 +48,7 @@ func (t *SearchStoryMemoryTool) Execute(ctx context.Context, args any, tc ToolCo
 
 	vs := rag.GetVectorStore()
 	if vs == nil {
-		return &ToolResult{Success: false, Error: "向量检索不可用，ONNX 模型未安装，请先下载模型"}, nil
+		return &ToolResult{Success: false, Error: "векторный поиск недоступен: модель ONNX не установлена, сначала загрузите модель"}, nil
 	}
 
 	// 1. 过量获取，提高召回
@@ -64,7 +64,7 @@ func (t *SearchStoryMemoryTool) Execute(ctx context.Context, args any, tc ToolCo
 
 	results, err := vs.Search(ctx, tc.NovelID, a.Query, fetchK, filter)
 	if err != nil {
-		return nil, fmt.Errorf("向量检索失败: %w", err)
+		return nil, fmt.Errorf("ошибка векторного поиска: %w", err)
 	}
 
 	// 2. 相关度过滤
@@ -81,7 +81,7 @@ func (t *SearchStoryMemoryTool) Execute(ctx context.Context, args any, tc ToolCo
 			Data: map[string]any{
 				"query":   a.Query,
 				"total":   0,
-				"message": "未找到相关记忆，可以尝试更换查询词或降低相关度阈值",
+				"message": "No relevant memory found. Try different query terms or lower the relevance threshold.",
 			},
 		}, nil
 	}
@@ -92,7 +92,7 @@ func (t *SearchStoryMemoryTool) Execute(ctx context.Context, args any, tc ToolCo
 	// 4. 查询章节元数据
 	chapters, err := chapter.NewStore(tc.DB, tc.LoggerOrDefault()).ListAllByNovel(ctx, nil, tc.NovelID)
 	if err != nil {
-		return nil, fmt.Errorf("查询章节元数据失败: %w", err)
+		return nil, fmt.Errorf("ошибка запроса метаданных глав: %w", err)
 	}
 	chapMap := make(map[int64]chapter.Chapter, len(chapters))
 	for _, ch := range chapters {
@@ -115,9 +115,9 @@ func (t *SearchStoryMemoryTool) Execute(ctx context.Context, args any, tc ToolCo
 // formatSearchStoryMemoryResults 格式化搜索结果；chapterID 用于关联章节，ReadingNumber 仅供展示。
 func formatSearchStoryMemoryResults(query string, results []rag.SearchResult, chapters map[int64]chapter.Chapter) (string, float64) {
 	var sb strings.Builder
-	sb.WriteString("## 语义搜索结果\n\n")
-	fmt.Fprintf(&sb, "**查询：** %s  \n", query)
-	fmt.Fprintf(&sb, "**结果数：** %d", len(results))
+	sb.WriteString("## Semantic Search Results\n\n")
+	fmt.Fprintf(&sb, "**Query:** %s  \n", query)
+	fmt.Fprintf(&sb, "**Results:** %d", len(results))
 
 	maxRelevance := 0.0
 	for i, r := range results {
@@ -129,15 +129,15 @@ func formatSearchStoryMemoryResults(query string, results []rag.SearchResult, ch
 		sourceLabel := chunkTypeLabel(r.SourceType)
 		fmt.Fprintf(&sb, "\n\n### %d. ", i+1)
 		if ok && ch.ReadingNumber > 0 {
-			fmt.Fprintf(&sb, "第%d章 %s [chapter_id:%d]", ch.ReadingNumber, ch.Title, ch.ID)
+			fmt.Fprintf(&sb, "Chapter %d %s [chapter_id:%d]", ch.ReadingNumber, ch.Title, ch.ID)
 		} else {
-			sb.WriteString("未知章节")
+			sb.WriteString("Unknown chapter")
 		}
-		fmt.Fprintf(&sb, " — %s（相关度：%.2f）\n\n", sourceLabel, r.Relevance)
+		fmt.Fprintf(&sb, " — %s (relevance: %.2f)\n\n", sourceLabel, r.Relevance)
 		sb.WriteString(r.Content)
 	}
 
-	fmt.Fprintf(&sb, "\n\n> 最高相关度：%.2f | 查询：%s", maxRelevance, query)
+	fmt.Fprintf(&sb, "\n\n> Max relevance: %.2f | Query: %s", maxRelevance, query)
 	return sb.String(), maxRelevance
 }
 
@@ -145,25 +145,25 @@ func formatSearchStoryMemoryResults(query string, results []rag.SearchResult, ch
 func chunkTypeLabel(t string) string {
 	switch t {
 	case "summary":
-		return "章节摘要"
+		return "chapter summary"
 	case "chapter_brief":
-		return "章节概要"
+		return "chapter brief"
 	case "content":
-		return "正文内容"
+		return "content"
 	default:
 		return t
 	}
 }
 
-const searchStoryMemoryDescription = `语义检索小说记忆，在已索引的章节内容中查找与查询最相关的文本片段。
+const searchStoryMemoryDescription = `Semantically search the novel's memory, finding the text passages most relevant to the query within indexed chapter content.
 
-支持的块类型（chunk_types 过滤）：
-- summary：章节摘要（AI 生成的高密度剧情总结）
-- chapter_brief：章节概要（标题 + 摘要 + 正文开头）
-- content：正文内容块（420 token 的文本窗口）
+Supported chunk types (chunk_types filter):
+- summary: chapter summary (AI-generated high-density plot summary)
+- chapter_brief: chapter brief (title + summary + opening of the body text)
+- content: body content chunk (a 420-token text window)
 
-返回每个结果的来源章节、相关度分数和内容文本。相关度分数 0-1，越高越匹配。
-当需要查找特定情节、对话、场景或细节时使用此工具，而非逐个读取章节文件。`
+Returns the source chapter, relevance score, and content text for each result. The relevance score is 0-1; higher means a better match.
+Use this tool to look up a specific plot, dialogue, scene, or detail, rather than reading chapter files one by one.`
 
 // ── 注册 ──────────────────────────────────────────────────
 

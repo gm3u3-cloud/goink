@@ -9,7 +9,7 @@ import (
 
 // WebFetchArgs 是 web_fetch 工具的参数。
 type WebFetchArgs struct {
-	URL string `json:"url" jsonschema:"required,description=要抓取的网页 URL" validate:"required,url,min=1,max=2048"`
+	URL string `json:"url" jsonschema:"required,description=the web page URL to fetch" validate:"required,url,min=1,max=2048"`
 }
 
 // WebFetchTool 抓取网页内容，清洗后返回 markdown 格式正文。
@@ -20,7 +20,7 @@ func (t *WebFetchTool) Category() ToolCategory { return CategoryWritingAssistant
 func (t *WebFetchTool) ExposeToLLM() bool      { return true }
 
 func (t *WebFetchTool) Description() string {
-	return "抓取指定网页的正文内容，返回清洗后的 markdown 文本。适用于需要查看某个来源原文、深入了解细节或验证 web_search 结果时使用。一次只能抓取一个 URL。"
+	return "Fetch the body content of a specified web page, returning cleaned markdown text. Use when you need to read the original source of a reference, explore details, or verify web_search results. Only one URL can be fetched at a time."
 }
 
 func (t *WebFetchTool) JSONSchema() json.RawMessage {
@@ -34,7 +34,7 @@ func (t *WebFetchTool) Execute(ctx context.Context, args any, tc ToolContext) (*
 
 	result, err := web.Fetch(a.URL)
 	if err != nil {
-		return &ToolResult{Error: "抓取失败: " + err.Error()}, nil
+		return &ToolResult{Error: "ошибка получения: " + err.Error()}, nil
 	}
 
 	return &ToolResult{

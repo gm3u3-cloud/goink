@@ -95,7 +95,7 @@ func TestSearchMCPDiscoverReadAndExecute(t *testing.T) {
 	result := searchMCPForTest(t, r, "分卷查询")
 	require.True(t, result.Success, result.Error)
 	content := result.Data["content"].(string)
-	require.Contains(t, content, "`get_volumes` — 查询小说分卷信息。；schema：`mcp/schemas/get_volumes.json`")
+	require.Contains(t, content, "`get_volumes` — 查询小说分卷信息。; schema: `mcp/schemas/get_volumes.json`")
 	require.NotContains(t, content, "direct_volume_tool")
 	require.NotContains(t, content, "详细参数")
 	require.NotContains(t, content, "inputSchema")
@@ -123,7 +123,7 @@ func TestSearchMCPDiscoverReadAndExecute(t *testing.T) {
 	r.Register(catalogTestTool{name: "get_volumes", exposed: true})
 	result = searchMCPForTest(t, r, "分卷查询")
 	require.True(t, result.Success, result.Error)
-	require.Contains(t, result.Data["content"], "未找到")
+	require.Contains(t, result.Data["content"], "No matching extension tools found")
 	require.Contains(t, result.Data["content"], "mcp/index.md")
 }
 
@@ -143,7 +143,7 @@ func TestSearchMCPValidatesQueriesAndAgentAccess(t *testing.T) {
 	for _, role := range []agentcfg.AgentType{agentcfg.ReviewAgent, agentcfg.MemoryAgent} {
 		result := r.Execute(context.Background(), "search_mcp", json.RawMessage(`{"queries":["分卷"]}`), ToolContext{}, agentcfg.Allowlist(role))
 		require.False(t, result.Success)
-		require.Contains(t, result.Error, "工具禁止使用")
+		require.Contains(t, result.Error, "Использование инструмента запрещено")
 		require.Empty(t, r.OpenAI(agentcfg.Allowlist(role)))
 	}
 	tools := r.OpenAI(agentcfg.Allowlist(agentcfg.MainAgent))

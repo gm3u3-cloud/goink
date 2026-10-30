@@ -25,18 +25,18 @@ func NovelState(ctx context.Context, db *gorm.DB, novelID int64) (string, error)
 	}
 
 	var b strings.Builder
-	b.WriteString("【小说基础信息】\n")
-	fmt.Fprintf(&b, "书名：%s\n", n.Title)
+	b.WriteString("[Basic novel information]\n")
+	fmt.Fprintf(&b, "Title: %s\n", n.Title)
 	if n.Genre != "" {
-		fmt.Fprintf(&b, "类型：%s\n", n.Genre)
+		fmt.Fprintf(&b, "Genre: %s\n", n.Genre)
 	}
 	if n.Description != "" {
-		fmt.Fprintf(&b, "简介：%s\n", n.Description)
+		fmt.Fprintf(&b, "Synopsis: %s\n", n.Description)
 	}
 
 	state, err := git.ReadFile(novelID, git.GoinkPath())
 	if err == nil && state != "" {
-		b.WriteString("\n【故事状态文档】\n")
+		b.WriteString("\n[Story state document]\n")
 		b.WriteString(state)
 	}
 

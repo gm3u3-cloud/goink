@@ -14,15 +14,15 @@ import (
 
 // UpsertPreferenceItem 是 upsert_preference 的单条参数。
 type UpsertPreferenceItem struct {
-	PreferenceID *int64 `json:"preference_id,omitempty" jsonschema:"description=已存在偏好ID；不传=新建"`
-	Category     string `json:"category" jsonschema:"required,description=偏好分类(自由文本标签)" validate:"required"`
-	Content      string `json:"content" jsonschema:"required,description=偏好内容" validate:"required"`
-	IsGlobal     *bool  `json:"is_global,omitempty" jsonschema:"description=是否全局偏好(对所有小说生效)；不传=新建默认false，更新保持原值"`
+	PreferenceID *int64 `json:"preference_id,omitempty" jsonschema:"description=existing preference ID; omit to create a new one"`
+	Category     string `json:"category" jsonschema:"required,description=preference category (free-text label)" validate:"required"`
+	Content      string `json:"content" jsonschema:"required,description=preference content" validate:"required"`
+	IsGlobal     *bool  `json:"is_global,omitempty" jsonschema:"description=whether this is a global preference (applies to all novels); omit to default false on create, keep the original value on update"`
 }
 
 // UpsertPreferenceArgs 是 upsert_preference 的参数。
 type UpsertPreferenceArgs struct {
-	Preferences []UpsertPreferenceItem `json:"preferences" jsonschema:"required,description=要upsert的偏好列表(1-5个，传preference_id=更新，不传=创建)" validate:"required,min=1,max=5,dive"`
+	Preferences []UpsertPreferenceItem `json:"preferences" jsonschema:"required,description=list of preferences to upsert (1-5; pass preference_id to update, omit to create)" validate:"required,min=1,max=5,dive"`
 }
 
 // UpsertPreferenceTool 批量 upsert 创作偏好（创建或更新，单事务原子性）。
@@ -30,10 +30,10 @@ type UpsertPreferenceTool struct{}
 
 func (t *UpsertPreferenceTool) Name() string { return "upsert_preference" }
 func (t *UpsertPreferenceTool) Description() string {
-	return "批量创建或更新创作偏好（1-5个，单事务原子性，失败全部回滚）。" +
-		"传 preference_id=更新该条（PATCH 语义，只覆盖传入字段），不传=新建。" +
-		"开局已全量注入偏好到上下文(带 [preference_id:N | 分类] 前缀)，更新时从注入里取 preference_id 传入。" +
-		"新增相似分类的偏好前，应优先更新已有条目(在原文基础上合并)而非创建重复条目。"
+	return "Bulk-create or update writing preferences (1-5, single-transaction atomicity, all rolled back on failure). " +
+		"Pass preference_id to update that entry (PATCH semantics, only the provided fields are overwritten); omit to create a new one. " +
+		"All preferences are injected into the context at the start (with a [preference_id:N | category] prefix); when updating, take the preference_id from the injection and pass it in. " +
+		"Before adding a preference in a similar category, prefer updating an existing entry (merging into the original text) rather than creating a duplicate."
 }
 func (t *UpsertPreferenceTool) Category() ToolCategory { return CategoryWritingAssistant }
 
@@ -65,14 +65,14 @@ func (t *UpsertPreferenceTool) Execute(ctx context.Context, args any, tc ToolCon
 	})
 	if err != nil {
 		if failed == nil {
-			return nil, fmt.Errorf("upsert preference: %w", err)
+			return nil, fmt.Errorf("upsert предпочтения: %w", err)
 		}
 		if !isBusinessError(failed.err) {
-			return nil, fmt.Errorf("upsert preference 第 %d 条 [%s]（事务已回滚）: %w", failed.index, failed.category, failed.err)
+			return nil, fmt.Errorf("upsert предпочтения, запись %d [%s] (транзакция откатлена): %w", failed.index, failed.category, failed.err)
 		}
 		return &ToolResult{
 			Success: false,
-			Error:   fmt.Sprintf("第 %d 条偏好 [%s] 失败: %s", failed.index, failed.category, failed.err),
+			Error:   fmt.Sprintf("предпочтение %d [%s] не удалось применить: %s", failed.index, failed.category, failed.err),
 			Data:    map[string]any{"failed_index": failed.index, "failed_category": failed.category},
 		}, nil
 	}
@@ -90,13 +90,13 @@ func upsertOnePreference(tx *gorm.DB, novelID int64, item UpsertPreferenceItem) 
 		var existing preference.PreferenceItem
 		if err := tx.First(&existing, *item.PreferenceID).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
-				return 0, businessErrorf("偏好条目 %d 不存在", *item.PreferenceID)
+				return 0, businessErrorf("предпочтение %d не существует", *item.PreferenceID)
 			}
-			return 0, fmt.Errorf("query preference: %w", err)
+			return 0, fmt.Errorf("запрос предпочтения: %w", err)
 		}
 		// 归属校验：只能改全局偏好或当前小说的偏好
 		if !existing.IsGlobal && existing.NovelID != novelID {
-			return 0, businessErrorf("偏好条目 %d 不属于当前小说", *item.PreferenceID)
+			return 0, businessErrorf("предпочтение %d не относится к текущему роману", *item.PreferenceID)
 		}
 		// PATCH 覆盖（指针字段判断"传没传"，值字段 required 总传值）
 		if item.Category != "" {
@@ -115,7 +115,7 @@ func upsertOnePreference(tx *gorm.DB, novelID int64, item UpsertPreferenceItem) 
 			}
 		}
 		if err := tx.Save(&existing).Error; err != nil {
-			return 0, fmt.Errorf("save preference: %w", err)
+			return 0, fmt.Errorf("сохранение предпочтения: %w", err)
 		}
 		return existing.ID, nil
 	}
@@ -131,7 +131,7 @@ func upsertOnePreference(tx *gorm.DB, novelID int64, item UpsertPreferenceItem) 
 		pref.NovelID = 0
 	}
 	if err := tx.Create(&pref).Error; err != nil {
-		return 0, fmt.Errorf("create preference: %w", err)
+		return 0, fmt.Errorf("создание предпочтения: %w", err)
 	}
 	return pref.ID, nil
 }

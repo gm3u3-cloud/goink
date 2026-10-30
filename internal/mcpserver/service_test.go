@@ -213,7 +213,7 @@ func TestSavedTokenSurvivesListenFailure(t *testing.T) {
 			} else {
 				result, err = service.SaveLocal(ctx, servercfg.Local{Enabled: true})
 			}
-			require.ErrorContains(t, err, "端口")
+			require.ErrorContains(t, err, "Не удалось запустить MCP-сервер")
 			var listenErr *net.OpError
 			require.ErrorAs(t, err, &listenErr)
 			require.False(t, result.Status.Running)
