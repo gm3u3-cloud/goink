@@ -1,38 +1,38 @@
 ---
 name: dialogue-subtext
-description: 提供对白设计方法论，让每句台词都承载潜台词和角色博弈。当用户要求写对白、检查对白质量、或说"太生硬""说话都一样""没味道"时，使用此技能。
-category: 角色
+description: Provides dialogue design methodology so that every line carries subtext and character strategy. Use this skill when the user asks to write dialogue, check dialogue quality, or says "too stiff", "everyone sounds the same", "no flavor".
+category: character
 mode: auto
 author: builtin
 version: 1
 ---
-# 对白与潜台词设计
+# Dialogue and Subtext Design
 
-## 何时使用
-用户说"写一段对话""对话太直白了""角色说话没区分度""这段表白/争吵怎么写"时自动加载。
+## When to Use
+Loads automatically when the user says "write a conversation", "the dialogue is too on-the-nose", "the characters cannot be told apart by their speech", "how do I write this confession/argument".
 
-## 核心原则：每句话都是角色在索要什么
+## Core Principle: Every Line Is the Character Asking for Something
 
-参考 **David Mamet 对白三问**：①角色想要什么 ②他此刻用什么策略在要 ③这个策略失败后换什么策略。好的对白不是信息传递，是角色之间的策略博弈。即便是"把盐递给我"这么简单的话，也可以用命令、请求、暗示、嘲讽、不说等方式来要，每种方式暴露不同的人物关系和权力地位。
+Follow **David Mamet's three questions of dialogue**: ① what does the character want ② what strategy are they using to get it right now ③ what strategy do they switch to when it fails. Good dialogue is not information transfer, but strategic play between characters. Even something as simple as "pass me the salt" can be demanded as a command, a request, a hint, a taunt, or a non-statement — each method exposes a different relationship and power position.
 
-## 工作流
+## Workflow
 
-1. **定意图** — 写下每个角色在这场对话中真正想要的（不是嘴上说的）。通常最有趣的是：两个人都想从对方身上拿不同的东西，且这两样东西互相排斥。参考 **欲求层级模型**：表层欲求（嘴上要的）→中层欲求（心里要的）→深层欲求（自己都没意识到的）
+1. **Fix the intent** — write down what each character truly wants in this conversation (not what they say out loud). Usually the most interesting case: both want different things from each other, and those two things are mutually exclusive. Follow the **want-level model**: surface want (what is asked out loud) → middle want (what is wanted in the heart) → deep want (what they have not even noticed)
 
-2. **打掉 Q&A 模式** — 一个问一个答就是信息传递，不是戏。三招破解：①让角色拒绝回答（转移话题/沉默/反问）②回答了一个没被问的问题（暴露更深的在意点）③答案推翻前一句（自我矛盾暴露内心挣扎）
+2. **Break the Q&A pattern** — one asks, one answers: that is information transfer, not drama. Three ways to break it: ① make the character refuse to answer (change the subject / stay silent / counter-question) ② answer a question that was not asked (exposing a deeper point of care) ③ let the answer overturn the previous line (self-contradiction exposing inner struggle)
 
-3. **语音差异化** — 不看角色名也能分辨谁在说话。四个维度保证区分：①**句式偏好**（短句还是长句、打断还是不打断、疑问还是断言）②**词汇池**（教育水平、职业惯用语、年龄段特征）③**节奏**（快接还是沉默、叠词还是干净）④**态度温度**（攻击型的回应方式还是回避型的回应方式）。参考 **剧本格式练习**：把对白写成舞台剧本，不加任何叙述语，看只靠对话能否呈现冲突
+3. **Differentiate voices** — you can tell who is speaking without names. Four dimensions guarantee distinction: ① **sentence pattern preference** (short or long sentences, interrupts or not, questions or assertions) ② **vocabulary pool** (education level, professional jargon, age-group traits) ③ **rhythm** (quick replies or silences, repeated words or clean delivery) ④ **attitude temperature** (attacking response style or avoiding response style). Follow the **script-format exercise**: write the dialogue as a stage script with no narration, and see whether the conflict can be carried by dialogue alone
 
-4. **用行动打断对话** — 对白中穿插角色的微动作（整理衣角、挪杯子、眼神飘走），这些非语言信号要么与嘴上说的相反（暴露真实想法），要么把没说出口的情绪具象化。参考 **"说-做-想"交替结构**：每 3-4 句话插入一个物理动作或环境焦点转移
+4. **Interrupt dialogue with action** — weave micro-actions by the characters into the dialogue (adjusting a hem, moving a cup, eyes drifting away). These non-verbal signals either contradict what is said out loud (exposing the true thought) or make the unspoken emotion concrete. Follow the **"say-do-think" alternating structure**: insert a physical action or an environmental focus shift every 3-4 lines
 
-5. **检查潜台词密度** — 至少 50% 的对白行下面有别的东西在流动。潜台词来源：①未说出口的情绪 ②两人都知道但谁都不提的事 ③角色自己都没意识到的真实动机。如果一段对白删掉潜台词后只剩下信息的搬运，那就是失败的
+5. **Check subtext density** — under at least 50% of the dialogue lines, something else must be flowing. Sources of subtext: ① emotion not spoken ② something both know but neither mentions ③ the character's true motive, which they have not even noticed. If a dialogue, once its subtext is removed, is only information carrying, then it has failed
 
-## 信号检查
+## Signal Check
 
-| 症状 | 诊断 | 对策 |
+| Symptom | Diagnosis | Fix |
 |------|------|------|
-| 不看名字分不清谁在说 | 语音未分化 | 给每个角色固定句式偏好和禁忌词汇 |
-| 说了三句还不知道这场戏的核心冲突 | 意图模糊 | 回到步骤 1，明确双方各想要什么 |
-| 对话像新闻稿 | 全是信息传递 | 让一方故意不配合，或说出与事实相反的话 |
-| 潜台词靠形容词标注（"他冷冷地说"） | 偷懒 | 用行动和上下文暗示温度，砍掉副词 |
-| 对话结束后角色关系没变 | 无功对白 | 让对话结果改变两人的权力位置或亲密程度 |
+| Cannot tell who is speaking without names | Voices not differentiated | Give each character a fixed sentence pattern preference and forbidden vocabulary |
+| After three lines, still do not know the scene's core conflict | Intent is vague | Go back to step 1 and make clear what each side wants |
+| Dialogue reads like a press release | All information transfer | Make one side deliberately uncooperative, or say the opposite of the facts |
+| Subtext is labeled with adjectives ("he said coldly") | Lazy | Imply the temperature through action and context; cut the adverbs |
+| Character relationship unchanged after the dialogue | No-gain dialogue | Let the outcome of the dialogue change the two's power position or closeness |

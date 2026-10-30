@@ -1,67 +1,67 @@
 ---
 name: revision-pass
-description: 提供三遍修改法，按结构层→场景层→句子层逐级打磨文稿。当用户要求修改章节、审稿、或说"帮我看看""润色一下""感觉不对"时，使用此技能。
-category: 修订
+description: Provides a three-pass revision method that polishes a manuscript level by level — structure, then scene, then sentence. Use this skill when the user asks to revise a chapter, review a draft, or says "take a look at this", "polish it", "something feels off".
+category: revision
 mode: auto
 author: builtin
 version: 1
 ---
-# 三遍修改法
+# The Three-Pass Revision Method
 
-## 何时使用
-用户说"帮我改改这章""这章写完了但感觉不对""润色文字""怎么修改小说"时自动加载。
+## When to Use
+Loads automatically when the user says "help me fix this chapter", "I've finished this chapter but something feels off", "polish the prose", "how do I revise a novel".
 
-## 核心原则
+## Core Principle
 
-初稿是你说给自己听的故事，修改稿是你说给读者听的故事。参考 **Stephen King "On Writing" 的修改公式**：二稿 = 一稿 − 10%（字数），重点不在减字而在减废话。参考 **James Scott Bell "Revision & Self-Editing"** 的层级修改理念：永远从大到小改——结构 > 场景 > 句子。微观润色要留到最后，否则你会花时间润色一段最终可能被删除的文字。
+A first draft is a story you tell to yourself; a revised draft is a story you tell to the reader. Follow **Stephen King's "On Writing" revision formula**: second draft = first draft − 10% (word count) — the point is not to cut words but to cut filler. Follow **James Scott Bell's "Revision & Self-Editing" layered revision idea**: always revise from big to small — structure > scene > sentence. Save micro-polishing for last, otherwise you will spend time polishing a passage that may ultimately be deleted.
 
-## 第一遍：结构层
+## Pass One: The Structural Layer
 
-**不看句子，只看故事。连读三章为一组，判断每个场景在该位置的功能。**
+**Do not look at sentences; look only at the story. Read three chapters in a row as a group and judge the function of each scene at its position.**
 
-检查清单：
-1. 每章是否有明确的情感核心？删掉"过渡章"——每章都应有自己的价值变化
-2. 场景顺序是否因果驱动而非时间顺序？把场景按"因为 A 所以 B"排列，不是"A 然后 B 然后 C"
-3. 每个场景进入和退出的情感强度有无阶梯？高强度场景之间要有低强度缓冲，但不能持续低迷超过 10 页
-4. 章节字数是否有大的失衡？如果某章是其他章 3 倍以上，要么功能过载要拆分，要么就是细节失控
-5. 伏笔线索是否可追溯？画一条从第一次埋设到最后回收的线索线，确认中间至少有两次强化出现
-6. 有无"作者自嗨"段落？那部分你写的时候最享受但读者可能最无感的，标记出来
+Checklist:
+1. Does every chapter have a clear emotional core? Delete "transition chapters" — every chapter should carry its own value change
+2. Is scene order causally driven rather than chronological? Arrange scenes as "because A, therefore B", not "A, then B, then C"
+3. Is there a ladder of emotional intensity between each scene's entry and exit? High-intensity scenes need low-intensity buffers between them, but the lull must not last more than 10 pages
+4. Is there a large imbalance in chapter word counts? If one chapter is three times the size of the others, either its function is overloaded and it must be split, or its details have run out of control
+5. Are foreshadowing threads traceable? Draw a line from the first planting to the final payoff and confirm there are at least two reinforcing appearances in between
+6. Are there "author self-indulgence" passages? The parts you most enjoyed writing are often the parts readers feel least — mark them
 
-**这一步做完可输出的决策**：需要删除/合并/新增的场景列表，需要移动位置的场景排序。
+**Decisions you can output after this pass**: a list of scenes to delete/merge/add, and the reordering of scenes that need to move.
 
-## 第二遍：场景层
+## Pass Two: The Scene Layer
 
-**进入每场戏，检查场景内的结构质量。**
+**Enter each scene and check the structural quality inside it.**
 
-检查清单：
-1. 每个场景是否存在入口钩子和出口钩子？没有就加
-2. 场景中部有无至少一个节拍转折（信息变化或权力关系变化或角色状态变化）？
-3. 对白是否推动或揭示？删掉"聊天"和"寒暄"部分——除非寒暄本身就是武器
-4. 每个对白段落是否能通过不看名字分辨说话人？
-5. 环境描写是否通过角色感知过滤？避免全知叙述者在描述房间，而是角色在感受房间
-6. 有没有戏剧性反讽？读者是否在某些时刻比角色知道得更多或更少？这决定了读者的情感投入方向（担心角色 vs 好奇真相）
+Checklist:
+1. Does every scene have an entry hook and an exit hook? If not, add them
+2. Is there at least one beat turn in the middle of the scene (a change of information, power relationship, or character state)?
+3. Does the dialogue advance or reveal? Delete "chat" and "small talk" — unless the small talk itself is a weapon
+4. Can each dialogue passage be attributed to its speaker without looking at names?
+5. Is environmental description filtered through the character's perception? Avoid an omniscient narrator describing the room; let the character feel the room
+6. Is there dramatic irony? Does the reader know more or less than the character at certain moments? This determines the direction of the reader's emotional investment (worrying about the character vs. curious about the truth)
 
-参考 **Sol Stein "Stein on Writing" 的"看-听-感觉"三角检查**：每个重要时刻是否至少通过视听觉两个通道呈现？如果只有旁白叙述，转换为角色体验。
+Follow **Sol Stein's "Stein on Writing" see-hear-feel triangle check**: is each important moment presented through at least two of the visual/auditory channels? If it is only narration, convert it into character experience.
 
-**这一步做完可输出的决策**：需要重写的场景段落，需要调整的 POV，需要强化或打掉的对白。
+**Decisions you can output after this pass**: scene passages that need rewriting, POV that needs adjusting, dialogue that needs strengthening or cutting.
 
-## 第三遍：句子层
+## Pass Three: The Sentence Layer
 
-**细到每个句子，但不要沉浸在爱自己的文字里。参考 Peter Carey 的做法：大声读一遍，卡住的地方就是读者也会卡住的地方。**
+**Go down to every sentence, but do not get lost in loving your own prose. Follow Peter Carey's approach: read it aloud — where you stumble is where the reader will stumble.**
 
-检查清单：
-1. 是否能砍掉 10% 的形容词？尤其是"非常""很""颇""有些""略微"
-2. 相邻句子的节奏是否有变化？三个长句之后一个短句。三个复杂句之后一个简单主谓宾
-3. 每段第一句和最后一句是否是此段最强句？读者最容易记住这两个位置
-4. 是否重复使用了同一个词（尤其是动词和形容词）？在 500 字内同一个不常见词出现两次是冗余
-5. 对话标签是否必要？"说"和"问"之外的标签（"她愤怒地反驳道"）用行动代替
-6. 被动语态和"是…的"结构是否有意使用？无意中用的，都砍成主动
-7. 段落长度视觉上是否有呼吸感？连续三个超过 10 行的段落之间插入一个短段或一句独立行
+Checklist:
+1. Can you cut 10% of the adjectives? Especially "very", "quite", "rather", "somewhat", "slightly"
+2. Is there rhythm variation between adjacent sentences? A short sentence after three long ones. A simple subject-verb-object after three complex sentences
+3. Is the first and last sentence of each paragraph the strongest sentence in it? Readers remember these two positions most
+4. Is the same word (especially verbs and adjectives) reused? A rare word appearing twice within 500 words is redundant
+5. Are dialogue tags necessary? Tags other than "said" and "asked" ("she retorted angrily") — replace them with action
+6. Is passive voice and the "is…-ed" structure used intentionally? If used unintentionally, cut it all to active
+7. Do paragraph lengths have visual breathing room? Between three consecutive paragraphs of more than 10 lines, insert a short paragraph or a standalone single line
 
-**这一步做完可输出的决策**：标记的冗余句和不自然句，建议的替代写法（给出改前改后对比）。
+**Decisions you can output after this pass**: marked redundant and unnatural sentences, and suggested alternative phrasings (with before/after comparisons).
 
-## 改完后的自我提问
+## Self-Questions After Revising
 
-- 如果我只能保留这一个版本，我愿意吗？（参考 **Kurt Vonnegut 的自我检验**）
-- 有没有一句话让我觉得"写得真好看"却对故事推进没贡献？砍掉
-- 如果读者只能记住这一章里的一个画面，是哪个？如果不是我最想传达的画面，那就没写到位
+- If I could only keep this one version, would I be willing to? (Follow **Kurt Vonnegut's self-check**)
+- Is there a sentence that makes you think "that is beautifully written" but contributes nothing to the story's progress? Cut it
+- If the reader can only remember one image from this chapter, which one is it? If it is not the image you most wanted to convey, then it was not written well enough

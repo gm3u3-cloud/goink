@@ -1,50 +1,50 @@
 ---
 name: pacing-control
-description: 提供叙事节奏控制方法论，覆盖快节奏、慢节奏和过渡的技法选择。当用户要求调整节奏、或说"太慢了""太快了""这里拖了"时，使用此技能。
-category: 结构
+description: Provides narrative pacing control methodology, covering technique choices for fast pacing, slow pacing, and transitions. Use this skill when the user asks to adjust pacing, or says "too slow", "too fast", "this drags".
+category: structure
 mode: auto
 author: builtin
 version: 1
 ---
-# 节奏控制
+# Pacing Control
 
-## 何时使用
-用户说"节奏太慢/太快""这段拖了""过渡要怎么写""怎么跳过这段时间"时自动加载。
+## When to Use
+Loads automatically when the user says "the pacing is too slow/too fast", "this drags", "how do I write the transition", "how do I skip this stretch of time".
 
-## 工作流
+## Workflow
 
-1. **定位当前段落的情绪功能** — 先判断这段落在整章中的位置和任务：
-   - **快段落**：动作场面、关键转折、危机时刻 → 让读者来不及呼吸
-   - **慢段落**：情感内省、氛围沉淀、角色建立、伏笔埋设 → 让读者沉进去
-   - **过渡段落**：时间跳跃、视角切换、场景转换 → 高效跨越，不拖节奏
+1. **Locate the emotional function of the current passage** — first judge its position and task within the chapter:
+   - **Fast passage**: action scenes, key turns, moments of crisis → do not let the reader catch their breath
+   - **Slow passage**: emotional introspection, atmosphere settling, character building, planting foreshadowing → let the reader sink in
+   - **Transition passage**: time jumps, POV switches, scene changes → cross efficiently, do not drag the pacing
 
-   参考 **James Scott Bell 节奏光谱**：叙事节奏不是"快"和"慢"的二元，是一根从省略（ellipsis）到静止（in-folding）的连续轴，你的任务是为每个段落选准轴上的点
+   Follow the **James Scott Bell pacing spectrum**: narrative pacing is not a binary of "fast" and "slow", but a continuous axis from ellipsis to stillness (in-folding); your task is to pick the right point on the axis for each passage
 
-2. **快节奏技法包** — 当判断需要加速时：
-   - 缩短段落和句子长度，句号本身就是刹车
-   - 砍掉感官描写和内心独白，只留动作和结果
-   - 省略（ellipsis）：跳过读者自己能脑补的部分
-   - 用被动语态暗示角色的失控感
-   - 一连串短动作连续出现，不给角色（和读者）反应时间
+2. **Fast-pacing toolkit** — when you judge that acceleration is needed:
+   - Shorten paragraphs and sentence length; the period itself is a brake
+   - Cut sensory description and inner monologue; keep only action and result
+   - Ellipsis: skip the parts the reader can fill in themselves
+   - Use passive voice to suggest the character's loss of control
+   - A rapid chain of short actions with no reaction time for the character (or the reader)
 
-3. **慢节奏技法包** — 当判断需要减速时：
-   - 展示（showing）而非讲述（telling）：把"他很伤心"拉长成具体的行为、环境、身体感受
-   - 静止（in-folding）：某一瞬间展开，插入记忆中相似的时刻或角色未曾说出口的想法
-   - 感官织入：视→听→触→嗅→味依序出场，让读者真实地站在场景中
-   - 参考 **John Gardner "虚构之梦"**：慢下来的目的是让读者完全沉浸，中断怀疑的暂停
+3. **Slow-pacing toolkit** — when you judge that deceleration is needed:
+   - Showing rather than telling: stretch "he was very sad" into concrete behavior, environment, bodily sensation
+   - Stillness (in-folding): expand a single instant, inserting a similar remembered moment or an unspoken thought of the character
+   - Weave in the senses: sight → hearing → touch → smell → taste in order, letting the reader truly stand inside the scene
+   - Follow **John Gardner's "The Art of Fiction"**: the purpose of slowing down is complete immersion, a suspension of the reader's disbelief
 
-4. **过渡技法包** — 当需要跨越时间或空间时：
-   - **硬切**（章节断开）— 参考 **McKee "故事"中的时间省略原则**：只保留那些叙事价值发生了变化的时刻
-   - **概括过渡**（一两句话跳几天/几个月）— 用具体的感官锚点代替模糊的"时光飞逝"
-   - **钩子过渡** — 上一段结尾抛出悬念→下一段开头已经在新的处境中，悬念答案在过程中自然揭示
+4. **Transition toolkit** — when you need to cross time or space:
+   - **Hard cut** (a chapter break) — follow the **time-ellipsis principle in McKee's "Story"**: keep only the moments where narrative value changes
+   - **Summary transition** (skip days/months in one or two sentences) — replace vague "time flew by" with concrete sensory anchors
+   - **Hook transition** — the end of the previous passage throws out suspense → the next passage begins already in the new situation; the suspense's answer is revealed naturally along the way
 
-5. **节奏调节的节拍意识** — 每个场景写完后检查：如果连续 3 页都是同一个节奏，读者要么累死要么睡着。在快段落之间插入短的缓流（一段环境描写或一个反应节拍），在慢段落之间插入微小的推力（一个反常细节或一个紧迫的倒计时）
+5. **Beat awareness in pacing adjustment** — after writing each scene, check: if three consecutive pages are all the same pace, the reader will be either exhausted or asleep. Insert a short slow flow between fast passages (a passage of environmental description or a reaction beat), and insert a small push between slow passages (an abnormal detail or an urgent countdown)
 
-## 信号检查
+## Signal Check
 
-| 症状 | 诊断 | 对策 |
+| Symptom | Diagnosis | Fix |
 |------|------|------|
-| 动作戏读起来像流水账 | 快节奏缺节拍变化 | 在动作中加入角色瞬间的反应/判断，节奏形成波动 |
-| 感情戏读完无感 | 慢节奏缺技法 | 检查是否把"展示"写成"讲述"，是否感官单一 |
-| 时间跳跃突兀 | 过渡缺锚点 | 用具体变化的事件/场景状态代替"几个月后" |
-| 全程一个调 | 缺节奏意识 | 用颜色标注每段节奏（红快/蓝慢/灰过渡），看图是否单一 |
+| Action scenes read like a running account | Fast pacing lacks beat variation | Add the character's instant reactions/judgments into the action; let the pacing form a wave |
+| Emotional scenes leave no feeling after reading | Slow pacing lacks technique | Check whether "showing" was written as "telling", whether the senses are monotonous |
+| Time jumps feel abrupt | Transitions lack anchors | Replace "a few months later" with a concrete changed event/scene state |
+| One register throughout | Lack of pacing awareness | Mark each passage's pace with a color (red fast/blue slow/gray transition) and see if the picture is monotonous |

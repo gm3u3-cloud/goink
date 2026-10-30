@@ -1,9 +1,9 @@
 ---
 name: memory
-description: 调度记忆检索 agent，根据用户指令检索相关信息
-category: 系统
+description: Dispatch the memory retrieval agent and retrieve relevant information according to the user's instructions
+category: system
 mode: manual
 author: builtin
 version: 1
 ---
-用户要求你调用 memory agent。请根据用户指令检索相关信息。
+The user asks you to invoke the memory agent. Please retrieve the relevant information according to the user's instructions.

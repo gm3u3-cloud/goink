@@ -1,55 +1,55 @@
 ---
 name: character-design
-description: 提供角色设计方法论，涵盖欲望vs需求、创伤缺陷、弧光方向和配角功能化。当用户要求创建角色、调整设定、或说"太扁平""没弧光""不真实"时，使用此技能。
-category: 角色
+description: Provides character design methodology covering want vs. need, trauma and flaws, arc direction, and functional supporting characters. Use this skill when the user asks to create a character, adjust a setting, or says "too flat", "no arc", "not believable".
+category: character
 mode: auto
 author: builtin
 version: 1
 ---
-# 角色设计
+# Character Design
 
-## 何时使用
-用户说"创建角色""这个人设有什么问题""角色弧光怎么写""圆形人物怎么塑造"时自动加载。
+## When to Use
+Loads automatically when the user says "create a character", "what is wrong with this character", "how do I write a character arc", "how do I build a round character".
 
-## 核心框架：欲望 vs 需求
+## Core Framework: Want vs. Need
 
-参考 **K.M. Weiland "Creating Character Arcs"** 的框架：每个有弧光的角色都在"想要的东西"和"真正需要的东西"之间拉扯。整本书的外在情节追逐的是"欲望"（want），而角色的内在成长线是逐渐发现"需求"（need）。好的角色弧光不是突然顿悟，而是一系列小选择中欲望和需求的张力逐渐倾斜。
+Follow the framework of **K.M. Weiland's "Creating Character Arcs"**: every character with an arc is pulled between "what they want" and "what they truly need". The external plot of the whole book chases the "want", while the character's internal growth line is the gradual discovery of the "need". A good character arc is not a sudden epiphany, but a series of small choices in which the tension between want and need gradually tilts.
 
-## 工作流
+## Workflow
 
-### 1. 角色三角形
-用三个核心问题确定角色的基本面：
-- **欲望（Want）** — 这个角色在这个故事里最想要什么？具体、可操作、有明确的成功/失败标准
-- **需求（Need）** — 他真正需要什么才能完整？通常与欲望相反：想要权力的人需要放下控制；想要复仇的人需要学会原谅自己
-- **谎言（Lie）** — 他相信的最大的错误是什么？"只要我足够聪明/强大/有钱/被爱，就不会再受伤害"。参考 **Lisa Cron "Story Genius"** 的核心洞见：角色不是因为性格有趣，是因为他们相信的错误有趣
+### 1. The Character Triangle
+Fix the character's fundamentals with three core questions:
+- **Want** — What does this character most want in this story? Concrete, actionable, with clear success/failure criteria
+- **Need** — What do they truly need in order to be whole? Usually the opposite of the want: the person who wants power needs to let go of control; the person who wants revenge needs to learn to forgive themselves
+- **Lie** — What is the biggest mistake they believe? "As long as I am smart/strong/rich/loved enough, I will never be hurt again." Follow the core insight of **Lisa Cron's "Story Genius"**: characters are interesting not because of their personality, but because of the lie they believe
 
-### 2. 创伤与缺陷
-- 角色的谎言通常来自过去的某个具体事件——不是"他童年不幸"这个概括，而是一个具体的画面：某个下午妈妈说了一句话他就再也没走出那个房间
-- 缺陷是谎言的日常体现：相信"没人值得信任"的角色会有何行为模式？他会先背叛别人以自保，会过度分析每个善意举动
-- 缺陷要有代价：不是"有点强迫症所以很可爱"，而是"因为不相信任何人导致伴侣离开了他"
-- 参考 **Truby "The Anatomy of Story" 的缺陷-需求链**：缺陷→导致损失→损失的痛苦→促使用角色正视需求→弧光完成
+### 2. Trauma and Flaws
+- A character's lie usually comes from one specific past event — not the generalization "they had an unhappy childhood", but a concrete image: one afternoon their mother said one sentence and they never left that room again
+- A flaw is the lie lived out daily: a character who believes "no one is worth trusting" — what behavior pattern does that produce? They betray others first for self-protection; they over-analyze every kind gesture
+- A flaw must have a cost: not "a bit of OCD makes them cute", but "because they trust no one, their partner left them"
+- Follow **Truby's "The Anatomy of Story" flaw-need chain**: flaw → causes loss → the pain of the loss → pushes the character to face the need → arc completed
 
-### 3. 弧光方向
-三种方向，选择一种并贯穿始终：
-- **正向弧光**（成长型）：角色从谎言走向真相，放弃欲望换取需求。参考 **Christopher Vogler "Writer's Journey" 英雄之旅** 中的"带着灵药回归"阶段
-- **负向弧光**（堕落型）：角色拒绝了真相，拥抱了谎言的最极端版本。每一次选择在当时都让读者觉得"我也可能这么选"，但累积走向毁灭
-- **平面弧光**（坚守型）：角色已拥有真相，他不变，但世界因他而变。参考 **侦探/圣人/导师原型**：这类角色的力量在于用自己已完成的价值观去动摇他人
+### 3. Arc Direction
+Three directions; pick one and carry it through to the end:
+- **Positive arc** (growth): the character moves from the lie toward the truth, trading the want for the need. Follow the "return bearing the elixir" stage of the hero's journey in **Christopher Vogler's "Writer's Journey"**
+- **Negative arc** (corruption): the character rejects the truth and embraces the most extreme version of the lie. Each choice feels at the moment like "I might have chosen the same way", but cumulatively it walks toward destruction
+- **Flat arc** (steadfast): the character already possesses the truth; they do not change, but the world changes because of them. Follow the **detective/saint/mentor archetype**: this kind of character's strength lies in using their already-completed values to shake others
 
-### 4. 小选择展示弧光
-不要靠"主角在结局突然变好"来完成弧光。弧光是一系列小选择的累积：
-- 第一章的小选择建立了角色的缺陷模式
-- 每个小选择的后果导向下一步更大的选择
-- 中点之后的选择越来越贴近需求，最后一刻的选择是对谎言的彻底否定
-- 每个阶段问：这个选择是角色在旧模式下会做的还是新模式下会做的？
+### 4. Show the Arc Through Small Choices
+Do not complete the arc with "the protagonist suddenly becomes good at the ending". An arc is the accumulation of small choices:
+- A small choice in chapter one establishes the character's flaw pattern
+- Each small choice's consequence leads to the next, bigger choice
+- Choices after the midpoint get closer and closer to the need; the last-moment choice is a total denial of the lie
+- Ask at each stage: is this choice what the character would make under the old pattern, or under the new one?
 
-### 5. 配角功能化
-每个配角至少有一个功能：①推动主角弧光（挑战主角的谎言/提供需求的方向）②代表一种世界观（形成对比或映射）③创造情节节点。如果配角三个功能都不占，考虑合并。参考 **Forster "小说面面观" 的扁形/圆形人物区分**：配角可以是扁形的（功能明确），但主角和主要对手必须是圆形的（有多层矛盾）
+### 5. Functionalize Supporting Characters
+Every supporting character has at least one function: ① advance the protagonist's arc (challenge the protagonist's lie / point toward the need) ② represent a worldview (form a contrast or a mirror) ③ create a plot node. If a supporting character has none of the three functions, consider merging them. Follow **Forster's "Aspects of the Novel" flat/round distinction**: supporting characters may be flat (clear function), but the protagonist and the main antagonist must be round (with layers of contradiction)
 
-## 信号检查
+## Signal Check
 
-| 症状 | 诊断 | 对策 |
+| Symptom | Diagnosis | Fix |
 |------|------|------|
-| 角色只有特征清单无内在冲突 | 缺谎言/创伤层 | 回到步骤 2，问"他怕什么"和"他信的错话是什么" |
-| 角色从头到尾没变化 | 无弧光或选择了平面型但没体现"影响世界" | 检查是否误选弧光方向，或平面型缺少"影响他人的力" |
-| 配角比主角更有趣 | 主角缺少缺陷和欲望张力 | 给主角一个更大的、更具体的、更让读者替他着急的谎言 |
-| 弧光靠"突然懂了" | 跳过小选择累积 | 在每一章找到至少一个能展示弧光微调的小选择 |
+| Character has only a trait list, no internal conflict | Missing lie/trauma layer | Go back to step 2 and ask "what are they afraid of" and "what lie do they believe" |
+| Character does not change from start to finish | No arc, or a flat arc chosen but "influencing the world" not shown | Check whether the arc direction was mis-chosen, or the flat arc lacks "the power to affect others" |
+| Supporting character is more interesting than the protagonist | Protagonist lacks flaw and want tension | Give the protagonist a bigger, more concrete lie that makes the reader more anxious for them |
+| Arc relies on "suddenly got it" | Skipped the accumulation of small choices | Find at least one small choice in every chapter that can show a fine adjustment of the arc |

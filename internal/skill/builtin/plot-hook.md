@@ -1,49 +1,49 @@
 ---
 name: plot-hook
-description: 提供悬念设计与伏笔管理方法论，涵盖悬念类型、章尾钩子和埋设-强化-回收流程。当用户要求设计悬念、章尾钩子、埋伏笔或回收伏笔时，使用此技能。
-category: 情节
+description: Provides suspense design and foreshadowing management methodology, covering suspense types, chapter-end hooks, and the plant-strengthen-payoff flow. Use this skill when the user asks to design suspense, a chapter-end hook, plant foreshadowing, or pay off foreshadowing.
+category: plot
 mode: auto
 author: builtin
 version: 1
 ---
-# 悬念与章尾钩子
+# Suspense and Chapter-End Hooks
 
-## 何时使用
-用户说"加一个悬念""章末要有钩子""这个伏笔怎么埋""伏笔回收太生硬""结尾没有翻页动力"时自动加载。
+## When to Use
+Loads automatically when the user says "add some suspense", "the chapter end needs a hook", "how do I plant this foreshadowing", "the payoff feels forced", "the ending does not make you want to turn the page".
 
-## 悬念设计
+## Designing Suspense
 
-先选型，不同类型的悬念制造不同的心理压力：
+First choose the type; different types of suspense create different psychological pressure:
 
-- **信息差悬念**：读者知道角色不知道的（炸弹在桌下而主角没发现，读者屏息）。参考 **Hitchcock 炸弹理论**：观众知道炸弹的存在比爆炸本身更有力
-- **时间压力悬念**：必须在限时内完成，每接近截止时刻压力上升一级
-- **命运未知悬念**：角色的选择结果不立即揭示，延后到下一场景或下一章才给答案
-- **身份/认知悬念**：角色自己的记忆、身份或对某个人的认知可能是错的，读者与角色同步发现真相。参考 **不可靠叙述者**（Wayne Booth）的技巧：让读者先相信叙述者，再逐步怀疑
+- **Information-gap suspense**: the reader knows what the character does not (the bomb is under the table and the protagonist has not noticed; the reader holds their breath). Follow the **Hitchcock bomb theory**: the audience knowing a bomb exists is more powerful than the explosion itself
+- **Time-pressure suspense**: something must be done within a deadline; pressure rises a level with every step toward the cutoff
+- **Fate-unknown suspense**: the result of the character's choice is not revealed immediately; the answer is deferred to the next scene or the next chapter
+- **Identity/perception suspense**: the character's own memory, identity, or perception of someone may be wrong; the reader discovers the truth in sync with the character. Follow the **unreliable narrator** (Wayne Booth) trick: make the reader first trust the narrator, then gradually doubt them
 
-## 伏笔三阶段
+## The Three Stages of Foreshadowing
 
-**埋设**
-- 原则：伏笔要"埋"在不经意处。最佳时机是读者注意力被另一件事占据时——放在动作场景的间隙、幽默台词之后、或环境描写的夹层中
-- 技法：①关键物品不经意的出现 ②某句看似平常但事后有深意的台词 ③角色对某事的反常反应（一闪而过）
-- 避免：不要用"后来他会明白……"之类的暗示句型，那是在举牌子
+**Planting**
+- Principle: foreshadowing must be "buried" where it is not expected. The best moment is when the reader's attention is occupied by something else — in the gap of an action scene, after a humorous line, or sandwiched inside environmental description
+- Techniques: ① a key object appearing casually ② a line that seems ordinary at the time but carries deeper meaning later ③ an abnormal reaction from a character to something (fleeting)
+- Avoid: do not use hint constructions like "he would later understand…" — that is holding up a sign
 
-**强化**
-- 每个重要伏笔至少出现两次：第一次读者不会注意到，第二次读者隐约觉得熟悉但想不起来在哪见过
-- 强化方式：换一个角度提到（不同角色的视角、不同的物理细节、时间的推移带来的变化），避免完全重复
-- 参考 **Chekhov's Gun 原则** 的演化：不是"提到就必须用"，而是"如果给了特写，读者就会期待回报"——所以埋伏笔时控制镜头停留的时间来管理读者预期
+**Strengthening**
+- Each important piece of foreshadowing appears at least twice: the first time the reader will not notice; the second time the reader vaguely feels familiarity but cannot remember where
+- How to strengthen: mention it from a different angle (a different character's perspective, a different physical detail, a change brought by the passage of time), avoiding complete repetition
+- Follow the evolution of the **Chekhov's Gun principle**: it is not "if mentioned, it must be used", but "if you give it a close-up, the reader will expect a return" — so control how long the camera lingers when planting foreshadowing to manage reader expectations
 
-**回收**
-- 回收的时机决定了效果。三重境界：①读者预料到了（可接受但不出彩）②读者恍然大悟联想到之前的细节（拍腿）③读者之前完全没注意到，回头翻才发现有伏笔（最高境界）
-- 回收后留涟漪：伏笔回收不只是"这个细节有了交代"，它应该同时改变角色对之前某段经历的理解，或推动下一个情节节点
-- 如果一个伏笔回收后不产生任何新鲜的信息或情感波动，它只是一个被填上的坑，不是好的伏笔
+**Paying Off**
+- The timing of the payoff determines the effect. Three levels: ① the reader expected it (acceptable but not striking) ② the reader suddenly connects it to earlier details (slaps their thigh) ③ the reader did not notice it at all before and only finds the foreshadowing when going back to look (the highest level)
+- Leave ripples after the payoff: a foreshadowing payoff is not just "this detail is accounted for"; it should simultaneously change the character's understanding of some earlier experience, or push the next plot node
+- If a foreshadowing's payoff produces no new information or emotional swing, it is just a filled-in hole, not good foreshadowing
 
-## 章尾钩子
+## Chapter-End Hooks
 
-钩子不是"下一章会怎样"的预告，而是"你已经知道了一个不对劲的东西，你需要看下一章才知道这意味着什么"。
+A hook is not a preview of "what happens next chapter", but "you already know something is off, and you need to read the next chapter to know what it means".
 
-五种有效钩子类型：
-1. **信息错位钩子**：角色得知了一条与已知信息矛盾的线索
-2. **决定即危机钩子**：角色做出了某个决定，但读者根据上下文知道这个决定可能是错的
-3. **延迟揭示钩子**：关键信息在章末才给出，但读者来不及消化时章节已结束
-4. **镜头切远钩子**：章末突然切换到一个角色不知情的危险（窗外有人、远处的轿车）
-5. **情绪错位钩子**：一个该高兴的场合角色却哭了，或者相反——读者必须往下读才能理解原因
+Five effective hook types:
+1. **Information-mismatch hook**: the character learns a clue that contradicts known information
+2. **Decision-as-crisis hook**: the character makes a decision, but the reader, from context, knows it may be wrong
+3. **Delayed-reveal hook**: key information is given only at the chapter end, but the chapter ends before the reader has time to digest it
+4. **Camera-pulls-back hook**: at the chapter end, suddenly cut to a danger the character does not know about (someone outside the window, a car in the distance)
+5. **Emotion-mismatch hook**: at a moment that should be joyful, the character cries — or the reverse — the reader must keep reading to understand why
