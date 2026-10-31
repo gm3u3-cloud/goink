@@ -8,7 +8,7 @@ BINARY_NAME := $(APP_NAME).exe
 else
 BINARY_NAME := $(APP_NAME)
 endif
-VERSION   ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+VERSION   ?= $(shell (git describe --tags --always --dirty 2>/dev/null || echo "dev") | sed 's/^v//')
 BUILD_DIR := build
 # 立即求值，在 deps、frontend 和 Windows 版本资源改写之前捕获源码状态。
 BUILD_HASH := $(shell bash scripts/build-hash.sh)
