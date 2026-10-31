@@ -8,6 +8,7 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
+  Type,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
@@ -20,12 +21,23 @@ import { useNovels } from "@/components/novel/useNovels";
 import { useSettings } from "@/components/settings/useSettings";
 import { useSaveGitConfig } from "./useSaveGitConfig";
 import { useRebuildNovelIndex } from "./useRebuildNovelIndex";
+import { Slider } from "@/components/ui/slider";
+import {
+  useFontScaleStore,
+  FONT_SCALE_MIN,
+  FONT_SCALE_MAX,
+  FONT_SCALE_STEP,
+  FONT_SCALE_DEFAULT,
+} from "@/stores/useFontScaleStore";
 import UpdateDialog from "@/components/update/UpdateDialog";
 import { toastError } from "@/utils/toast";
 import { toErrorMessage } from "@/utils/error";
 
 export default function GeneralConfigTab() {
   const { t, i18n } = useTranslation();
+  // Font scale is a UI-only preference (localStorage-backed store, applied
+  // to the root font-size so every rem-based Tailwind class scales).
+  const { scale, setScale, reset } = useFontScaleStore();
   const [dataDir, setDataDir] = useState("");
   // 3.9: novels uses the useNovels query (shared cache).
   const { data: novels = [] } = useNovels();
@@ -229,6 +241,37 @@ export default function GeneralConfigTab() {
             }`}
           >
             Русский
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-6 space-y-2">
+        <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+          <Type className="w-3.5 h-3.5" />
+          {t("settings.interface")}
+        </label>
+        <p className="text-[11px] text-muted-foreground">
+          {t("settings.fontSizeDesc")}
+        </p>
+        <div className="flex items-center gap-3">
+          <Slider
+            value={[scale]}
+            onValueChange={([v]) => setScale(v)}
+            min={FONT_SCALE_MIN}
+            max={FONT_SCALE_MAX}
+            step={FONT_SCALE_STEP}
+            aria-label={t("settings.fontSize")}
+            className="flex-1"
+          />
+          <span className="w-9 shrink-0 text-right text-xs tabular-nums">
+            {scale}%
+          </span>
+          <button
+            onClick={reset}
+            disabled={scale === FONT_SCALE_DEFAULT}
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs border hover:bg-muted transition-colors disabled:opacity-50"
+          >
+            {t("settings.reset")}
           </button>
         </div>
       </div>
