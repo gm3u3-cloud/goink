@@ -1,83 +1,83 @@
-# Goink 项目协作与编码规则
+# Goink Project Collaboration and Coding Rules
 
-Goink 是一个使用 Wails（Go + React）的桌面 AI 网文写作助手。用户主要使用中文沟通；回复用户时使用中文。
+Goink is a desktop AI web-novel writing assistant built with Wails (Go + React). Users primarily communicate in Chinese; reply to users in Chinese.
 
-## 工作区与 Git
+## Workspace and Git
 
-- 只在当前启动的 worktree 中读取、编辑和运行命令。不要进入另一个 worktree 操作文件。
-- 当前仓库使用两个 worktree：`/home/nianhe/projects/todo`（`master`）和 `/home/nianhe/projects/goink`（`dev`）。以当前工作目录为准，不要硬编码切换到另一个目录。
-- 执行任何 Git 命令前，先确认当前 CWD 是本次任务的 worktree 根目录；不要把其他 worktree 的路径传给 Git 命令。
-- Git 默认只执行只读操作：`status`、`diff`、`log`、`show`、`branch`、`tag`、`ls-files`、`blame`、`grep`、`rev-parse`、`rev-list`、`stash list` 等。
-- 未经用户明确许可，不要执行任何 Git 写操作；执行前必须先向用户说明将执行的具体操作并获得许可。包括 `add`、`commit`、`push`、`pull`、`fetch`、`merge`、`rebase`、`reset`、`revert`、`checkout`、`stash`、`clean`、创建/删除分支或 tag，以及修改 Git 配置。
-- 用户明确要求回滚改动时，核对目标范围和现有差异后，优先使用 Git 操作精确恢复，不要手写反向补丁；若目标文件混有需要保留的改动，不要整文件覆盖。Git 写操作仍须遵守上述授权要求。
-- 修改完成后不要自动 `add`、commit 或 push，也不要主动询问“是否 commit”；完成代码后先停止并等待用户 review，只有用户明确指示后才进行 Git 写操作。
-- 用户授权提交后，如 pre-commit、测试或其他验证发现问题并因此新增或修改任何文件，原提交授权不覆盖这些新改动；修复后必须停止，等待用户重新 review 并再次明确授权，不能自行继续 `add`、commit、amend、revert 或 reset。
-- Commit message 使用英文、具体描述、无 emoji、无 `Co-Authored-By`，必须遵循 Conventional Commits：`<type>(<optional-scope>): <description>`。
-- 允许的 type 只有：`feat`、`fix`、`docs`、`style`、`refactor`、`perf`、`test`、`build`、`ci`、`chore`、`revert`。
-- Commit message 必须包含 subject 和 body；subject 后空一行，再用 body 说明改了什么以及为什么改，不能只有 subject。
-- Commit body 必须让后续 `git blame` 读者独立理解具体做了什么、为什么选择该设计；对非显然的行为，应说明是有意设计还是临时过渡、在什么条件下可以删除或替换，以及已知限制、风险和容易踩的坑。不要只重复 subject 或罗列修改文件。
-- 需要多段 commit message 时，必须以 `git commit -F - <<'EOF'` heredoc 传入真实换行；不要在 `-m` 字符串中写字面量 `\\n`。
-- Issue 引用使用 body 末尾的 `Refs #NN`，不要使用 `fixes`、`closes` 或 `resolves`，除非用户明确要求关闭 issue。
+- Only read, edit, and run commands in the currently launched worktree. Do not enter another worktree to operate on files.
+- The current repository uses two worktrees: `/home/nianhe/projects/todo` (`master`) and `/home/nianhe/projects/goink` (`dev`). Treat the current working directory as authoritative; do not hard-code switching to the other directory.
+- Before running any Git command, confirm the current CWD is the worktree root for this task; do not pass another worktree's path to Git commands.
+- Git defaults to read-only operations only: `status`, `diff`, `log`, `show`, `branch`, `tag`, `ls-files`, `blame`, `grep`, `rev-parse`, `rev-list`, `stash list`, etc.
+- Do not perform any Git write operation without explicit user permission; before executing, first explain the specific operation to the user and obtain permission. This includes `add`, `commit`, `push`, `pull`, `fetch`, `merge`, `rebase`, `reset`, `revert`, `checkout`, `stash`, `clean`, creating/deleting branches or tags, and modifying Git configuration.
+- When the user explicitly requests rolling back changes, after verifying the target scope and existing differences, prefer precise restoration via Git operations; do not hand-write a reverse patch. If the target file contains changes that must be preserved, do not overwrite the whole file. Git write operations still require the authorization above.
+- After finishing changes, do not automatically `add`, commit, or push, and do not proactively ask "should I commit"; after completing code, stop first and wait for the user's review, and perform Git write operations only after the user explicitly instructs.
+- After the user authorizes a commit, if pre-commit, tests, or other verification find problems and as a result add or modify any files, the original commit authorization does not cover those new changes; after fixing, you must stop, wait for the user to re-review and explicitly re-authorize, and must not continue `add`, commit, amend, revert, or reset on your own.
+- Commit messages use English, are specific in description, contain no emoji, no `Co-Authored-By`, and must follow Conventional Commits: `<type>(<optional-scope>): <description>`.
+- The only allowed types are: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
+- A commit message must contain both a subject and a body; leave a blank line after the subject, then use the body to explain what changed and why — a subject alone is not enough.
+- The commit body must let a future `git blame` reader independently understand exactly what was done and why that design was chosen. For non-obvious behavior, state whether it is an intentional design or a temporary transition, under what conditions it can be removed or replaced, and any known limitations, risks, and common pitfalls. Do not just repeat the subject or list modified files.
+- When a multi-paragraph commit message is needed, pass real newlines via a `git commit -F - <<'EOF'` heredoc; do not write literal `\\n` in a `-m` string.
+- Reference issues using `Refs #NN` at the end of the body; do not use `fixes`, `closes`, or `resolves` unless the user explicitly asks to close the issue.
 
-## 开发流程与授权边界
+## Development Process and Authorization Boundaries
 
-- 默认流程是：先讨论设计方案 → 设定实现与 commit 路线 → 用户确认 → 开始写代码 → 验证 → 等待用户 review → 用户明确授权后执行 Git 写操作；用户明确要求文档时，在实现前编写或更新设计文档。
-- 对涉及多个文件、数据结构、API、数据库、UI 流程或行为变化的任务，必须先说明设计、影响范围、风险和验证方案；用户确认前不要写代码。
-- 仅当用户明确要求文档时，设计确认后先把方案沉淀到合适的 `docs/` 文档；未要求文档时，在对话中说明设计、影响范围和 commit 路线即可。
-- 开始实现前，列出预计的文件范围、实现步骤和 commit 拆分/路线；不要在没有路线的情况下随意边改边提交。
-- 未经用户明确允许，不要自行创建、修改或删除代码文件。可以进行只读检查、分析、提出方案和文档草稿；代码实现必须等用户确认。
-- 纯格式化、明显的拼写修正或用户明确要求“直接修复”的小改动可以直接处理，但仍需遵守其他规则，并在完成后等待 review。
-- 写完代码后报告变更和验证结果，停下来等待用户 review；不得因为测试通过就自动暂存、提交、推送或合并。
-- 每个实现阶段完成后，向用户说明做了什么、怎么做的、为什么这样做、解决了什么问题，并报告验证结果、已知限制和提交状态；汇报应具体到本阶段的实际改动，便于 review。
+- The default flow is: first discuss the design → set the implementation and commit plan → user confirms → start writing code → verify → wait for user review → perform Git write operations only after explicit user authorization. When the user explicitly requests documentation, write or update the design doc before implementation.
+- For tasks involving multiple files, data structures, APIs, databases, UI flows, or behavior changes, first explain the design, scope of impact, risks, and verification plan; do not write code before the user confirms.
+- Only when the user explicitly requests documentation, after the design is confirmed, first capture the plan into the appropriate `docs/` document; when no documentation is requested, just explain the design, scope of impact, and commit plan in the conversation.
+- Before starting implementation, list the expected file scope, implementation steps, and commit breakdown/plan; do not casually edit and commit incrementally without a plan.
+- Without explicit user permission, do not create, modify, or delete code files on your own. You may perform read-only inspection, analysis, propose plans, and draft documentation; code implementation must wait for user confirmation.
+- Pure formatting, obvious typo fixes, or small changes the user explicitly asks to "just fix" can be handled directly, but the other rules still apply, and after completing them wait for review.
+- After writing code, report the changes and verification results, then stop and wait for the user's review; do not automatically stage, commit, push, or merge just because tests pass.
+- After completing each implementation stage, explain to the user what was done, how it was done, why it was done that way, and what problem it solved, and report the verification results, known limitations, and commit status; the report should be specific to the actual changes in that stage to make review easier.
 
-## 构建与验证
+## Build and Verification
 
-- Go 命令从仓库根目录执行：`go build ./...`、`go test ./...`。
-- 前端命令必须先进入 `frontend/`：使用 `npm run build`、`npm run lint`、`npm run test`；不要在项目根目录运行 `npm install`。
-- 安装前端依赖时，在 `frontend/` 中执行 `npm install <pkg> --save`。
-- `.githooks/pre-commit` 会按 staged 文件范围执行验证：Go 变更触发 build/test/golangci-lint，前端变更触发 build/lint/test，文档和配置变更跳过。除非用户要求或需要诊断，通常不重复运行整套验证。
-- `commit-msg` hook 会校验 Conventional Commits，并要求 subject 与 body 之间有空行且 body 非空；提交前应主动遵守，不要依赖 hook 纠错。
-- 系统依赖（Ubuntu/Debian）：`libsqlite3-dev libgtk-3-dev libwebkit2gtk-4.1-dev gcc`。
+- Run Go commands from the repository root: `go build ./...`, `go test ./...`.
+- Frontend commands must first enter `frontend/`: use `npm run build`, `npm run lint`, `npm run test`; do not run `npm install` at the project root.
+- When installing frontend dependencies, run `npm install <pkg> --save` inside `frontend/`.
+- `.githooks/pre-commit` runs verification scoped to the staged files: Go changes trigger build/test/golangci-lint, frontend changes trigger build/lint/test, and documentation and configuration changes are skipped. Unless the user asks or diagnosis requires it, do not re-run the full verification suite.
+- The `commit-msg` hook validates Conventional Commits and requires a blank line between subject and body with a non-empty body; proactively comply before committing rather than relying on the hook to correct errors.
+- System dependencies (Ubuntu/Debian): `libsqlite3-dev libgtk-3-dev libwebkit2gtk-4.1-dev gcc`.
 
-## 代码库结构与约定
+## Codebase Structure and Conventions
 
-- `app/`：Wails binding 层；导出方法构成前端 API，仅做输入/输出 DTO 转换、调用内部能力和错误适配，不承载领域编排。
-- `internal/agent/`、`agentcfg/`、`llm/`、`session/`：LLM 对话、系统提示、传输和会话。
-- `internal/mcp_tools/`：MCP 工具；该目录的专门规则见 `internal/mcp_tools/AGENTS.md`。
-- `frontend/`：React 19 + TypeScript + Tailwind 4 + shadcn/ui。
-- 数据目录为 Linux/macOS 的 `~/Goink/`，Windows 为可执行文件附近；包含 `models/`、`runtime/`、数据库和小说仓库。
-- 每个小说是独立 Git 仓库，章节位于 `chapters/NNN.md`，大纲位于 `outlines/NNN.md`。
-- ONNX 和 sqlite-vec 代码使用 `//go:build cgo`；Windows 诊断时 cgo 相关编译失败是已知限制。
-- 所有 ONNX、VectorStore、RefreshQueue 均按现有代码的全局 singleton 约定维护，不要随意引入第二个实例。
-- `target_chapter` 只用于排序，不要把它当作精确过滤条件。
-- 消息是 append-only，并区分 API、前端和完整审计查询路径。
+- `app/`: the Wails binding layer; exported methods form the frontend API and only perform input/output DTO conversion, calling internal capabilities, and error adaptation — they do not carry domain orchestration.
+- `internal/agent/`, `agentcfg/`, `llm/`, `session/`: LLM conversation, system prompts, transport, and sessions.
+- `internal/mcp_tools/`: MCP tools; the specific rules for this directory are in `internal/mcp_tools/AGENTS.md`.
+- `frontend/`: React 19 + TypeScript + Tailwind 4 + shadcn/ui.
+- The data directory is `~/Goink/` on Linux/macOS and near the executable on Windows; it contains `models/`, `runtime/`, the database, and novel repositories.
+- Each novel is an independent Git repository; chapters live in `chapters/NNN.md` and outlines in `outlines/NNN.md`.
+- ONNX and sqlite-vec code use `//go:build cgo`; cgo-related compilation failures during Windows diagnostics are a known limitation.
+- All ONNX, VectorStore, and RefreshQueue instances are maintained as global singletons per the existing code convention; do not casually introduce a second instance.
+- `target_chapter` is used for sorting only; do not treat it as an exact filter condition.
+- Messages are append-only, with distinct API, frontend, and full-audit query paths.
 
-## 分层边界
+## Layering Boundaries
 
-- 结构体与 DTO：字段语义一致就复用；需要额外字段就组合或匿名嵌入；只有字段范围或语义确实不同，才单独声明。不要仅因输入、存储、查询属于不同层就重复声明相同字段；复用时检查是否带入当前接口不需要或不应暴露的字段。
-- 单一持久化介质内的简单 CRUD 可以采用 `App → Store → DB`；不要为没有业务编排的操作创建空壳 Service。
-- `Store` 只负责所属介质的读写、查询和事务内的数据一致性；例如章节的 `volume_id` / `sort_order` 调整属于 Store。
-- 涉及多个持久化介质、多个领域或有补偿流程的用例必须采用 `App → internal/<domain>.Service → Store/依赖`。Service 负责业务语义与编排，例如 DB 记录、Git 文件、交叉引用、向量索引和缓存的协调。
-- Service 不得反向依赖 `app/` 或 Wails；遇到可选基础设施（如向量库、搜索缓存）使用小接口或 provider 注入，避免领域包循环依赖。
+- Structs and DTOs: reuse when field semantics match; use composition or anonymous embedding when extra fields are needed; declare separately only when the field scope or semantics truly differ. Do not redeclare the same field just because input, storage, and query belong to different layers; when reusing, check that you are not bringing in fields the current interface does not need or should not expose.
+- Simple CRUD within a single persistence medium can follow `App → Store → DB`; do not create empty-shell Services for operations with no business orchestration.
+- A `Store` is only responsible for reading/writing, querying, and data consistency within transactions for its medium; for example, adjusting a chapter's `volume_id` / `sort_order` belongs in the Store.
+- Cases involving multiple persistence media, multiple domains, or compensating flows must follow `App → internal/<domain>.Service → Store/dependencies`. The Service is responsible for business semantics and orchestration, e.g., coordinating DB records, Git files, cross-references, vector indexes, and caches.
+- A Service must not depend back on `app/` or Wails; for optional infrastructure (such as a vector store or search cache), use a small interface or provider injection to avoid circular dependencies among domain packages.
 
-## 修改安全边界
+## Modification Safety Boundaries
 
-- 不要删除或修改 logger 语句、代码注释，除非用户明确要求。
-- 不要手动编辑 Wails 自动生成的绑定文件（例如 `frontend/src/lib/wailsjs/go/models.ts`、`App.d.ts`）。需要通过 `wails generate module` 或 `make build` 重新生成。
-- 使用编辑工具修改代码；不要用 `sed` 或 Python 脚本直接写代码文件。
-- 第一次替换文本时使用从文件中精确复制的原文；如果匹配失败，再检查格式、缩进或扩大锚点，不要先格式化整个文件。
-- 同一文件的多次编辑必须顺序执行，不能并行，避免后一次写入覆盖前一次修改。
-- 除非用户明确要求，不主动扩大任务范围，不自动生成提交、发布或远程操作。
+- Do not delete or modify logger statements or code comments unless the user explicitly requests it.
+- Do not hand-edit Wails auto-generated binding files (for example `frontend/src/lib/wailsjs/go/models.ts`, `App.d.ts`). Regenerate them via `wails generate module` or `make build`.
+- Use the editing tools to modify code; do not write code files directly with `sed` or Python scripts.
+- When replacing text for the first time, use the exact original text copied from the file; if the match fails, then check formatting, indentation, or widen the anchor — do not format the whole file first.
+- Multiple edits to the same file must be executed sequentially, not in parallel, to avoid a later write overwriting an earlier change.
+- Unless the user explicitly requests it, do not proactively expand the task scope, and do not auto-generate commits, releases, or remote operations.
 
-## 领域细节
+## Domain Details
 
-- 角色关系是 append-only，使用 `is_current` 表示当前关系；更新会新增记录并保留历史。
-- 偏好分为全局和单小说偏好，分类由 LLM 处理。
-- ONNX embedder、VectorStore 和 RefreshQueue 是全局 singleton。
-- ONNX 库查找顺序、模型目录和向量表命名沿用现有实现，不要在单个功能中重新定义路径规则。
+- Character relationships are append-only, using `is_current` to mark the current relationship; an update adds a new record and preserves the history.
+- Preferences are divided into global and per-novel preferences; classification is handled by the LLM.
+- The ONNX embedder, VectorStore, and RefreshQueue are global singletons.
+- The ONNX library lookup order, model directory, and vector table naming follow the existing implementation; do not redefine path rules within a single feature.
 
-## 代码审查重点
+## Code Review Focus
 
-- 检查是否误改自动生成文件、日志/注释、数据 append-only 语义或 cgo build tag。
-- 检查 Git 写操作是否得到用户明确授权。
-- 检查 Go 与前端命令是否在正确目录执行，以及变更是否需要对应测试。
+- Check for accidental changes to auto-generated files, logs/comments, data append-only semantics, or cgo build tags.
+- Check that Git write operations have explicit user authorization.
+- Check that Go and frontend commands are run in the correct directory, and whether the changes require corresponding tests.
