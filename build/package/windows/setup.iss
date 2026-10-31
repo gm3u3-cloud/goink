@@ -31,7 +31,7 @@ WizardStyle=modern
 VersionInfoVersion={#MyVersionInfo}
 VersionInfoProductVersion={#MyVersionInfo}
 VersionInfoCompany=sigpanic
-VersionInfoDescription=Goink - AI 小说创作助手
+VersionInfoDescription=Goink - AI Novel Writing Assistant
 VersionInfoProductName=Goink
 VersionInfoCopyright=Copyright © 2026 sigpanic
 VersionInfoOriginalFilename=goink-v{#MyAppVersion}-windows-amd64.exe
@@ -48,16 +48,16 @@ Source: "..\..\runtime\vcruntime140_1.dll"; DestDir: "{app}"; Flags: ignoreversi
 Source: "..\..\runtime\msvcp140.dll";       DestDir: "{app}"; Flags: ignoreversion
 
 [Tasks]
-Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: "快捷方式:"; Flags: checkedonce
+Name: "desktopicon"; Description: "Create desktop shortcut"; GroupDescription: "Shortcuts:"; Flags: checkedonce
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{autoprograms}\{#MyAppName}\卸载 Goink"; Filename: "{uninstallexe}"
+Name: "{autoprograms}\{#MyAppName}\Uninstall Goink"; Filename: "{uninstallexe}"
 Name: "{userdesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 ; 安装完成后可选启动 Goink（postinstall 显示复选框，skipifsilent 避免静默安装时弹窗）
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "启动 Goink"; Flags: postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "Launch Goink"; Flags: postinstall skipifsilent
 
 [Code]
 function GetDefaultDir(Param: string): string;
