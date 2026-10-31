@@ -52,17 +52,23 @@ export default function StyleView({
   embedded = false,
   novelId = 0,
 }: Props) {
-  // 5.3 commit 4: model 走 useModels/useSettings query（共享 5.1 chat 缓存）+ SaveContent 走 useSaveContent mutation（5.2），废弃 splitModelKey。
-  //   流式/命令调用仍直接 import wailsjs：ExtractStyle/CancelExtract（流式）
-  //   已迁 query + mutation：List/Get/Create/Update/DeleteStyleSample + GetModels/GetSettings + SaveContent
+  // 5.3 commit 4: the model goes through the useModels/useSettings queries
+  // (sharing the 5.1 chat cache) + SaveContent goes through the
+  // useSaveContent mutation (5.2); splitModelKey is deprecated.
+  //   Streaming/command calls still import wailsjs directly:
+  //   ExtractStyle/CancelExtract (streaming)
+  //   Already migrated to query + mutation: List/Get/Create/Update/
+  //   DeleteStyleSample + GetModels/GetSettings + SaveContent
   const { t } = useTranslation();
   const runningTaskIdRef = useRef<string | null>(null);
 
-  // CRUD 走 mutation（onSuccess 内部 invalidateQueries，组件不再手动 qc.invalidate + setLoading 三件套）。
+  // CRUD goes through mutations (onSuccess invalidates internally; the
+  // component no longer does the manual qc.invalidate + setLoading trio).
   const createMutation = useCreateStyleSample();
   const updateMutation = useUpdateStyleSample();
   const deleteMutation = useDeleteStyleSample();
-  // SaveContent 走 content 领域 mutation（5.2 建，onSuccess 失效 contentKeys.detail 保持缓存一致）。
+  // SaveContent goes through the content domain mutation (created in 5.2;
+  // onSuccess invalidates contentKeys.detail to keep the cache consistent).
   const saveMutation = useSaveContent();
 
   const [page, setPage] = useState(1);
@@ -79,15 +85,18 @@ export default function StyleView({
   const [newNovelId, setNewNovelId] = useState(0);
   const [newTags, setNewTags] = useState<string[]>([]);
 
-  // extract: models/settings 走 query（共享 5.1 chat 缓存），废弃手动 fetch + splitModelKey。
+  // extract: models/settings go through queries (sharing the 5.1 chat
+  // cache); manual fetch + splitModelKey are deprecated.
   const modelsQuery = useModels();
   const settingsQuery = useSettings();
   const models = useMemo(() => modelsQuery.data ?? [], [modelsQuery.data]);
-  // 结构化选中模型（含 ProviderName/ModelID），替代 modelKey 字符串 + useMemo find。
+  // The structured selected model (with ProviderName/ModelID), replacing
+  // the modelKey string + useMemo find.
   const [selectedModel, setSelectedModel] = useState<llm.AvailableModel | null>(
     null,
   );
-  // reasoningEffort：跟随选中模型。model 支持时默认第一档，不支持时空串。
+  // reasoningEffort: follows the selected model. When the model supports
+  // it, the first level is the default; when it does not, an empty string.
   const [reasoningEffort, setReasoningEffort] = useState("");
   const [error, setError] = useState("");
   const [result, setResult] = useState<{
@@ -98,13 +107,17 @@ export default function StyleView({
   const [overwriteContent, setOverwriteContent] = useState<string | null>(null);
   const [checkingSave, setCheckingSave] = useState(false);
 
-  // 3.9: novels 走 useNovels query（与 WorkspaceView/GeneralConfigTab/PatternExtractView 共享缓存）。
+  // 3.9: novels go through the useNovels query (sharing the cache with
+  // WorkspaceView/GeneralConfigTab/PatternExtractView).
   const { data: novels = [] } = useNovels();
 
-  // samples 走 useStyleSamples query（不再 useApp.ListStyleSamples + loadRef 三件套）。
-  // queryKey 含 page/size/search，page 变化触发新 query；novelId 变化自动 refetch（queryKey 含 novelId）。
-  // GET 错误由全局中间件接管（queryErrorToast.ts），组件不挂 toastError。
-  // CRUD 后由 mutation 的 onSuccess invalidateQueries 同步缓存。
+  // samples go through the useStyleSamples query (no more
+  // useApp.ListStyleSamples + loadRef trio).
+  // queryKey includes page/size/search; a page change triggers a new query;
+  // a novelId change auto-refetches (queryKey includes novelId).
+  // GET errors are handled by the global middleware (queryErrorToast.ts);
+  // the component does not mount toastError.
+  // After CRUD the mutation's onSuccess invalidateQueries syncs the cache.
   const samplesQuery = useStyleSamples({
     novelId,
     page,
@@ -133,9 +146,12 @@ export default function StyleView({
   const [editTags, setEditTags] = useState<string[]>([]);
   const [editNovelId, setEditNovelId] = useState(0);
 
-  // detail 走 useStyleSample query（不再 useApp.GetStyleSample 手动 fetch）。
-  // openDetail 只 setDetailId 触发 query，useEffect 监听 query.data ready 回填编辑字段。
-  // GET 错误由中间件接管，弹窗内 inline 显示错误文案（三分支）。
+  // detail goes through the useStyleSample query (no more manual
+  // useApp.GetStyleSample fetch).
+  // openDetail only sets detailId to trigger the query; a useEffect watches
+  // for the query.data to become ready and back-fills the edit fields.
+  // GET errors are handled by the middleware; the dialog shows the error
+  // text inline (three branches).
   const sampleQuery = useStyleSample(detailId);
 
   useEffect(() => {
@@ -160,7 +176,8 @@ export default function StyleView({
     }
   }, [focusId, openDetail, onFocusHandled]);
 
-  // 从 settings 恢复选中模型（models + settings query ready 后回填，替代手动 GetSettings fetch）。
+  // Restore the selected model from settings (back-filled after the models
+  // + settings queries are ready, replacing the manual GetSettings fetch).
   useEffect(() => {
     if (!selectedModel && models.length > 0 && settingsQuery.data) {
       const key = settingsQuery.data.selected_model_key || "";
@@ -174,7 +191,8 @@ export default function StyleView({
     }
   }, [models, settingsQuery.data, selectedModel]);
 
-  // 切 model：若支持 reasoning 默认第一档，不支持时清空（与 ChatControls 一致）。
+  // Switching the model: if reasoning is supported, the first level is the
+  // default; if not, clear it (consistent with ChatControls).
   const handleSelectModel = useCallback(
     (key: string) => {
       const m = models.find((item) => item.Key === key);
@@ -290,7 +308,9 @@ export default function StyleView({
     } catch (e) {
       if (runningTaskIdRef.current !== taskId) return;
       const msg = toErrorMessage(e, "");
-      if (!msg.toLowerCase().includes("cancel") && !msg.includes("取消")) {
+      // The backend signals cancellation with Go's "context canceled"
+      // (English); no other locale is expected here.
+      if (!msg.toLowerCase().includes("cancel")) {
         setError(msg || t("styleSample.extractFailed"));
       }
       setPhase("browse");
@@ -377,13 +397,13 @@ export default function StyleView({
     <div
       className={`flex-1 flex flex-col min-h-0 ${embedded ? "" : "bg-background"}`}
     >
-      {/* 顶部工具栏 */}
+      {/* Top toolbar */}
       <div className="flex items-center justify-between px-6 py-4 border-b shrink-0">
         {phase === "preview" && result ? (
           <>
             <span className="text-sm text-muted-foreground flex items-center gap-2">
               <Sparkle className="w-4 h-4 text-primary" />
-              {t("styleSample.generated")}「{result.name}」
+              {t("styleSample.generated")}“{result.name}”
             </span>
             <div className="flex items-center gap-2">
               <button
@@ -504,7 +524,7 @@ export default function StyleView({
         </div>
       )}
 
-      {/* 添加素材面板 */}
+      {/* Add-material panel */}
       {phase === "adding" && (
         <div className="flex-1 min-h-0 flex flex-col mx-6 my-4 p-4 rounded-xl border bg-card/50 backdrop-blur-sm">
           <div className="flex gap-3 shrink-0">
@@ -565,7 +585,7 @@ export default function StyleView({
         </div>
       )}
 
-      {/* 预览结果 */}
+      {/* Preview result */}
       {phase === "preview" && result && (
         <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-3">
           {Object.keys(meta).length > 0 && (
@@ -600,7 +620,7 @@ export default function StyleView({
         </div>
       )}
 
-      {/* 素材卡片网格 */}
+      {/* Material card grid */}
       {(phase === "browse" || phase === "extracting") && (
         <div className="flex-1 flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-6">
@@ -636,7 +656,7 @@ export default function StyleView({
             )}
           </div>
 
-          {/* 分页控件 */}
+          {/* Pagination controls */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 px-6 py-3 border-t shrink-0">
               <button
@@ -664,7 +684,7 @@ export default function StyleView({
         </div>
       )}
 
-      {/* 详情编辑弹窗 */}
+      {/* Detail edit dialog */}
       {detailId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
@@ -770,7 +790,7 @@ export default function StyleView({
         title={t("common.confirmDelete")}
         message={
           deleteTarget
-            ? `${t("styleSample.confirmDeleteSample")}「${deleteTarget.name}」？`
+            ? `${t("styleSample.confirmDeleteSample")}“${deleteTarget.name}”?`
             : ""
         }
         danger

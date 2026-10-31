@@ -2,12 +2,17 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DeleteCharacter } from "@/lib/wailsjs/go/app/App";
 import { characterKeys } from "@/lib/queryKeys";
 
-// useDeleteCharacter: 删除角色 mutation。
-// mutationFn 直接 import wailsjs DeleteCharacter（不用 useApp）。
-// 两处共用：CharacterListView 执行删除（confirmDelete 调 mutateAsync）；CharacterList 只 dispatch store 不执行。
-// handler 负责 setDeletingCharacterId(null) + 错误 throw（副作用各异，不放进 mutation）。
-// onSuccess 失效 list + relations：后端 DeleteCharacter 事务级联删关系记录，
-// 前端两个 query 缓存都要刷新（CharacterGraph 的 useCharacterRelations 也 refetch，缓存干净）。
+// useDeleteCharacter: delete character mutation.
+// mutationFn imports wailsjs DeleteCharacter directly (not useApp).
+// Shared in two places: CharacterListView executes the deletion
+// (confirmDelete calls mutateAsync); CharacterList only dispatches to the
+// store and does not execute.
+// The handler is responsible for setDeletingCharacterId(null) + throwing the
+// error (the side effects differ, so they are not placed in the mutation).
+// onSuccess invalidates list + relations: the backend DeleteCharacter
+// transaction cascades to delete the relation records, so both frontend
+// query caches must refresh (CharacterGraph's useCharacterRelations also
+// refetches, keeping the cache clean).
 export function useDeleteCharacter(novelId: number) {
   const qc = useQueryClient();
   return useMutation({

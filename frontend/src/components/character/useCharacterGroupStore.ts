@@ -12,7 +12,8 @@ interface CharacterGroupUIState {
   deleteGroup: (novelId: number, groupId: number | undefined) => void;
 }
 
-// 仅共享侧边栏与主区的导航、分组编辑请求；按小说隔离，数据仍由 query 管理。
+// Only shares the sidebar/main-area navigation and group edit requests;
+// isolated per novel; the data is still managed by queries.
 export const useCharacterGroupStore = create<CharacterGroupUIState>((set) => ({
   selectedGroups: {},
   viewTabs: {},

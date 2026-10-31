@@ -3,14 +3,21 @@ import { UpdatePreference } from "@/lib/wailsjs/go/app/App";
 import type { app } from "@/lib/wailsjs/go/models";
 import { preferenceKeys } from "@/lib/queryKeys";
 
-// useUpdatePreference: 更新偏好条目 mutation。
-// mutationFn 直接 import wailsjs UpdatePreference（不用 useApp），返回 preference.PreferenceItem。
-// 参数顺序：UpdatePreference(novelId, id, input)（3 参，novelId 在前，
-// 与 reader 的 UpdateReaderPerspective(id, novelId, input) 顺序相反，preference 后端签名如此）。
-// 入参 {id, input}：input 用 app.UpdatePreferenceInput（PUT 语义，全量回传）。
-// 消费方：PreferenceView.handleSave（mutateAsync 抛错由 handler try/catch 接住）。
-// handler 负责 setEditMode(null) + setForm(EMPTY_FORM) + 错误 toast（副作用不放进 mutation）。
-// onSuccess 失效 preferences：entry 字段变更入列表。
+// useUpdatePreference: update preference entry mutation.
+// mutationFn directly imports the wailsjs UpdatePreference (no useApp);
+// returns preference.PreferenceItem.
+// Parameter order: UpdatePreference(novelId, id, input) (3 parameters,
+// novelId first — the reverse of reader's
+// UpdateReaderPerspective(id, novelId, input); the preference backend
+// signature is like this).
+// Input {id, input}: input uses app.UpdatePreferenceInput (PUT semantics,
+// full payload sent back).
+// Consumer: PreferenceView.handleSave (mutateAsync errors are caught by the
+// handler's try/catch).
+// The handler is responsible for setEditMode(null) + setForm(EMPTY_FORM) +
+// the error toast (side effects are not put in the mutation).
+// onSuccess invalidates preferences: the entry's field changes are reflected
+// in the list.
 export function useUpdatePreference(novelId: number) {
   const qc = useQueryClient();
   return useMutation({

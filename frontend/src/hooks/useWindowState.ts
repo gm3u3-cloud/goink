@@ -70,12 +70,14 @@ export function useWindowState() {
         .catch(() => {});
     }
 
-    // 不依赖 beforeunload 保存：WebView2 关窗时 beforeunload 里的异步 IPC 来不及
-    // 完成，生产版 localStorage 中 goink_window_* 从未写入（tabs/面板宽度因
-    // debounce 定期写盘而正常）。改为事件驱动 + 定期轮询持续落盘：
-    //   - resize 事件：缩放/最大化/还原（防抖 300ms）
-    //   - 5s 轮询：窗口拖动（无 resize 事件）时兜底
-    //   - beforeunload：仅作最后兜底
+    // Don't rely on beforeunload to save: when WebView2 closes the window the
+    // async IPC in beforeunload doesn't finish in time, so in production the
+    // goink_window_* keys in localStorage were never written (tab/panel
+    // widths are fine because they flush on a debounced interval). Switch to
+    // event-driven + periodic polling to keep persisting:
+    //   - resize event: resize/maximize/restore (debounced 300ms)
+    //   - 5s polling: fallback when the window is dragged (no resize event)
+    //   - beforeunload: last-resort fallback only
     let timer: ReturnType<typeof setTimeout> | null = null;
     function debouncedSave() {
       if (timer) clearTimeout(timer);
@@ -88,7 +90,7 @@ export function useWindowState() {
     window.addEventListener("resize", debouncedSave);
     window.addEventListener("beforeunload", save);
     const interval = setInterval(save, 5000);
-    save(); // 基线
+    save(); // baseline
 
     return () => {
       window.removeEventListener("resize", debouncedSave);

@@ -72,7 +72,8 @@ export function useCreativeActivity() {
       try {
         await RecordCreativeActivity(seconds);
       } catch {
-        // 近似统计允许漏记，不重试或打断创作。
+        // Approximate stats allow missed samples; no retry or
+        // interruption of the creative work.
       }
     }, HEARTBEAT_MS);
 

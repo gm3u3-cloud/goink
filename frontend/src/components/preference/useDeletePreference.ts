@@ -2,12 +2,16 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DeletePreference } from "@/lib/wailsjs/go/app/App";
 import { preferenceKeys } from "@/lib/queryKeys";
 
-// useDeletePreference: 删除偏好条目 mutation。
-// mutationFn 直接 import wailsjs DeletePreference（不用 useApp）。
-// 单参 API：DeletePreference(preferenceId)（区别于 reader 的双参 entryId+novelId）。
-// 消费方：PreferenceView.confirmDelete（mutateAsync 抛错由 handler try/catch 接住）。
-// handler 负责 setDeleteTarget(null) + 错误 toast（副作用不放进 mutation）。
-// onSuccess 失效 preferences：entry 删除后列表同步（PreferenceView + PreferenceList 共享缓存）。
+// useDeletePreference: delete preference entry mutation.
+// mutationFn directly imports the wailsjs DeletePreference (no useApp).
+// Single-parameter API: DeletePreference(preferenceId) (unlike reader's
+// two-parameter entryId+novelId).
+// Consumer: PreferenceView.confirmDelete (mutateAsync errors are caught by
+// the handler's try/catch).
+// The handler is responsible for setDeleteTarget(null) + the error toast
+// (side effects are not put in the mutation).
+// onSuccess invalidates preferences: the list syncs after the entry is
+// deleted (PreferenceView + PreferenceList share the cache).
 export function useDeletePreference(novelId: number) {
   const qc = useQueryClient();
   return useMutation({

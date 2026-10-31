@@ -27,8 +27,9 @@ import { useUpdateTimelineEntry } from "./useUpdateTimelineEntry";
 import { useSaveChapterPlan } from "./useSaveChapterPlan";
 import { useChapters } from "@/components/chapter/useChapters";
 import { buildChapterReferenceMap } from "@/components/chapter/chapterReferenceMap";
-// useMaxChapterNumber 跨领域复用：storyarc 4.3 先建，timeline 共用
-// （GetMaxChapterNumber 同一 API，maxChapterKeys 共享缓存）。
+// useMaxChapterNumber is reused across domains: storyarc 4.3 created it
+// first, and timeline shares it
+// (the same GetMaxChapterNumber API, with the maxChapterKeys cache shared).
 import { useMaxChapterNumber } from "../storyarc/useMaxChapterNumber";
 
 interface Props {
@@ -52,7 +53,8 @@ const PLAN_LABELS: Record<Tab, string> = {
   near: "timeline.nearTerm",
   far: "timeline.farTerm",
 };
-// 4b: CATEGORIES 只存数据值，label 由 t("timeline." + value) 动态拼接（与搜索 subtitle 同机制）。
+// 4b: CATEGORIES stores only data values; the label is built dynamically
+// with t("timeline." + value) (the same mechanism as the search subtitle).
 const CATEGORIES = ["foreshadowing", "user_directive"];
 const STATUSES = [
   { value: "pending", label: "timeline.inProgress" },
@@ -98,8 +100,10 @@ export default function TimelineView({ novelId }: Props) {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  // 4.4.1: entries/plans/maxChapter 走 query（与 TimelineList 共享缓存）。
-  // 4a: query 错误 toast 由全局中间件接管（queryErrorToast.ts），此处不挂 useEffect。
+  // 4.4.1: entries/plans/maxChapter go through queries (sharing the cache
+  // with TimelineList).
+  // 4a: the query error toast is handled by the global middleware
+  // (queryErrorToast.ts); no useEffect is mounted here.
   const entriesQuery = useTimelineEntries(novelId);
   const plansQuery = useChapterPlans(novelId);
   const { data: chapters = [] } = useChapters(novelId);
@@ -108,9 +112,12 @@ export default function TimelineView({ novelId }: Props) {
     [chapters],
   );
   const maxChQuery = useMaxChapterNumber(novelId);
-  // 4.4.2/4.4.3: CRUD 走 mutation，deleting/saving 由 mutation.isPending 推导（不再用 useState）。
-  // onSuccess 失效对应 query（entry CRUD 失效 timeline；plan CRUD 失效 chapter-plans；
-  // 都不失效 max-chapter：entry/plan 不影响小说最大章节号）。
+  // 4.4.2/4.4.3: CRUD goes through mutations; deleting/saving are derived
+  // from mutation.isPending (no more useState).
+  // onSuccess invalidates the corresponding query (entry CRUD invalidates
+  // timeline; plan CRUD invalidates chapter-plans;
+  // neither invalidates max-chapter: entries/plans do not affect the novel's
+  // max chapter number).
   const deleteMutation = useDeleteTimelineEntry(novelId);
   const createMutation = useCreateTimelineEntry(novelId);
   const updateMutation = useUpdateTimelineEntry(novelId);
@@ -123,7 +130,9 @@ export default function TimelineView({ novelId }: Props) {
   const entries = entriesQuery.data ?? [];
   const plans = plansQuery.data ?? [];
   const loading = entriesQuery.isLoading || plansQuery.isLoading;
-  // loadFailed 只看 entries（entries 失败整列表不可用）。plans 失败时列表仍渲染（空 plan）+ toast。
+  // loadFailed only looks at entries (if entries fail, the whole list is
+  // unusable). When plans fail, the list still renders (empty plans) +
+  // toast.
   const loadFailed = entriesQuery.isError;
 
   const [planTab, setPlanTab] = useState<Tab>("next");
@@ -133,7 +142,8 @@ export default function TimelineView({ novelId }: Props) {
   const [form, setForm] = useState<EditForm>(EDIT_FORM_EMPTY);
   const [createCat, setCreateCat] = useState("foreshadowing");
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
-  // 4b: 高亮声明式——focus 触发后由 state 驱动 className（参考 CharacterListView highlightedId）。
+  // 4b: declarative highlighting — after focus is triggered, state drives
+  // the className (see CharacterListView's highlightedId).
   const [highlightedId, setHighlightedId] = useState<number | null>(null);
 
   const readingNumberForChapterID = useCallback(
@@ -142,14 +152,17 @@ export default function TimelineView({ novelId }: Props) {
     [chapterReferences],
   );
 
-  // 4.4.1: maxChapter 就绪后初始化 windowCenter（替代原 load() 里的 setWindowCenter）。
+  // 4.4.1: once maxChapter is ready, initialize windowCenter (replaces the
+  // setWindowCenter in the old load()).
   useEffect(() => {
     const max = maxChQuery.data ?? 0;
     if (max > 0) setWindowCenter(Math.max(1, max));
   }, [maxChQuery.data]);
 
-  // 4b: focus 触发后——滑窗对齐到 entry 章节 + 高亮该 entry + 滚动到卡片。
-  // 高亮走 state 驱动 className（声明式），不命令式 classList.add/remove（易漏 cleanup）。
+  // 4b: after focus is triggered — slide the window to align with the
+  // entry's chapter + highlight that entry + scroll to the card.
+  // The highlight is state-driven className (declarative), not imperative
+  // classList.add/remove (easy to miss the cleanup).
   useEffect(() => {
     if (!focusEntryId || focusEntryId <= 0 || entries.length === 0) return;
     const entry = entries.find((e) => e.id === focusEntryId);
@@ -299,7 +312,8 @@ export default function TimelineView({ novelId }: Props) {
 
   async function handleSavePlan() {
     if (!editMode || editMode.type !== "plan") return;
-    // 4.4.3: 走 mutation（onSuccess 失效 chapter-plans），删 setSaving/bumpRefresh。
+    // 4.4.3: goes through the mutation (onSuccess invalidates
+    // chapter-plans); removed setSaving/bumpRefresh.
     try {
       await savePlanMutation.mutateAsync({
         scope: editMode.scope,
@@ -321,7 +335,8 @@ export default function TimelineView({ novelId }: Props) {
       toastError(t("timeline.pleaseEnterTargetChapter"));
       return;
     }
-    // 4.4.3: 走 mutation（onSuccess 失效 timeline），删 setSaving/bumpRefresh。
+    // 4.4.3: goes through the mutation (onSuccess invalidates timeline);
+    // removed setSaving/bumpRefresh.
     try {
       await createMutation.mutateAsync({
         category: createCat,
@@ -355,8 +370,9 @@ export default function TimelineView({ novelId }: Props) {
       toastError(t("timeline.chapterNotFound"));
       return;
     }
-    // 4.4.3: 走 mutation（onSuccess 失效 timeline），删 setSaving/bumpRefresh。
-    // 全量回传 input 所有字段（§6 等价 PUT）。
+    // 4.4.3: goes through the mutation (onSuccess invalidates timeline);
+    // removed setSaving/bumpRefresh.
+    // Pass all input fields (full payload, §6 equivalent to a PUT).
     try {
       await updateMutation.mutateAsync({
         id: editMode.entry.id,
@@ -382,7 +398,8 @@ export default function TimelineView({ novelId }: Props) {
 
   async function confirmDelete() {
     if (deleteTarget === null) return;
-    // 4.4.2: 走 mutation（onSuccess 失效 timeline），删 setDeleting/bumpRefresh。
+    // 4.4.2: goes through the mutation (onSuccess invalidates timeline);
+    // removed setDeleting/bumpRefresh.
     try {
       await deleteMutation.mutateAsync(deleteTarget);
       setDeleteTarget(null);
@@ -407,8 +424,10 @@ export default function TimelineView({ novelId }: Props) {
       toastError(t("timeline.chapterNotFound"));
       return;
     }
-    // 4.4.3: 走 updateMutation（onSuccess 失效 timeline），删 setSaving/bumpRefresh。
-    // 全量回传 input 所有字段（§6 等价 PUT）：其他字段传 entry 原值，status 传 newStatus。
+    // 4.4.3: goes through updateMutation (onSuccess invalidates timeline);
+    // removed setSaving/bumpRefresh.
+    // Pass all input fields (full payload, §6 equivalent to a PUT): other
+    // fields pass the entry's original values, status passes newStatus.
     try {
       await updateMutation.mutateAsync({
         id: entry.id,
@@ -655,7 +674,8 @@ export default function TimelineView({ novelId }: Props) {
                 </span>
                 <button
                   onClick={() => {
-                    // 4.4.1: refresh 按钮 invalidate 三个 query（替代原 bumpRefresh）。
+                    // 4.4.1: the refresh button invalidates the three
+                    // queries (replaces the old bumpRefresh).
                     queryClient.invalidateQueries({
                       queryKey: timelineKeys.list(novelId),
                     });

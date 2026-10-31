@@ -27,8 +27,10 @@ export default function BookshelfView({
   onImportNovel,
 }: Props) {
   const { t } = useTranslation();
-  // 3.2: 数据 + UI 状态从 store/query 订阅（原由 WorkspaceView 注入 props）。
-  // useNovels 与 WorkspaceView 共享 novelKeys.all 缓存，不重复 fetch。
+  // 3.2: Data + UI state are subscribed from the store/query (previously
+  // injected as props by WorkspaceView).
+  // useNovels shares the novelKeys.all cache with WorkspaceView, so no
+  // duplicate fetch.
   const { data: novels = [] } = useNovels();
   const activeNovelId = useNovelStore((s) => s.activeNovelId);
   const setEditingNovel = useNovelStore((s) => s.setEditingNovel);
@@ -60,7 +62,7 @@ export default function BookshelfView({
     if (!file || uploadingRef.current == null) return;
     const novelID = uploadingRef.current;
     uploadingRef.current = null;
-    // 清空 input 以便重复选同一文件
+    // Clear the input so the same file can be selected again
     e.target.value = "";
     try {
       await onSaveCover(novelID, file);
@@ -83,7 +85,7 @@ export default function BookshelfView({
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-background">
-      {/* 隐藏文件选择器 */}
+      {/* Hidden file picker */}
       <input
         ref={fileInputRef}
         type="file"
@@ -92,7 +94,7 @@ export default function BookshelfView({
         onChange={handleFileChange}
       />
 
-      {/* 顶部工具栏 */}
+      {/* Top toolbar */}
       <div className="flex items-center justify-between px-6 py-4 border-b shrink-0">
         <span className="text-sm text-muted-foreground">
           {t("novel.totalWorks", { count: novels.length })}
@@ -115,14 +117,14 @@ export default function BookshelfView({
         </div>
       </div>
 
-      {/* 空状态 */}
+      {/* Empty state */}
       {novels.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
           <BookOpen className="w-12 h-12 opacity-30" />
           <p className="text-sm">{t("novel.noWorksYet")}</p>
         </div>
       ) : (
-        /* 书架网格 */
+        /* Bookshelf grid */
         <div className="flex-1 overflow-y-auto overscroll-contain p-6">
           <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-5">
             {novels.map((n) => (
@@ -131,14 +133,14 @@ export default function BookshelfView({
                 className={`group relative flex flex-col rounded-lg border bg-card hover:shadow-md transition-shadow cursor-pointer select-none
                   ${n.id === activeNovelId ? "ring-2 ring-primary" : ""}`}
               >
-                {/* 点击卡片主体切换书 */}
+                {/* Click the card body to switch books */}
                 <div
                   className="flex flex-col flex-1 p-3"
                   onClick={() => onSelectNovel(n)}
                 >
                   <div className="w-full aspect-[3/4] mb-3 rounded-sm overflow-hidden relative">
                     <BookCover novelId={n.id} refreshKey={coverKeys[n.id]} />
-                    {/* 悬浮封面上传按钮 */}
+                    {/* Hover cover-upload button */}
                     <button
                       onClick={(e) => handleCoverClick(n.id, e)}
                       className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -180,7 +182,7 @@ export default function BookshelfView({
                   )}
                 </div>
 
-                {/* 悬浮操作按钮 */}
+                {/* Hover action buttons */}
                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={(e) => {

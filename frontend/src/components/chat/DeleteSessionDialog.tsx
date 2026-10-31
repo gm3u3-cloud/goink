@@ -12,12 +12,17 @@ interface Props {
   onActiveSessionDeleted: () => void;
 }
 
-// DeleteSessionDialog: 会话删除集中确认对话框（ChatPanel 唯一入口）。
-// 从 store 取 deletingSession，挂唯一 ConfirmDialog；
-// SessionHistory/RecentSessions 点删除只 dispatch store，不执行、不挂 ConfirmDialog。
-// 删除成功后：invalidate sessions 全前缀（mutation onSuccess）+
-//   若删的是活跃会话则 invalidate messages + onActiveSessionDeleted 清空视图。
-// 删除失败：调用方 try/catch + toastError（mutation 不挂 onError）。
+// DeleteSessionDialog: the centralized session-deletion confirm dialog
+// (the only entry point in ChatPanel).
+// Reads deletingSession from the store and mounts the single ConfirmDialog;
+// SessionHistory/RecentSessions delete clicks only dispatch to the store —
+// no execution, no ConfirmDialog mounted.
+// After a successful deletion: invalidate the full sessions prefix
+// (mutation onSuccess) +
+//   if the deleted session was active, invalidate messages + clear the view
+//   via onActiveSessionDeleted.
+// On deletion failure: the caller does try/catch + toastError (the mutation
+// has no onError).
 export default function DeleteSessionDialog({
   activeSessionId,
   onActiveSessionDeleted,
@@ -32,7 +37,8 @@ export default function DeleteSessionDialog({
     if (!deletingSession) return;
     try {
       await deleteMutation.mutateAsync(deletingSession.session_id);
-      // 若删的是活跃会话，invalidate messages + 清空活跃会话视图
+      // If the deleted session was active, invalidate messages + clear the
+      // active session view
       if (deletingSession.session_id === activeSessionId) {
         qc.invalidateQueries({
           queryKey: sessionMessagesKeys.detail(deletingSession.session_id),

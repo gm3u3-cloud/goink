@@ -5,9 +5,12 @@ interface SearchState {
   setQuery: (q: string) => void;
 }
 
-// 5.5 commit 2：搜索词外置 store，消除 WorkspaceView→SidePanel→SearchPanel 透传链路。
-// store 全局持有，SearchPanel unmount 后切回仍保留搜索词（规则 7 UI/UX 不变）。
-// 搜索结果仍在 useQuery 缓存（commit 1 useSearch），本 store 只持 query。
+// 5.5 commit 2: the search query is lifted into a store, eliminating the
+// WorkspaceView→SidePanel→SearchPanel prop-drilling chain.
+// The store is held globally, so after SearchPanel unmounts and you switch
+// back the query is still preserved (rule 7: UI/UX unchanged).
+// Search results still live in the useQuery cache (commit 1 useSearch); this
+// store only holds the query.
 export const useSearchStore = create<SearchState>((set) => ({
   query: "",
   setQuery: (q) => set({ query: q }),

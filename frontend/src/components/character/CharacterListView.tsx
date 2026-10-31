@@ -61,11 +61,14 @@ function CharacterListViewContent({ novelId }: Props) {
   const focus = useFocusWithNonce("characters");
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  // 4.1.1: characters 数据走 useCharacters query，与 CharacterGraph / CharacterList 共享缓存。
-  // 删除原 useState<characters> + useEffect + useRefresh 链路；
-  // CRUD 后由 invalidateQueries 触发所有订阅者 refetch。
-  // 4a: query 错误 toast 由全局中间件接管（queryErrorToast.ts），此处不再挂 useEffect。
-  // 中间件在 QueryCache 层 fire 一次，避免多组件订阅同 queryKey 时重复 toast。
+  // 4.1.1: characters data goes through the useCharacters query, sharing
+  // the cache with CharacterGraph / CharacterList.
+  // Removes the old useState<characters> + useEffect + useRefresh chain;
+  // after CRUD, invalidateQueries triggers a refetch in all subscribers.
+  // 4a: the query error toast is handled by the global middleware
+  // (queryErrorToast.ts); no useEffect is mounted here.
+  // The middleware fires once at the QueryCache layer, avoiding duplicate
+  // toasts when multiple components subscribe to the same queryKey.
   const charsQuery = useCharacters(novelId);
   const characters = useMemo(() => charsQuery.data ?? [], [charsQuery.data]);
   const groupsQuery = useCharacterGroups(novelId);
@@ -108,16 +111,22 @@ function CharacterListViewContent({ novelId }: Props) {
 
   const [editMode, setEditMode] = useState<EditMode>(null);
   const [form, setForm] = useState<CharForm>(EMPTY_FORM);
-  // 4b: 高亮声明式——focus 触发后由 state 驱动 className，render 阶段应用，
-  // 不再用命令式 classList.add/remove（易漏 cleanup）。参考 CharacterGraph 的 selectedCharacter。
+  // 4b: declarative highlighting — after focus is triggered, state drives
+  // the className and it is applied during render; no more imperative
+  // classList.add/remove (easy to miss the cleanup). See CharacterGraph's
+  // selectedCharacter.
   const [highlightedId, setHighlightedId] = useState<number | null>(null);
-  // 4.1.2: create/update/delete 走 mutation，saving 由 mutation.isPending 推导（不再用 useState）。
-  // create/update 共用 saving（同一时刻只可能开一个编辑表单）；delete 用 deleteMutation.isPending。
+  // 4.1.2: create/update/delete go through mutations; saving is derived
+  // from mutation.isPending (no more useState).
+  // create/update share saving (only one edit form can be open at a time);
+  // delete uses deleteMutation.isPending.
   const createMutation = useCreateCharacter(novelId);
   const updateMutation = useUpdateCharacter(novelId);
   const saving = createMutation.isPending || updateMutation.isPending;
-  // 4.1.2: 删除走 useDeleteCharacter mutation + useCharacterStore 共享 deletingCharacterId。
-  // CharacterList 点删除只 dispatch setDeletingCharacterId，ConfirmDialog + 执行集中在此处。
+  // 4.1.2: deletion goes through the useDeleteCharacter mutation +
+  // useCharacterStore's shared deletingCharacterId.
+  // CharacterList delete clicks only dispatch setDeletingCharacterId; the
+  // ConfirmDialog + execution are centralized here.
   const deleteMutation = useDeleteCharacter(novelId);
   const deletingCharacterId = useCharacterStore((s) => s.deletingCharacterId);
   const setDeletingCharacterId = useCharacterStore(
@@ -157,7 +166,8 @@ function CharacterListViewContent({ novelId }: Props) {
       toastError(t("character.pleaseEnterName"));
       return;
     }
-    // 4.1.2: create 走 mutation，onSuccess 失效 list；setEditMode + 错误 toast 留 handler。
+    // 4.1.2: create goes through the mutation; onSuccess invalidates the
+    // list; setEditMode + the error toast stay in the handler.
     try {
       await createMutation.mutateAsync(buildPayload());
       selectGroup(novelId, null);
@@ -174,7 +184,8 @@ function CharacterListViewContent({ novelId }: Props) {
       toastError(t("character.pleaseEnterName"));
       return;
     }
-    // 4.1.2: update 走 mutation，onSuccess 失效 list；setEditMode + 错误 toast 留 handler。
+    // 4.1.2: update goes through the mutation; onSuccess invalidates the
+    // list; setEditMode + the error toast stay in the handler.
     try {
       await updateMutation.mutateAsync({
         id: editMode.item.id,
@@ -229,11 +240,15 @@ function CharacterListViewContent({ novelId }: Props) {
     novelId,
   ]);
 
-  // 4b: list 模式 focusId 定位——搜索点击后 scrollIntoView + 临时高亮。
-  // graph 模式定位由 CharacterGraph 内部 useEffect 处理（setSelectedCharacter）。
+  // 4b: list-mode focusId positioning — scrollIntoView + a temporary
+  // highlight after a search click.
+  // graph-mode positioning is handled by a useEffect inside CharacterGraph
+  // (setSelectedCharacter).
   useEffect(() => {
     if (!focus || focus.id <= 0 || characters.length === 0) return;
-    // 高亮交给 state（render 阶段声明式应用），cleanup 只需 clearTimeout，杜绝漏移 class
+    // The highlight is delegated to state (applied declaratively during
+    // render); the cleanup only needs clearTimeout, eliminating the risk of
+    // leaving a class behind
     setHighlightedId(focus.id);
     const el = document.querySelector<HTMLElement>(
       `[data-character-id="${focus.id}"]`,
@@ -431,9 +446,9 @@ function CharacterListViewContent({ novelId }: Props) {
             {editMode?.type === "create" && (
               <div className="rounded-lg border border-border bg-card p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold text-foreground">
-                    新建角色
-                  </span>
+                   <span className="text-xs font-semibold text-foreground">
+                     {t("character.newCharacter")}
+                   </span>
                   <button
                     onClick={() => setEditMode(null)}
                     className="p-0.5 rounded text-muted-foreground hover:text-foreground"

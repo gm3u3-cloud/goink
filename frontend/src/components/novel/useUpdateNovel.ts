@@ -3,10 +3,13 @@ import { UpdateNovel } from "@/lib/wailsjs/go/app/App";
 import type { app } from "@/lib/wailsjs/go/models";
 import { novelKeys } from "@/lib/queryKeys";
 
-// useUpdateNovel: 更新小说 mutation。
-// mutationFn 直接 import wailsjs UpdateNovel（不用 useApp），onSuccess 失效 novelKeys.all。
-// 入参 {id, input}：input 全量回传所有字段（PUT 语义，见 00-conventions §6）。
-// handler 负责 setEditingNovel(null) + 错误 throw（副作用各异，不放进 mutation）。
+// useUpdateNovel: update-novel mutation.
+// mutationFn directly imports the wailsjs UpdateNovel (no useApp); onSuccess
+// invalidates novelKeys.all.
+// Input {id, input}: input sends all fields back (PUT semantics, see
+// 00-conventions §6).
+// The handler is responsible for setEditingNovel(null) + throwing the error
+// (side effects vary, so they are not put in the mutation).
 export function useUpdateNovel() {
   const qc = useQueryClient();
   return useMutation({

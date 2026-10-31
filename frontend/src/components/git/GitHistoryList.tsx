@@ -26,7 +26,7 @@ const PAGE_SIZE = 50;
 
 export default function GitHistoryList({ novelId }: Props) {
   const { t, i18n } = useTranslation();
-  // 相对时间：每分钟自动刷新
+  // Relative time: auto-refreshes every minute
   const timeAgo = useTimeAgo();
   const [hoveredHash, setHoveredHash] = useState<string | null>(null);
   const [tooltipRect, setTooltipRect] = useState<{
@@ -41,13 +41,15 @@ export default function GitHistoryList({ novelId }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 无限滚动：sentinel 进入视口时拉下一页（react-intersection-observer useInView）
+  // Infinite scroll: fetch the next page when the sentinel enters the
+  // viewport (react-intersection-observer useInView)
   const { ref: sentinelRef, inView } = useInView({ rootMargin: "100px" });
 
-  // 3.8 后续：selectedGitFile 迁 useGitStore，直接调 getState().setSelectedGitFile，
-  // 无需 ref 包（getState 引用稳定），GitCommitView 自己订阅。
+  // 3.8 follow-up: selectedGitFile moved to useGitStore; directly call
+  // getState().setSelectedGitFile (no ref wrapper needed — the getState
+  // reference is stable); GitCommitView subscribes on its own.
 
-  // 提交历史无限滚动 query（游标分页：afterHash）
+  // Infinite-scroll query for the commit history (cursor pagination: afterHash)
   const commitsQuery = useInfiniteCommitLog({
     novelId,
     size: PAGE_SIZE,
@@ -55,14 +57,16 @@ export default function GitHistoryList({ novelId }: Props) {
   });
   const commits = commitsQuery.data?.pages.flatMap((p) => p) ?? [];
 
-  // 展开 commit 的文件列表（按需，enabled 守卫：!!expandedHash）
+  // File list for the expanded commit (on-demand, enabled guard: !!expandedHash)
   const commitFilesQuery = useCommitFiles(novelId, expandedHash);
   const expandedFiles = commitFilesQuery.data ?? [];
 
-  // 选中文件的 diff（按需，enabled 守卫：!!expandedHash && !!selectedFilePath）
+  // Diff for the selected file (on-demand, enabled guard:
+  // !!expandedHash && !!selectedFilePath)
   const fileDiffQuery = useFileDiff(novelId, expandedHash, selectedFilePath);
 
-  // 文件列表返回后自动选中第一个文件（触发 useFileDiff refetch）
+  // Auto-select the first file after the file list returns (triggers a
+  // useFileDiff refetch)
   useEffect(() => {
     if (!expandedHash) return;
     if (commitFilesQuery.data && commitFilesQuery.data.length > 0) {
@@ -73,15 +77,18 @@ export default function GitHistoryList({ novelId }: Props) {
     }
   }, [expandedHash, commitFilesQuery.data]);
 
-  // diff 数据返回后写 useGitStore（GitCommitView 订阅渲染，3.8 后续迁 store）
+  // After the diff data returns, write to useGitStore (GitCommitView
+  // subscribes and renders; moved to the store in 3.8 follow-up)
   useEffect(() => {
     if (fileDiffQuery.data && expandedHash && selectedFilePath) {
-      // 3.8 后续：selectedGitFile 迁 useGitStore，GitCommitView 自己订阅。
+      // 3.8 follow-up: selectedGitFile moved to useGitStore; GitCommitView
+      // subscribes on its own.
       useGitStore.getState().setSelectedGitFile(fileDiffQuery.data);
     }
   }, [fileDiffQuery.data, expandedHash, selectedFilePath]);
 
-  // 切 novelId 时收起展开态（query 自动失效，但 UI 态需手动清）
+  // Collapse the expanded state when novelId changes (queries auto-invalidate,
+  // but the UI state needs to be cleared manually)
   useEffect(() => {
     setExpandedHash(null);
     setSelectedFilePath(null);
@@ -95,7 +102,7 @@ export default function GitHistoryList({ novelId }: Props) {
     };
   }, []);
 
-  // 滚动时隐藏 tooltip，防止位置偏移
+  // Hide the tooltip on scroll to prevent position drift
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -107,7 +114,8 @@ export default function GitHistoryList({ novelId }: Props) {
     return () => el.removeEventListener("scroll", onScroll);
   }, []);
 
-  // 无限滚动：sentinel 进入视口时拉下一页（react-intersection-observer useInView）
+  // Infinite scroll: fetch the next page when the sentinel enters the
+  // viewport (react-intersection-observer useInView)
   useEffect(() => {
     if (
       inView &&
@@ -123,7 +131,7 @@ export default function GitHistoryList({ novelId }: Props) {
     commitsQuery.fetchNextPage,
   ]);
 
-  // 展开/收起 commit
+  // Expand/collapse a commit
   function toggleExpand(hash: string) {
     if (expandedHash === hash) {
       setExpandedHash(null);
@@ -157,7 +165,8 @@ export default function GitHistoryList({ novelId }: Props) {
     return { relative, full };
   }
 
-  // 通过 portal 渲染 tooltip，定位不依赖滚动容器
+  // Render the tooltip via a portal so its positioning does not depend on
+  // the scroll container
   function renderTooltip() {
     if (!hoveredHash || !tooltipRect) return null;
     const commit = commits.find((c) => c.hash === hoveredHash);
@@ -324,7 +333,7 @@ export default function GitHistoryList({ novelId }: Props) {
                     </code>
                   </button>
 
-                  {/* 展开错误占位 */}
+                  {/* Expand error placeholder */}
                   {isExpanded && commitFilesQuery.isError && (
                     <div className="border-l-2 border-primary/20 ml-5 mb-1">
                       <div className="text-xs text-destructive flex items-center gap-2 px-7 py-1.5">
@@ -338,7 +347,7 @@ export default function GitHistoryList({ novelId }: Props) {
                       </div>
                     </div>
                   )}
-                  {/* 展开的文件列表 */}
+                  {/* Expanded file list */}
                   {isExpanded &&
                     !commitFilesQuery.isError &&
                     expandedFiles.length > 0 && (

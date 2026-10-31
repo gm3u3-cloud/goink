@@ -1,12 +1,13 @@
 /**
- * 把任意 unknown 错误转为可读字符串。
+ * Converts any unknown error into a readable string.
  *
- * Wails 后端 reject 出来的是字符串（Go err.Error()），不是 JS Error 对象，
- * 所以 instanceof Error 永远 false、e?.message 永远 undefined。本函数按
- * 优先级依次尝试：string → Error → {message} → fallback → String(err)。
+ * The Wails backend rejects with a plain string (Go err.Error()), not a JS
+ * Error object, so instanceof Error is always false and e?.message is always
+ * undefined. This function tries in priority order: string → Error →
+ * {message} → fallback → String(err).
  *
- * @param err catch 块的 unknown 错误
- * @param fallback 兜底文案（通常是 i18n 的 t("xxx.saveFailed")）
+ * @param err the unknown error from a catch block
+ * @param fallback fallback text (usually an i18n t("xxx.saveFailed"))
  */
 export function toErrorMessage(err: unknown, fallback?: string): string {
   if (typeof err === "string") return err;

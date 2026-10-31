@@ -21,7 +21,7 @@ interface Props {
   minWidth?: string;
   placeholder?: string;
   footerAction?: FooterAction;
-  dropUp?: boolean; // true=向上弹出(默认), false=向下弹出
+  dropUp?: boolean; // true=pop upward (default), false=pop downward
   disabled?: boolean;
   ariaLabel?: string;
   size?: "compact" | "form";

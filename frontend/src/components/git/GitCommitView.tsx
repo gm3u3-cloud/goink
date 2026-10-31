@@ -33,7 +33,8 @@ function getLanguage(path: string): string {
 export default function GitCommitView() {
   const { t } = useTranslation();
   const { theme } = useThemeStore();
-  // 3.8 后续：file 迁 useGitStore，GitCommitView 自己订阅（原由 WorkspaceView 透传 prop）。
+  // 3.8 follow-up: file moved to useGitStore; GitCommitView subscribes on its
+  // own (previously passed through as a prop from WorkspaceView).
   const file = useGitStore((s) => s.selectedGitFile);
 
   if (!file) {
@@ -51,7 +52,7 @@ export default function GitCommitView() {
 
   return (
     <main className="flex-1 bg-background flex flex-col min-w-0 min-h-0 border-r overflow-hidden">
-      {/* 文件路径头 */}
+      {/* File path header */}
       <div className="flex items-center gap-2 px-4 py-1.5 border-b shrink-0 bg-muted/10">
         <FileText className="w-3.5 h-3.5 text-muted-foreground" />
         <span className="text-xs text-muted-foreground truncate">
@@ -59,7 +60,7 @@ export default function GitCommitView() {
         </span>
       </div>
 
-      {/* Diff 编辑器 */}
+      {/* Diff editor */}
       <div className="flex-1 overflow-hidden">
         <DiffEditor
           height="100%"

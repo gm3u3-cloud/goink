@@ -3,15 +3,22 @@ import { UpdateNovelSetting } from "@/lib/wailsjs/go/app/App";
 import type { app } from "@/lib/wailsjs/go/models";
 import { novelSettingKeys } from "@/lib/queryKeys";
 
-// useUpdateNovelSetting: 更新小说设定条目 mutation。
-// mutationFn 直接 import wailsjs UpdateNovelSetting（不用 useApp），返回 setting.SettingItem。
-// 参数顺序：UpdateNovelSetting(novelId, id, input)（3 参，novelId 在前，同 preference，
-// 与 reader 的 UpdateReaderPerspective(id, novelId, input) 顺序相反）。
-// input 无 is_global 字段（区别于 preference，novel-setting 无全局/小说级区分）。
-// 入参 {id, input}：input 用 app.UpdateNovelSettingInput（PUT 语义，全量回传）。
-// 消费方：NovelSettingView.handleSave（mutateAsync 抛错由 handler try/catch 接住）。
-// handler 负责 setEditMode(null) + setForm(EMPTY_FORM) + 错误 toast（副作用不放进 mutation）。
-// onSuccess 失效 novel-settings：entry 字段变更入列表。
+// useUpdateNovelSetting: update novel-setting entry mutation.
+// mutationFn directly imports the wailsjs UpdateNovelSetting (no useApp);
+// returns setting.SettingItem.
+// Parameter order: UpdateNovelSetting(novelId, id, input) (3 parameters,
+// novelId first — same as preference; the reverse of reader's
+// UpdateReaderPerspective(id, novelId, input)).
+// The input has no is_global field (unlike preference; novel-setting has no
+// global/novel-level distinction).
+// Input {id, input}: input uses app.UpdateNovelSettingInput (PUT semantics,
+// full payload sent back).
+// Consumer: NovelSettingView.handleSave (mutateAsync errors are caught by
+// the handler's try/catch).
+// The handler is responsible for setEditMode(null) + setForm(EMPTY_FORM) +
+// the error toast (side effects are not put in the mutation).
+// onSuccess invalidates novel-settings: the entry's field changes are
+// reflected in the list.
 export function useUpdateNovelSetting(novelId: number) {
   const qc = useQueryClient();
   return useMutation({

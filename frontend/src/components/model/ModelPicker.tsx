@@ -12,7 +12,8 @@ interface FooterAction {
 interface Props {
   models: llm.AvailableModel[];
   selectedKey: string;
-  // reasoning：传入则启用底部跟随区域。当前选中模型不支持时不显示。
+  // reasoning: when passed, enables the bottom follow-along area. Not shown
+  // when the currently selected model does not support it.
   reasoningEffort?: string;
   onSelectModel: (key: string) => void;
   onSelectEffort?: (effort: string) => void;
@@ -20,14 +21,19 @@ interface Props {
   footerAction?: FooterAction;
   minWidth?: string;
   className?: string;
-  dropUp?: boolean; // true=向上弹出(默认), false=向下弹出
+  dropUp?: boolean; // true = pop up (default), false = pop down
   placeholder?: string;
 }
 
-// ModelPicker: 模型选择 + reasoning 跟随，三处复用（ChatControls / PatternExtractView / StyleView）。
-// 列表按 ProviderKey 聚类（同名 model 靠所在 provider 组上下文区分）。
-// 弹层结构：model 列表区独立滚动，reasoning + footer 固定底部不滚（reasoning 永远可见）。
-// reasoning 区域：仅当 reasoningEffort/onSelectEffort 传入 且 当前选中模型 ReasoningLevels 非空时渲染。
+// ModelPicker: model selection + reasoning follow-along, reused in three
+// places (ChatControls / PatternExtractView / StyleView).
+// The list is grouped by ProviderKey (same-named models are distinguished by
+// the context of their provider group).
+// Popover structure: the model list area scrolls independently; reasoning +
+// footer are fixed at the bottom and do not scroll (reasoning is always
+// visible).
+// The reasoning area is rendered only when reasoningEffort/onSelectEffort
+// are passed AND the currently selected model's ReasoningLevels is non-empty.
 export default function ModelPicker({
   models,
   selectedKey,
@@ -50,7 +56,8 @@ export default function ModelPicker({
     !!selected?.ReasoningLevels && selected.ReasoningLevels.length > 0;
   const showReasoning = supportsReasoning && !!onSelectEffort;
 
-  // 按 ProviderKey 聚类，保持原始顺序。同一组内 providerKey/providerName 一致。
+  // Group by ProviderKey, preserving the original order. Within the same
+  // group, providerKey/providerName are consistent.
   const groups = useMemo(() => {
     const map = new Map<string, llm.AvailableModel[]>();
     for (const m of models) {
@@ -93,7 +100,9 @@ export default function ModelPicker({
       }))
     : [];
 
-  // provider 标题行 icon：内置 LOGOS 匹配则用 logo，否则 fallback 首字母圆形（与设置页 Custom 风格一致）。
+  // Provider title-row icon: use the logo when it matches a built-in LOGOS,
+  // otherwise fall back to a first-letter circle (consistent with the Custom
+  // style on the settings page).
   const renderProviderIcon = (
     providerKey: string,
     providerName: string,
@@ -128,7 +137,7 @@ export default function ModelPicker({
         <div
           className={`absolute left-0 w-[240px] flex flex-col max-h-[300px] rounded-lg border bg-background shadow-lg z-50 ${dropUp ? "bottom-full mb-1" : "top-full mt-1"}`}
         >
-          {/* 按 provider 聚类的 model 列表 —— 独立滚动区 */}
+          {/* Model list grouped by provider — independent scroll area */}
           <div className="flex-1 overflow-y-auto py-1">
             {groups.map((g) => (
               <div key={g.providerKey} className="py-0.5">
@@ -156,7 +165,8 @@ export default function ModelPicker({
             ))}
           </div>
 
-          {/* reasoning 区域：固定底部不滚动，当前选中 model 支持时显示，否则隐藏 */}
+          {/* Reasoning area: fixed at the bottom, does not scroll; shown when
+              the currently selected model supports it, hidden otherwise */}
           {showReasoning && (
             <>
               <div className="border-t" />
@@ -183,7 +193,7 @@ export default function ModelPicker({
             </>
           )}
 
-          {/* footer：配置入口，固定底部不滚动 */}
+          {/* Footer: settings entry, fixed at the bottom, does not scroll */}
           {footerAction && (
             <>
               <div className="border-t" />

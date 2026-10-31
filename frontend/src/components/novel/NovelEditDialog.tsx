@@ -5,7 +5,7 @@ import { toErrorMessage } from "@/utils/error";
 
 interface Props {
   open: boolean;
-  novel?: novel.Novel | null; // 传了=编辑，不传=创建
+  novel?: novel.Novel | null; // passed = edit, not passed = create
   onClose: () => void;
   onSave: (input: {
     title: string;

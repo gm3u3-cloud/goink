@@ -1,13 +1,19 @@
 import { create } from "zustand";
 
-// useEditorStore: 编辑器/内容选择相关跨领域 UI 状态。
-// - tabTarget：SidePanel 选中章节/goink 的高亮指示（ChapterList 消费）
-// - activeContent：ContentPanel 当前 tab 内容（StatusBar 字数统计消费）
-// - isDirty：ContentPanel 当前 tab dirty 状态（StatusBar 保存状态点消费）
+// useEditorStore: editor/content-selection related cross-domain UI state.
+// - tabTarget: highlight indicator for the chapter/goink selected in
+//   SidePanel (consumed by ChapterList)
+// - activeContent: current tab content in ContentPanel (consumed by the
+//   StatusBar word count)
+// - isDirty: dirty state of the current tab in ContentPanel (consumed by the
+//   StatusBar save-status dot)
 //
-// 3 个 state 都跨组件共享（写方与读方分属不同领域组件），故放 src/stores/。
-// reset() 由 WorkspaceView 监听 useNovelStore.activeNovelId 变化时自动调用——
-// 切小说后清旧小说的高亮/字数/dirty 残留，等价原 switchToNovel wrapper 内的 3 行 setState。
+// All three states are shared across components (writer and reader live in
+// different domain components), so they live in src/stores/.
+// reset() is called automatically by WorkspaceView when it watches
+// useNovelStore.activeNovelId change — after switching novels it clears the
+// old novel's leftover highlight/word-count/dirty state, equivalent to the
+// 3 setState lines inside the original switchToNovel wrapper.
 interface EditorState {
   tabTarget: { path: string; title: string } | null;
   activeContent: string;

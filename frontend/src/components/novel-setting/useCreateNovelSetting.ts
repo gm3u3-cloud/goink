@@ -3,13 +3,19 @@ import { CreateNovelSetting } from "@/lib/wailsjs/go/app/App";
 import type { app } from "@/lib/wailsjs/go/models";
 import { novelSettingKeys } from "@/lib/queryKeys";
 
-// useCreateNovelSetting: 创建小说设定条目 mutation。
-// mutationFn 直接 import wailsjs CreateNovelSetting（不用 useApp），返回 setting.SettingItem。
-// 参数顺序：CreateNovelSetting(novelId, input)（同 preference CreatePreference）。
-// input 无 is_global 字段（区别于 preference，novel-setting 无全局/小说级区分）。
-// 消费方：NovelSettingView.handleSave（mutateAsync 抛错由 handler try/catch 接住）。
-// handler 负责 setEditMode(null) + setForm(EMPTY_FORM) + 错误 toast（副作用不放进 mutation）。
-// onSuccess 失效 novel-settings：新 entry 入列表，NovelSettingView / NovelSettingList 同步。
+// useCreateNovelSetting: create novel-setting entry mutation.
+// mutationFn directly imports the wailsjs CreateNovelSetting (no useApp);
+// returns setting.SettingItem.
+// Parameter order: CreateNovelSetting(novelId, input) (same as preference's
+// CreatePreference).
+// The input has no is_global field (unlike preference; novel-setting has no
+// global/novel-level distinction).
+// Consumer: NovelSettingView.handleSave (mutateAsync errors are caught by
+// the handler's try/catch).
+// The handler is responsible for setEditMode(null) + setForm(EMPTY_FORM) +
+// the error toast (side effects are not put in the mutation).
+// onSuccess invalidates novel-settings: the new entry is reflected in the
+// list, keeping NovelSettingView / NovelSettingList in sync.
 export function useCreateNovelSetting(novelId: number) {
   const qc = useQueryClient();
   return useMutation({

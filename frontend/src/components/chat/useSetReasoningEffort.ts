@@ -2,10 +2,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { SetReasoningEffort } from "@/lib/wailsjs/go/app/App";
 import { settingsKeys } from "@/lib/queryKeys";
 
-// useSetReasoningEffort: 设置推理强度 mutation（持久化到 AppSettings.reasoning_effort）。
-// onSuccess invalidate settingsKeys.all —— useSettings refetch 拿新 reasoning_effort。
-// 错误处理由调用方 try/catch + toastError。
-// 5.1 commit 4 补遗。
+// useSetReasoningEffort: mutation to set the reasoning effort (persists to
+// AppSettings.reasoning_effort).
+// onSuccess invalidates settingsKeys.all — useSettings refetches the new
+// reasoning_effort.
+// Error handling is done by the caller with try/catch + toastError.
+// 5.1 commit 4 addendum.
 export function useSetReasoningEffort() {
   const qc = useQueryClient();
   return useMutation({

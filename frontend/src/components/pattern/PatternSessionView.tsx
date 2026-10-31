@@ -19,13 +19,15 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 interface Props {
   taskId: string;
   novelId: number;
-  chapterIds: number[]; // 空数组表示全书
-  providerName: string; // 结构化模型入参（替代拼接 modelKey + splitModelKey）
+  chapterIds: number[]; // empty array means the whole book
+  providerName: string; // structured model input (replaces the
+  // concatenated modelKey + splitModelKey)
   modelId: string;
-  reasoningEffort: string; // reasoning effort（model 不支持时为空串）
-  title: string; // 小说标题（进度页展示用）
-  chapterCount: number; // 本次提取的章节数
-  onExit: () => void; // 返回选择页
+  reasoningEffort: string; // reasoning effort (empty string when the model
+  // does not support it)
+  title: string; // novel title (for display on the progress page)
+  chapterCount: number; // number of chapters in this extraction
+  onExit: () => void; // return to the selection page
 }
 
 type Status = "running" | "done" | "failed";
@@ -56,9 +58,12 @@ export default function PatternSessionView({
   const [error, setError] = useState("");
   const [overwriteContent, setOverwriteContent] = useState<string | null>(null);
   const [checkingSave, setCheckingSave] = useState(false);
-  // 5.3 pattern commit 2: SaveContent 走 useSaveContent mutation（复用 5.2 content 领域），
-  //   loading 由 mutation.isPending 推导，删手动 setLoading state。
-  //   流式 ExtractPattern/CancelExtractPattern 改直接 import wailsjs（删 useApp），保持本地 state + try/catch。
+  // 5.3 pattern commit 2: SaveContent goes through the useSaveContent
+  // mutation (reusing the 5.2 content domain);
+  //   loading is derived from mutation.isPending; the manual setLoading
+  //   state is removed.
+  //   The streaming ExtractPattern/CancelExtractPattern now directly import
+  //   wailsjs (useApp removed), keeping local state + try/catch.
   const saveMutation = useSaveContent();
   const { progress, events, reset } = usePatternProgress(taskId);
   const startedRef = useRef(false);
@@ -69,7 +74,8 @@ export default function PatternSessionView({
     setResult(null);
     reset();
 
-    // 结构化入参校验（替代 splitModelKey 拆解 + 校验）
+    // Structured input validation (replaces splitModelKey decomposition +
+    // validation)
     if (!providerName || !modelId) {
       setError(t("extract.extractFailed"));
       setStatus("failed");
@@ -96,7 +102,7 @@ export default function PatternSessionView({
       setStatus("done");
     } catch (e: unknown) {
       const msg = toErrorMessage(e, "");
-      if (!msg.includes("canceled") && !msg.includes("取消")) {
+      if (!msg.includes("canceled")) {
         setError(msg || t("extract.extractFailed"));
         setStatus("failed");
       }
@@ -186,7 +192,7 @@ export default function PatternSessionView({
           <>
             <span className="text-sm text-muted-foreground flex items-center gap-2">
               <Sparkle className="w-4 h-4 text-primary" />
-              {t("extract.generated")}「{result.name}」
+              {t("extract.generatedSkill", { name: result.name })}
             </span>
             <div className="flex items-center gap-2">
               <button

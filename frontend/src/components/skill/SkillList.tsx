@@ -44,10 +44,13 @@ export default function SkillList({
 }: Props) {
   const qc = useQueryClient();
   const { t } = useTranslation();
-  // 5.4 commit 1: skills 走 query（与 SkillMarketplace 已安装索引共享缓存，commit 3 迁）。
-  // query 错误 toast 由全局中间件接管，组件加 isError 内连显示（对齐 ReaderList/PreferenceList）。
+  // 5.4 commit 1: skills go through a query (shares the cache with
+  // SkillMarketplace's installed index; moved in commit 3).
+  // Query error toasts are handled by the global middleware; the component
+  // adds an inline isError display (aligned with ReaderList/PreferenceList).
   const { data: skills = [], isLoading, isError } = useSkills(novelId);
-  // 5.4 commit 2: DeleteSkill 走 mutation（onSuccess invalidate list，不再手动 invalidate）。
+  // 5.4 commit 2: DeleteSkill goes through a mutation (onSuccess invalidates
+  // the list; no more manual invalidate).
   const deleteMutation = useDeleteSkill(novelId);
   const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
@@ -77,7 +80,8 @@ export default function SkillList({
     null,
   );
 
-  // 点击删除按钮只记录目标并弹出确认框，真正的删除在 confirmDelete 里执行
+  // Clicking the delete button only records the target and shows the confirm
+  // dialog; the actual deletion happens in confirmDelete
   const handleDelete = (s: skill.SkillMeta) => {
     setDeleteTarget(s);
   };
@@ -278,7 +282,9 @@ export default function SkillList({
         title={t("skill.confirmDeleteSkill")}
         message={
           deleteTarget
-            ? `「${deleteTarget.name}」？${t("skill.irreversible")}`
+            ? t("skill.confirmDeleteSkillMessage", {
+                name: deleteTarget.name,
+              })
             : ""
         }
         danger

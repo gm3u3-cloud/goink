@@ -21,9 +21,15 @@ export default function ModelConfigTab() {
   const [subNav, setSubNav] = useState<SubNav>("builtin");
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
+  // saveMsg kind drives the color (replaces the old text-matching on the
+  // localized message, which broke once saveMsg is no longer Chinese)
+  const [saveMsgKind, setSaveMsgKind] = useState<
+    "success" | "error" | "testing" | "info"
+  >("info");
 
-  // 测试状态：{ providerKey: { ok, msg, warning, apiKey } }
-  // warning 用于 429 限流等"视为通过但有提示"的场景，不影响 ok 判定
+  // Test state: { providerKey: { ok, msg, warning, apiKey } }
+  // warning is for "passed with a note" scenarios like 429 rate limiting; it
+  // does not affect the ok decision
   const [testResults, setTestResults] = useState<
     Record<
       string,
@@ -32,19 +38,24 @@ export default function ModelConfigTab() {
     >
   >({});
   const [testing, setTesting] = useState<Record<string, boolean>>({});
-  // 用户已知晓失败的 provider key 集合。
-  // 一旦保存时某 provider 测试失败，加入此集合，下次保存跳过重测
-  // （除非用户改了该 provider 的 api_key 或 chat_url，handleUpdateProvider 会清）
+  // Set of provider keys the user has acknowledged as failed.
+  // Once a provider test fails during save it joins this set, and the next
+  // save skips retesting it (unless the user changed that provider's api_key
+  // or chat_url, which handleUpdateProvider clears).
   const [acknowledgedFailures, setAcknowledgedFailures] = useState<Set<string>>(
     new Set(),
   );
-  // 保存过后的配置哈希，用于判断 key 是否被修改
+  // Saved config hashes, used to detect whether a key was modified
   const savedKeysRef = useRef<Record<string, string>>({});
 
-  // 父组件对子组件 selectedKey 的"外部指令"：focusKey 指定要选中的 provider key，
-  // focusNonce 每次 focusOn 自增用于触发子组件 useEffect（即便 focusKey 未变也能强制选中）。
-  // 子组件 selectedKey 主权仍在自己（用户手动切换、providers 异步加载同步等逻辑不变），
-  // 父组件只在保存测试失败时通过 focusOn 切到失败 provider 方便用户定位。
+  // "External directive" from the parent to the child's selectedKey: focusKey
+  // names the provider key to select; focusNonce increments on every focusOn
+  // to trigger the child's useEffect (forcing selection even when focusKey is
+  // unchanged).
+  // The child keeps sovereignty over selectedKey (user manual switching,
+  // providers async load sync, etc. are unchanged); the parent only
+  // focusOn's the failed provider when a save test fails, to help the user
+  // locate it.
   const [focusKey, setFocusKey] = useState("");
   const [focusNonce, setFocusNonce] = useState(0);
   const focusOn = useCallback((key: string) => {
@@ -52,10 +63,13 @@ export default function ModelConfigTab() {
     setFocusNonce((n) => n + 1);
   }, []);
 
-  // 失败确认框：保存时若某 provider 测试失败，弹此框询问是否保留。
-  // pendingFailure 是要展示给用户的信息（providerKey/name/error）；
-  // resolverRef 持有 Promise 的 resolve，用户点击后注入 true（保留）/ false（取消）。
-  // handleSave 在 await confirmFailure 时会暂停，等用户选择后再继续后续 provider 测试或 return。
+  // Failure confirmation dialog: if a provider test fails during save, show
+  // this dialog asking whether to keep the config.
+  // pendingFailure is the info shown to the user (providerKey/name/error);
+  // resolverRef holds the Promise's resolve; after the user clicks, true
+  // (keep) / false (cancel) is injected.
+  // handleSave pauses at await confirmFailure and continues the remaining
+  // provider tests (or returns) once the user chooses.
   const [pendingFailure, setPendingFailure] = useState<{
     providerKey: string;
     name: string;
@@ -79,14 +93,22 @@ export default function ModelConfigTab() {
     setPendingFailure(null);
   }, []);
 
-  // query data ready 后一次性初始化 providers/savedKeysRef/testResults（providers 是本地编辑态，
-  // 后续 handleUpdateProvider/handleTest/handleSave 都改本地 state，不回写 query cache）。
-  // GET 错误由全局中间件接管（llm-config 前缀 → settings.llmConfigLoadFailed），不在此处理。
+  // One-shot initialization of providers/savedKeysRef/testResults once the
+  // query data is ready (providers is local edit state; the later
+  // handleUpdateProvider/handleTest/handleSave all mutate local state and
+  // never write back to the query cache).
+  // GET errors are handled by the global middleware (llm-config prefix →
+  // settings.llmConfigLoadFailed), not here.
   //
-  // testResults 初始化：把所有有 key 的 provider 默认标记为 ok=true（keySnapshot=api_key）。
-  // 语义：后端保存的配置默认假设有效（上次保存时已通过测试），打开后未改 url/key 的不重测，
-  // 改了 api_key/chat_url 会由 handleUpdateProvider 清除 testResults 触发重测。
-  // 代价：若后端 URL 突然挂了或用户在外部手改了配置文件，会被默认通过；但用户主动点测试能发现。
+  // testResults init: mark every provider with a key as ok=true by default
+  // (keySnapshot=api_key).
+  // Semantics: backend-saved config is assumed valid by default (it passed
+  // the test at last save); providers whose url/key were not changed after
+  // opening are not retested; changing api_key/chat_url makes
+  // handleUpdateProvider clear testResults to trigger a retest.
+  // Cost: if the backend URL suddenly dies or the user edits the config
+  // file externally, it is assumed passing by default; the user can still
+  // find out by clicking test manually.
   useEffect(() => {
     const config = llmConfigQuery.data;
     if (config?.providers) {
@@ -120,11 +142,13 @@ export default function ModelConfigTab() {
             : p,
         ),
       );
-      // api_key 或 chat_url 改动都会使旧的 testResults 失效（dirty 校验：
-      // 未测/key变/url变 都要在下次保存时重测，否则会保存未验证的新 URL）
+      // Any api_key or chat_url change invalidates the old testResults
+      // (dirty check: untested / key changed / url changed all require a
+      // retest on next save, otherwise an unverified new URL would be saved)
       if ("api_key" in patch || "chat_url" in patch) {
         setTestResults((prev) => {
-          // 优化：仅 api_key 改动且值未变（onChange 触发但实际内容相同），跳过
+          // Optimization: only api_key changed and the value is unchanged
+          // (onChange fired but the content is identical) — skip
           if (
             "api_key" in patch &&
             !("chat_url" in patch) &&
@@ -136,7 +160,8 @@ export default function ModelConfigTab() {
           delete next[key];
           return next;
         });
-        // 改 api_key/chat_url 后，旧的"已知晓失败"状态也失效：下次保存应重测
+        // After changing api_key/chat_url, the old "acknowledged failure"
+        // state is also invalidated: next save should retest
         setAcknowledgedFailures((prev) => {
           if (!prev.has(key)) return prev;
           const next = new Set(prev);
@@ -184,10 +209,13 @@ export default function ModelConfigTab() {
     [],
   );
 
-  // 测试连通性，返回 { resolvedUrl?, warning?, error? }。
-  // 后端多层 fallback 真测，返回验证通过的实际 URL（可能和入参不同）。
-  // 成功时把 resolvedUrl 回写到 provider.chat_url，确保保存的 URL 和测试时一致。
-  // warning 非空表示"视为通过但有提示"（如 429 限流），不影响 ok 判定但展示给用户。
+  // Test connectivity; returns { resolvedUrl?, warning?, error? }.
+  // The backend performs a real test with multi-layer fallback and returns
+  // the verified URL (which may differ from the input).
+  // On success, resolvedUrl is written back to provider.chat_url so the
+  // saved URL matches the one that was tested.
+  // A non-empty warning means "passed with a note" (e.g. 429 rate limit); it
+  // does not affect the ok decision but is shown to the user.
   const handleTest = useCallback(
     async (
       providerKey: string,
@@ -217,9 +245,11 @@ export default function ModelConfigTab() {
 
       setTesting((prev) => ({ ...prev, [providerKey]: true }));
       try {
-        // 后端 expandChatURLCandidates 会补 https:// 和多层 fallback，
-        // 前端直接传原值，不再自己 norl。
-        // 后端返回 { url, warning }：url 是验证通过的实际端点，warning 是非致命提示
+        // Backend expandChatURLCandidates completes https:// and applies
+        // multi-layer fallback; the frontend passes the original value
+        // directly and no longer normalizes on its own.
+        // The backend returns { url, warning }: url is the verified actual
+        // endpoint, warning is a non-fatal note
         const result = await testConnectionMutation.mutateAsync({
           provider_name: providerKey,
           chat_url: provider.chat_url || "",
@@ -228,7 +258,8 @@ export default function ModelConfigTab() {
         });
         const resolvedUrl = result.url;
         const warning = result.warning;
-        // 回写探测到的正确 URL（多层 fallback 可能和原值不同）
+        // Write back the probed correct URL (multi-layer fallback may differ
+        // from the original value)
         if (resolvedUrl && resolvedUrl !== provider.chat_url) {
           setProviders((prev) =>
             prev.map((p) =>
@@ -240,7 +271,8 @@ export default function ModelConfigTab() {
                 : p,
             ),
           );
-          // 提示用户 URL 已被自动补全（避免对输入框变化感到意外）
+          // Tell the user the URL was auto-completed (avoids surprising
+          // changes to the input field)
           toastSuccess(t("settings.urlAutoCompleted", { url: resolvedUrl }));
         }
         setTestResults((prev) => ({
@@ -251,7 +283,7 @@ export default function ModelConfigTab() {
             keySnapshot: provider.api_key,
           },
         }));
-        // 测试通过：清掉旧的"已知晓失败"状态（如果有）
+        // Test passed: clear the old "acknowledged failure" state (if any)
         setAcknowledgedFailures((prev) => {
           if (!prev.has(providerKey)) return prev;
           const next = new Set(prev);
@@ -265,8 +297,10 @@ export default function ModelConfigTab() {
           ...prev,
           [providerKey]: { ok: false, msg, keySnapshot: provider.api_key },
         }));
-        // 不在此自动加入 acknowledgedFailures：是否保留失败配置由 handleSave
-        // 弹确认框后由用户决定（用户改 api_key/chat_url 后 handleUpdateProvider 会清，触发重测）
+        // Do not auto-add to acknowledgedFailures here: whether to keep a
+        // failed config is decided by the user via the confirm dialog in
+        // handleSave (after the user changes api_key/chat_url,
+        // handleUpdateProvider clears it, triggering a retest)
         return { error: msg };
       } finally {
         setTesting((prev) => ({ ...prev, [providerKey]: false }));
@@ -276,62 +310,82 @@ export default function ModelConfigTab() {
   );
 
   const handleSave = useCallback(async () => {
-    // 收集有 key 的 provider
+    // Collect providers that have a key
     const withKey = providers.filter((p) => p.api_key);
     if (withKey.length === 0) {
-      // 错误消息不清空（保留到下次成功保存或新错误覆盖），让用户看清错误内容
+      // The error message is not cleared (kept until the next successful save
+      // or a new error overwrites it), so the user can read the error
+      setSaveMsgKind("error");
       setSaveMsg(t("settings.pleaseConfigureApiKey"));
       return;
     }
 
-    // 找出需要测试的：从未测过 / key 变了 / 上次失败但用户未知晓
+    // Find the ones that need testing: never tested / key changed / last
+    // failed but not acknowledged by the user
     const needTest = withKey.filter((p) => {
       const tr = testResults[p.key];
-      if (!tr) return true; // 从未测试
+      if (!tr) return true; // never tested
       if (!tr.ok) {
-        // 上次失败：用户已知晓则跳过（避免每次保存都重测已知失败），
-        // 用户改 api_key/chat_url 后 handleUpdateProvider 会清，触发重测
+        // Last time failed: skip if the user acknowledged it (avoids
+        // retesting a known failure on every save); after the user changes
+        // api_key/chat_url, handleUpdateProvider clears it, triggering a
+        // retest
         return !acknowledgedFailures.has(p.key);
       }
-      if (tr.keySnapshot !== p.api_key) return true; // key 变了
+      if (tr.keySnapshot !== p.api_key) return true; // key changed
       return false;
     });
 
-    // 测试时探测到的正确 URL，用于覆盖保存数据（闭包 providers 是旧的，用 resolvedUrls 兜底）
+    // The correct URLs probed during testing, used to override the save data
+    // (the closure providers is stale; resolvedUrls is the fallback)
     const resolvedUrls: Record<string, string> = {};
-    // 收集本次保存中被用户"保留"的失败 provider name，最后汇总提示
+    // Collect the names of failed providers the user chose to "keep" in this
+    // save, for a final summary message
     const keptFailures: string[] = [];
     if (needTest.length > 0) {
+      setSaveMsgKind("testing");
       setSaveMsg(t("settings.testingConnection"));
       for (const p of needTest) {
         const result = await handleTest(p.key);
         if (result.error) {
-          // 弹确认框：用户决定是否保留此失败配置
-          // 选"保留"→ 加入 acknowledgedFailures，下次保存跳过该 provider，继续测下一个
-          // 选"取消"→ 不保存，切到失败 provider 视图，让用户先修复
+          // Show the confirm dialog: the user decides whether to keep this
+          // failed config
+          // Choose "keep" → add to acknowledgedFailures, skip this provider on
+          // next save, continue testing the next one
+          // Choose "cancel" → do not save; switch to the failed provider view
+          // so the user can fix it first
           const keep = await confirmFailure(p.key, p.name, result.error);
           if (!keep) {
-            // 错误消息不清空（保留到下次成功保存或新错误覆盖），让用户看清错误内容
-            // ✗ 前缀让用户一眼看出是失败消息（颜色已是红色，符号强化识别）
+            // The error message is not cleared (kept until the next successful
+            // save or a new error overwrites it), so the user can read the
+            // error
+            // The ✗ prefix makes it obvious at a glance that this is a
+            // failure message (the color is already red; the symbol
+            // reinforces recognition)
+            setSaveMsgKind("error");
             setSaveMsg(
               `✗ ${p.name} ${t("settings.connectionTestFailed")}: ${result.error}`,
             );
-            // 切换到失败 provider 所在的视图并选中该 provider，方便用户定位
+            // Switch to the view containing the failed provider and select
+            // that provider, so the user can locate it easily
             setSubNav(p.source === "builtin" ? "builtin" : "custom");
             focusOn(p.key);
             return;
           }
-          // 用户选"保留"：标记为已知晓失败，下次保存自动跳过该 provider 测试
-          // （除非用户改了 api_key/chat_url，handleUpdateProvider 会清，触发重测）
+          // The user chose "keep": mark as acknowledged failure; next save
+          // skips this provider's test automatically (unless the user changed
+          // api_key/chat_url, in which case handleUpdateProvider clears it
+          // and triggers a retest)
           setAcknowledgedFailures((prev) => {
             const next = new Set(prev);
             next.add(p.key);
             return next;
           });
-          // 记录被保留的失败 provider name，最后汇总提示
+          // Record the kept failed provider name for the final summary
           keptFailures.push(p.name);
-          // 提示用户此 provider 已被保留为已知失败，不在保存数据中改 URL
-          // （resolvedUrls 不写入，使用 providers 中原值）
+          // This provider is kept as a known failure; do not modify the URL in
+          // the save data (do not write to resolvedUrls; use the original
+          // value from providers)
           continue;
         }
         if (result.resolvedUrl) {
@@ -341,10 +395,12 @@ export default function ModelConfigTab() {
     }
 
     setIsSaving(true);
+    setSaveMsgKind("info");
     setSaveMsg("");
     try {
-      // 用 resolvedUrls 覆盖 chat_url，构造保存数据
-      // （handleTest 内部已 setProviders 回写 UI，这里同步保存数据）
+      // Override chat_url with resolvedUrls to build the save data
+      // (handleTest already wrote the UI back via setProviders; here we sync
+      // the save data)
       const providersToSave = providers.map((p) => {
         const resolved = resolvedUrls[p.key];
         return resolved && resolved !== p.chat_url
@@ -359,20 +415,25 @@ export default function ModelConfigTab() {
         if (p.api_key) keys[p.key] = p.api_key;
       }
       savedKeysRef.current = keys;
-      // 根据 keptFailures 构造成功消息：含保留信息时显示完整提示，
-      // 无保留时仅显示"配置已保存"
+      // Build the success message based on keptFailures: show the full
+      // notice when there are kept failures, otherwise just "config saved"
       const successMsg =
         keptFailures.length > 0
           ? t("settings.configSavedWithKept", {
               names: keptFailures.join(t("common.listSeparator")),
             })
           : t("settings.configSaved");
-      // ✓ 前缀让用户一眼看出是成功消息（颜色已是绿色，符号强化识别）
-      // saveMsg 不主动清理，保留显示直到下次保存（成功/失败/测试中）结果覆盖
+      // The ✓ prefix makes it obvious at a glance that this is a success
+      // message (the color is already green; the symbol reinforces
+      // recognition)
+      // saveMsg is not actively cleared; it stays displayed until the next
+      // save (success/failure/testing) result overwrites it
+      setSaveMsgKind("success");
       setSaveMsg(`✓ ${successMsg}`);
-      // 额外用 toast 通知保存成功（采用项目 toast 方式）
+      // Additionally notify save success via a toast (project toast style)
       toastSuccess(successMsg);
     } catch (err) {
+      setSaveMsgKind("error");
       setSaveMsg(`✗ ${t("settings.saveFailed")}: ${String(err)}`);
     } finally {
       setIsSaving(false);
@@ -398,7 +459,7 @@ export default function ModelConfigTab() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* 子导航 */}
+      {/* Sub navigation */}
       <div className="flex gap-6 px-1 mb-4">
         <button
           onClick={() => setSubNav("builtin")}
@@ -422,7 +483,7 @@ export default function ModelConfigTab() {
         </button>
       </div>
 
-      {/* 内容区 */}
+      {/* Content area */}
       <div className="flex-1 overflow-y-auto">
         {subNav === "builtin" ? (
           <BuiltinProviderPane
@@ -453,10 +514,10 @@ export default function ModelConfigTab() {
         )}
       </div>
 
-      {/* 底部保存栏 */}
+      {/* Bottom save bar */}
       <div className="flex items-end justify-between gap-3 pt-4 border-t mt-4">
         <span
-          className={`flex-1 text-xs whitespace-pre-line max-w-[60ch] text-left ${saveMsg.includes("失败") || saveMsg.includes("测试") ? "text-destructive" : "text-success-foreground"}`}
+          className={`flex-1 text-xs whitespace-pre-line max-w-[60ch] text-left ${saveMsgKind === "error" || saveMsgKind === "testing" ? "text-destructive" : "text-success-foreground"}`}
         >
           {saveMsg}
         </span>
@@ -469,7 +530,8 @@ export default function ModelConfigTab() {
         </button>
       </div>
 
-      {/* 保存测试失败时的确认框：用户决定是否保留失败配置 */}
+      {/* Confirmation dialog shown when a save test fails: the user decides
+       * whether to keep the failed config */}
       <ConfirmDialog
         open={pendingFailure !== null}
         title={t("settings.confirmKeepFailureTitle")}

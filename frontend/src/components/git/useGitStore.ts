@@ -1,11 +1,16 @@
 import { create } from "zustand";
 import type { git } from "@/lib/wailsjs/go/models";
 
-// useGitStore: git 领域内部跨组件 UI 状态——选中的 diff 文件。
-// 写方 GitHistoryList（侧栏文件列表点选）、读方 GitCommitView（主区 diff 渲染）。
-// 两者都在 git 领域，按「领域 store 放领域目录」原则放此（同 useNovelStore 模式）。
-// reset() 由 WorkspaceView 监听 useNovelStore.activeNovelId 变化时自动调用——
-// 切小说后清旧小说的 diff 残留，等价原 switchToNovel wrapper 内的 setSelectedGitFile(null)。
+// useGitStore: cross-component UI state internal to the git domain — the
+// selected diff file.
+// Writer: GitHistoryList (clicking a file in the sidebar list); reader:
+// GitCommitView (diff rendering in the main area).
+// Both are in the git domain, so per the "domain store lives in the domain
+// directory" principle it is placed here (same pattern as useNovelStore).
+// reset() is called automatically by WorkspaceView when
+// useNovelStore.activeNovelId changes — it clears the previous novel's
+// leftover diff after switching novels, equivalent to the old
+// setSelectedGitFile(null) inside the switchToNovel wrapper.
 interface GitState {
   selectedGitFile: git.FileDiff | null;
   setSelectedGitFile: (file: git.FileDiff | null) => void;

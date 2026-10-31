@@ -2,9 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { GetChapterPlans } from "@/lib/wailsjs/go/app/App";
 import { chapterPlanKeys } from "@/lib/queryKeys";
 
-// useChapterPlans: 章节计划 3-slot（next/near/far）query。
-// GetChapterPlans(novelId) 独立 API，与 useTimelineEntries 并列（各自失效互不影响）。
-// 仅 TimelineView 消费（planTab 显示）。
+// useChapterPlans: chapter plan 3-slot (next/near/far) query.
+// GetChapterPlans(novelId) is an independent API, parallel to
+// useTimelineEntries (their invalidations do not affect each other).
+// Consumed only by TimelineView (shown in the planTab).
 export function useChapterPlans(novelId: number) {
   return useQuery({
     queryKey: chapterPlanKeys.list(novelId),

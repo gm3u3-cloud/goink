@@ -75,16 +75,22 @@ export interface ContentPanelHandle {
   handleDiffReject: (toolId: string) => Promise<void>;
 }
 
-// 3.8 后续：onContentChange/onDirtyChange 删，activeContent/isDirty 迁 useEditorStore。
-// ContentPanel 直接调 useEditorStore.getState().setActiveContent/setIsDirty，StatusBar 自己订阅。
+// 3.8 follow-up: onContentChange/onDirtyChange removed; activeContent/isDirty
+// migrated to useEditorStore.
+// ContentPanel calls useEditorStore.getState().setActiveContent/setIsDirty
+// directly; StatusBar subscribes on its own.
 const ContentPanel = forwardRef<ContentPanelHandle>(
   function ContentPanel(_props, ref) {
-    // 3.8: novelId 从 useNovelStore 订阅（替代 prop）。切小说时 store 变化触发 re-render，行为等价。
+    // 3.8: novelId is subscribed from useNovelStore (replaces the prop).
+    // Switching novels changes the store and triggers a re-render — behavior
+    // is equivalent.
     const novelId = useNovelStore((s) => s.activeNovelId);
     const { t } = useTranslation();
     const qc = useQueryClient();
-    // 5.2 commit 1: GetContent 走 query 缓存通道（fetchContent），直接 import wailsjs 不经 useApp。
-    // 5.2 commit 2: SaveContent 走 useSaveContent mutation（onSuccess 失效 contentKeys.detail），useApp 清零。
+    // 5.2 commit 1: GetContent goes through the query cache channel
+    // (fetchContent); wailsjs is imported directly, not via useApp.
+    // 5.2 commit 2: SaveContent goes through the useSaveContent mutation
+    // (onSuccess invalidates contentKeys.detail); useApp is fully removed.
     const { fetchContent } = useFileContent();
     const saveContentMutation = useSaveContent();
     const mutateSaveContent = saveContentMutation.mutateAsync;
@@ -109,7 +115,8 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
       matchPos: number;
       matchLen: number;
     } | null>(null);
-    const didApplyHighlightRef = useRef(false); // handleEditorMount 已应用高亮时跳过清除
+    const didApplyHighlightRef = useRef(false); // Skip clearing when
+    // handleEditorMount has already applied the highlight
     const novelIdRef = useRef(novelId);
     const activeTabRef = useRef(activeTab);
     activeTabRef.current = activeTab;
@@ -136,8 +143,9 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
 
     useEffect(() => {
       if (activeTab?.type === "file") {
-        // 3.8 后续：activeContent 迁 useEditorStore，StatusBar 自己订阅。
-        // 大纲编辑态用 outlineContent 作为当前活动内容
+        // 3.8 follow-up: activeContent migrated to useEditorStore; StatusBar
+        // subscribes on its own.
+        // In outline-edit mode, outlineContent is the active content
         const c =
           activeTab.viewMode === "outline-edit"
             ? (activeTab.outlineContent ?? "")
@@ -147,8 +155,9 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
     }, [activeTab]);
 
     useEffect(() => {
-      // 3.8 后续：isDirty 迁 useEditorStore，StatusBar 自己订阅。
-      // 大纲编辑态用 outlineIsDirty 反映脏状态
+      // 3.8 follow-up: isDirty migrated to useEditorStore; StatusBar
+      // subscribes on its own.
+      // In outline-edit mode, outlineIsDirty reflects the dirty state
       const isDirty =
         activeTab?.viewMode === "outline-edit"
           ? (activeTab.outlineIsDirty ?? false)
@@ -163,7 +172,8 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
       [qc, novelId, t],
     );
 
-    // ── 大纲内容加载（handleSetViewMode 与恢复 tab effect 共用） ──
+    // ── Outline content loading (shared by handleSetViewMode and the
+    // restore-tab effect) ──
 
     const loadOutlineContent = useCallback(
       (tab: EditorTab) => {
@@ -217,15 +227,15 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
       ],
     );
 
-    // 从 localStorage 恢复 tab 后，自动加载文件内容
+    // After restoring tabs from localStorage, auto-load the file content
     const loadedRef = useRef<Set<string>>(new Set());
     useEffect(() => {
-      // novelId 变化时重置
+      // Reset when novelId changes
       loadedRef.current.clear();
     }, [novelId]);
     useEffect(() => {
       if (!initRef.current) return;
-      // 加载正文
+      // Load the chapter body
       const needsLoadContent = tabs.filter(
         (tab) =>
           tab.type === "file" &&
@@ -248,7 +258,8 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
               updateTab(tab.id, { content: t("content.loadFailedCloseTab") });
           });
       }
-      // 加载大纲（恢复后 viewMode 是 outline/outline-edit 时）
+      // Load the outline (when viewMode is outline/outline-edit after
+      // restore)
       const needsLoadOutline = tabs.filter(
         (tab) =>
           tab.type === "file" &&
@@ -271,7 +282,7 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
       applyLoadedContent,
     ]);
 
-    // Ctrl+Shift+V 切换技能预览
+    // Ctrl+Shift+V toggles the skill preview
     useEffect(() => {
       const handler = (e: KeyboardEvent) => {
         if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "V") {
@@ -290,7 +301,7 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
       return () => window.removeEventListener("keydown", handler);
     }, [tabs, activeTabId, updateTab]);
 
-    // ── 切换 viewMode：按需加载大纲内容 ──────────────────────
+    // ── Switch viewMode: load outline content on demand ──
 
     const handleSetViewMode = useCallback(
       (tabId: string, mode: "content" | "outline" | "outline-edit") => {
@@ -317,7 +328,8 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
 
         updateTab(tabId, { viewMode: mode });
 
-        // 切换到大纲（预览或编辑）时，如果未加载（或上次加载时文件不存在）则重新加载
+        // When switching to the outline (preview or edit), reload if it was
+        // not loaded (or the file did not exist at the last load)
         if (
           (mode === "outline" || mode === "outline-edit") &&
           !tab.outlineContent
@@ -328,12 +340,14 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
       [tabs, updateTab, loadOutlineContent, resolveChapter],
     );
 
-    // ── 阅读位置键（正文/大纲各自独立，见 useEditorTabsStore）──────
+    // ── Reading position keys (body/outline are independent; see
+    // useEditorTabsStore) ──
 
     const positionKeyFor = useCallback(
       (tab: EditorTab, mode: string): string | undefined => {
         let p = tab.path;
-        // 大纲（预览/编辑）对应实际文件 outlines/NNN.md，正文对应 chapters/NNN.md
+        // The outline (preview/edit) corresponds to the real file
+        // outlines/NNN.md; the body corresponds to chapters/NNN.md
         if (
           (mode === "outline" || mode === "outline-edit") &&
           isContentPath(tab.path) &&
@@ -347,7 +361,7 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
       [novelId],
     );
 
-    // ── 保存逻辑 ────────────────────────────────────────────
+    // ── Save logic ──
 
     const doSave = useCallback(
       async (tabId: string, path: string, content: string) => {
@@ -463,7 +477,7 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
       closeAllTabs();
     }, [tabs, editorSaveQueue, novelId, closeAllTabs, t]);
 
-    // Ctrl+S 立即保存
+    // Ctrl+S saves immediately
     useEffect(() => {
       const handler = (e: KeyboardEvent) => {
         if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "s") {
@@ -494,7 +508,7 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
           tabs.find((t) => t.id === tabId);
         if (!tab) return;
         updateTab(tabId, { content, isDirty: true });
-        // 3.8 后续：activeContent 迁 useEditorStore。
+            // 3.8 follow-up: activeContent migrated to useEditorStore.
         useEditorStore.getState().setActiveContent(content);
 
         scheduleEditorSave(
@@ -508,7 +522,8 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
       [tabs, novelId, updateTab, scheduleEditorSave],
     );
 
-    // 大纲编辑：内容存 outlineContent，保存路径派生 outlinePath
+    // Outline edit: the content is stored in outlineContent; the save path
+    // is derived as outlinePath
     const handleOutlineEditorChange = useCallback(
       (tabId: string, value: string | undefined) => {
         const content = value ?? "";
@@ -534,7 +549,7 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
 
     const monacoRef = useRef<any>(null);
 
-    // 将 rune 偏移转为 Monaco 行列号（1-based）
+    // Convert the rune offset to Monaco row/column numbers (1-based)
     function runeOffsetToMonaco(
       text: string,
       runeOffset: number,
@@ -606,7 +621,8 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
         editor.onDidBlurEditorText(() => {
           if (path) void editorSaveQueue.flush(mountedNovelId, path);
         });
-        // 编辑器挂载后检查待处理高亮（直接取 Monaco model 内容，避免 ref 时序问题）。
+        // After the editor mounts, check for pending highlights (read the
+        // Monaco model content directly to avoid ref timing issues).
         const pending = pendingHighlightRef.current;
         if (pending) {
           const content = editor.getModel()?.getValue();
@@ -620,7 +636,7 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
       [editorSaveQueue, doHighlight],
     );
 
-    // ── 打开/激活文件 tab ──────────────────────────────────
+    // ── Open/activate a file tab ──
 
     const doOpenFile = useCallback(
       (
@@ -654,7 +670,7 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
                   : {}),
               });
               setActiveTabId(existing.id);
-              // 3.8 后续：activeContent 迁 useEditorStore。
+        // 3.8 follow-up: activeContent migrated to useEditorStore.
               useEditorStore
                 .getState()
                 .setActiveContent(existing.content ?? "");
@@ -685,7 +701,7 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
               viewMode: initialMode,
               readOnly: skReadOnly,
             });
-            // 3.8 后续：activeContent 迁 useEditorStore。
+        // 3.8 follow-up: activeContent migrated to useEditorStore.
             useEditorStore.getState().setActiveContent(c);
           })
           .catch((err: unknown) => toastError(toErrorMessage(err)))
@@ -718,7 +734,8 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
           return;
         }
         const existing = tabs.find((t) => t.path === path && t.type === "file");
-        // 当前激活的 tab：直接应用高亮，不走 pending（setActiveTabId 同值不触发 effect）
+        // The currently active tab: apply the highlight directly, no pending
+        // (setActiveTabId with the same value does not trigger the effect)
         if (
           existing &&
           existing.id === activeTabId &&
@@ -738,9 +755,12 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
       [doOpenFile, tabs, activeTabId, setActiveTabId, doHighlight],
     );
 
-    // tab 切换 / 内容就绪：有 pending 且 editor model 存活就应用高亮，否则清除旧高亮。
-    // didApplyHighlightRef：handleEditorMount 在 layout effect 阶段消费 pending 后，
-    // 标记跳过后续 effect 的清除，避免刚设的高亮被擦除。
+    // Tab switch / content ready: if there is a pending highlight and the
+    // editor model is alive, apply it; otherwise clear the old highlight.
+    // didApplyHighlightRef: after handleEditorMount consumes the pending
+    // highlight during the layout effect phase, it marks that the subsequent
+    // effect's clearing should be skipped, so the freshly set highlight is
+    // not wiped out.
     useEffect(() => {
       if (didApplyHighlightRef.current) {
         didApplyHighlightRef.current = false;
@@ -748,9 +768,10 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
       }
       const editor = editorRef.current as any;
       const pending = pendingHighlightRef.current;
-      // 必须检查 editor.getModel()：key 变化导致 ContentEditor 重建时，
-      // unmount/remount 之间 editorRef 可能指向已销毁的旧 editor（model 为 null），
-      // 此时不应消费 pending，留给 handleEditorMount 处理。
+      // Must check editor.getModel(): when a key change rebuilds
+      // ContentEditor, between unmount/remount editorRef may point to the
+      // destroyed old editor (model is null); in that case do not consume
+      // the pending highlight — leave it for handleEditorMount.
       if (pending && activeTab?.content && editor?.getModel()) {
         doHighlight(
           editor,
@@ -788,7 +809,7 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
       [qc, novelId, t],
     );
 
-    // ── 审批操作（由 WorkspaceView 通过 ref 调用）───────────
+    // ── Approval operations (invoked by WorkspaceView via ref) ──
 
     const handleDiffApprove = useCallback(
       async (toolId: string, path: string) => {
@@ -841,7 +862,7 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
       [novelId, tabs, closeTab, doOpenFile, filePathFromDiff],
     );
 
-    // ── 暴露给父组件的方法 ──────────────────────────────────
+    // ── Methods exposed to the parent component ──
 
     const doOpenDiffTab = useCallback(
       (data: Parameters<ContentPanelHandle["openDiffTab"]>[0]) => {
@@ -895,7 +916,7 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
       ],
     );
 
-    // ── 渲染 ────────────────────────────────────────────────
+    // ── Render ──
 
     const tabBtnClass = (active: boolean) =>
       `px-3 py-1 text-xs rounded transition-colors cursor-pointer ${
@@ -904,7 +925,7 @@ const ContentPanel = forwardRef<ContentPanelHandle>(
           : "text-muted-foreground hover:text-foreground"
       }`;
 
-    // 空状态
+    // Empty state
     if (!activeTab) {
       return (
         <main className="flex-1 bg-background flex flex-col min-w-0 min-h-0 border-r overflow-hidden">

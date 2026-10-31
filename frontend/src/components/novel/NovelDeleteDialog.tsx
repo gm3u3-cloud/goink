@@ -82,7 +82,7 @@ export default function NovelDeleteDialog({
         <p className="text-sm text-muted-foreground mb-4">
           {t("novel.pleaseEnterTitle")}{" "}
           <b className="text-foreground">{novelTitle}</b>{" "}
-          {t("novel.confirmDelete2")}：
+          {t("novel.confirmDelete2")}:
         </p>
 
         <input

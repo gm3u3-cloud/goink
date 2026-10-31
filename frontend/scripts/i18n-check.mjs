@@ -4,8 +4,10 @@
  *
  * Checks:
  * 1. Semantic key consistency between en.json and zh-CN.json
- * 2. No duplicate keys in either JSON file (within same object scope)
- * 3. No empty translations in zh-CN.json and en.json
+ * 1b. Semantic key consistency between ru.json and en.json, plus
+ *     completeness of ru plural forms (_one/_few/_many/_other)
+ * 2. No duplicate keys in any JSON file (within same object scope)
+ * 3. No empty translations in zh-CN.json, en.json and ru.json
  * 4. No hardcoded Chinese in .tsx/.ts source files
  */
 
@@ -128,9 +130,11 @@ console.log('🔍 i18n consistency check\n')
 // Load JSON files
 const zhCNPath = resolve(LOCALES_DIR, 'zh-CN.json')
 const enPath = resolve(LOCALES_DIR, 'en.json')
+const ruPath = resolve(LOCALES_DIR, 'ru.json')
 
 const zhCN = JSON.parse(readFileSync(zhCNPath, 'utf-8'))
 const en = JSON.parse(readFileSync(enPath, 'utf-8'))
+const ru = JSON.parse(readFileSync(ruPath, 'utf-8'))
 
 // Check 1: Semantic key structure consistency
 // Rules:
@@ -193,10 +197,69 @@ if (check1Pass) {
   console.log('  ✅ zh-CN and en have semantically consistent key structures\n')
 }
 
+// ── 1b: ru.json ↔ en.json semantic key consistency ──
+// Rules:
+//   - the set of semantic base keys must be identical in ru and en
+//     (plural suffixes _one/_few/_many/_other in ru and _one/_other in en
+//     are folded to the base key)
+//   - every ru plural base must have all four forms
+//     (_one/_few/_many/_other); ru has real few/many categories
+console.log('📋 Checking ru/en semantic key structure consistency...')
+const ruKeys = extractKeys(ru)
+
+const RU_PLURAL_SUFFIXES = ['_one', '_few', '_many', '_other']
+function isRuPluralKey(key) {
+  return RU_PLURAL_SUFFIXES.some((s) => key.endsWith(s))
+}
+function getRuBaseKey(key) {
+  for (const s of RU_PLURAL_SUFFIXES) {
+    if (key.endsWith(s)) return key.slice(0, -s.length)
+  }
+  return key
+}
+const ruBaseKeys = new Set()
+for (const key of ruKeys) {
+  ruBaseKeys.add(isRuPluralKey(key) ? getRuBaseKey(key) : key)
+}
+const enBaseKeysAll = new Set()
+for (const key of enKeys) {
+  enBaseKeysAll.add(isPluralKey(key) ? getBaseKey(key) : key)
+}
+
+const ruMissingInEn = [...ruBaseKeys].filter((k) => !enBaseKeysAll.has(k))
+if (ruMissingInEn.length > 0) {
+  error(`ru has key but en missing it (${ruMissingInEn.length}):\n  ${ruMissingInEn.join('\n  ')}`)
+}
+const enMissingInRu = [...enBaseKeysAll].filter((k) => !ruBaseKeys.has(k))
+if (enMissingInRu.length > 0) {
+  error(`en has key but ru missing it (${enMissingInRu.length}):\n  ${enMissingInRu.join('\n  ')}`)
+}
+
+const ruPluralForms = new Map() // base -> Set of suffixes
+for (const key of ruKeys) {
+  if (isRuPluralKey(key)) {
+    const base = getRuBaseKey(key)
+    if (!ruPluralForms.has(base)) ruPluralForms.set(base, new Set())
+    ruPluralForms.get(base).add(key.slice(base.length))
+  }
+}
+const ruIncompletePlural = []
+for (const [base, forms] of ruPluralForms) {
+  const missing = RU_PLURAL_SUFFIXES.filter((s) => !forms.has(s))
+  if (missing.length > 0) ruIncompletePlural.push(`${base} (missing ${missing.join(', ')})`)
+}
+if (ruIncompletePlural.length > 0) {
+  error(`ru has incomplete plural sets (${ruIncompletePlural.length}):\n  ${ruIncompletePlural.join('\n  ')}`)
+}
+if (ruMissingInEn.length === 0 && enMissingInRu.length === 0 && ruIncompletePlural.length === 0) {
+  console.log('  ✅ ru and en have semantically consistent key structures\n')
+}
+
 // Check 2: Duplicate keys
 console.log('📋 Checking for duplicate keys...')
 const zhDups = findDuplicateKeys(zhCNPath)
 const enDups = findDuplicateKeys(enPath)
+const ruDups = findDuplicateKeys(ruPath)
 
 if (zhDups.length > 0) {
   error(`Duplicate keys in zh-CN.json (same parent object): ${zhDups.join(', ')}`)
@@ -204,7 +267,10 @@ if (zhDups.length > 0) {
 if (enDups.length > 0) {
   error(`Duplicate keys in en.json (same parent object): ${enDups.join(', ')}`)
 }
-if (zhDups.length === 0 && enDups.length === 0) {
+if (ruDups.length > 0) {
+  error(`Duplicate keys in ru.json (same parent object): ${ruDups.join(', ')}`)
+}
+if (zhDups.length === 0 && enDups.length === 0 && ruDups.length === 0) {
   console.log('  ✅ No duplicate keys found\n')
 }
 
@@ -229,7 +295,10 @@ function findEmptyKeys(keys, obj, label) {
   }
   return emptyKeys.length
 }
-const emptyErrors = findEmptyKeys(enKeys, en, 'en.json') + findEmptyKeys(zhKeys, zhCN, 'zh-CN.json')
+const emptyErrors =
+  findEmptyKeys(enKeys, en, 'en.json') +
+  findEmptyKeys(zhKeys, zhCN, 'zh-CN.json') +
+  findEmptyKeys(ruKeys, ru, 'ru.json')
 if (emptyErrors === 0) {
   console.log()
 }

@@ -7,13 +7,16 @@ interface SearchInputProps {
   onKeyDown?: (e: React.KeyboardEvent) => void;
   placeholder?: string;
   loading?: boolean;
-  /** 传给内部 relative div（如 "flex-1"），外层 padding/border 由调用方控制 */
+  /** Passed to the inner relative div (e.g. "flex-1"); the outer
+   * padding/border is controlled by the caller. */
   className?: string;
 }
 
-// SearchInput: 统一搜索框样式（全局搜索 + 领域内搜索共用）。
-// 采用 SearchPanel 的样式标准：图标 w-3.5 + input h-7 + 可选清除按钮。
-// 调用方负责外层 wrapper（padding/border），此组件只管 input 区域。
+// SearchInput: unified search-box styling (shared by global search and
+// in-domain search).
+// Uses SearchPanel's styling standard: icon w-3.5 + input h-7 + optional
+// clear button. The caller is responsible for the outer wrapper
+// (padding/border); this component only handles the input area.
 const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
   ({ value, onChange, onKeyDown, placeholder, loading, className }, ref) => {
     return (
@@ -31,7 +34,7 @@ const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
         {(value || loading) && (
           <button
             onMouseDown={(e) => {
-              e.preventDefault(); // 阻止 button 获取焦点，让 input 保持焦点
+              e.preventDefault(); // Prevent the button from taking focus, keeping the input focused
               onChange("");
             }}
             className="absolute right-1.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center text-muted-foreground hover:text-foreground"

@@ -12,23 +12,28 @@ interface Props {
 
 export default function SidebarArcList({ novelId }: Props) {
   const { t } = useTranslation();
-  // 4.3.1: arcs 走 useStoryArcs query（与 ArcListView / StoryArcGraph 共享缓存）。
-  // 4a: query 错误 toast 由全局中间件接管（queryErrorToast.ts），此处不再挂 useEffect。
+  // 4.3.1: arcs go through the useStoryArcs query (sharing the cache with
+  // ArcListView / StoryArcGraph).
+  // 4a: the query error toast is handled by the global middleware
+  // (queryErrorToast.ts); no useEffect is mounted here.
   const { data: arcs = [], isError } = useStoryArcs(novelId);
-  // 4b: 拉 nodes 数据用于领域内搜索（搜 node title + description）。
+  // 4b: fetch the nodes data for in-domain search (search node title +
+  // description).
   const { data: nodes = [] } = useArcNodes(novelId);
-  // 4b: 点击 arc/node 条目触发 focusEntity，ArcListView 的 useEffect 按 type 分流定位。
+  // 4b: clicking an arc/node entry triggers focusEntity; ArcListView's
+  // useEffect routes the positioning by type.
   const focusEntity = useFocusStore((s) => s.focusEntity);
   const [search, setSearch] = useState("");
 
-  // arcID → name 映射，node 条目显示所属弧线名称。
+  // arcID → name mapping; node entries display the name of their parent
+  // arc.
   const arcNameMap = useMemo(() => {
     const m = new Map<number, string>();
     for (const a of arcs) m.set(a.id, a.name);
     return m;
   }, [arcs]);
 
-  // 搜 arc（name + description）
+  // Search arcs (name + description)
   const filteredArcs = useMemo(() => {
     if (!search.trim()) return arcs;
     const q = search.toLowerCase();
@@ -39,7 +44,7 @@ export default function SidebarArcList({ novelId }: Props) {
     );
   }, [arcs, search]);
 
-  // 搜 node（title + description），仅搜索时显示
+  // Search nodes (title + description); shown only while searching
   const filteredNodes = useMemo(() => {
     if (!search.trim()) return [];
     const q = search.toLowerCase();
@@ -92,7 +97,7 @@ export default function SidebarArcList({ novelId }: Props) {
           </div>
         ) : (
           <>
-            {/* Arc 条目 */}
+            {/* Arc entries */}
             {filteredArcs.map((a) => (
               <div
                 key={`arc-${a.id}`}
@@ -115,7 +120,7 @@ export default function SidebarArcList({ novelId }: Props) {
                 />
               </div>
             ))}
-            {/* Node 条目（仅搜索时显示） */}
+            {/* Node entries (shown only while searching) */}
             {search.trim() &&
               filteredNodes.map((n) => (
                 <div

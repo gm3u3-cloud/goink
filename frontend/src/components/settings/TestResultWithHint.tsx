@@ -14,10 +14,14 @@ interface Props {
 }
 
 /**
- * 测试结果显示组件：错误/成功消息 + 错误时的 ? 图标 Tooltip 提示。
- * 成功但有 warning（如 429 限流）时，额外显示黄色 ⚠ 提示，不影响 ok 判定。
- * BuiltinProviderPane、CustomProviderPane、ModelDiscoveryPanel 共用，避免重复代码。
- * className 可覆盖默认的 pl-[4rem] 左 padding（如 ModelDiscoveryPanel 不需要对齐 label）。
+ * Test result display component: error/success message + a "?" icon Tooltip
+ * hint on errors.
+ * On success with a warning (e.g. 429 rate limit), an additional yellow ⚠
+ * note is shown, without affecting the ok decision.
+ * Shared by BuiltinProviderPane, CustomProviderPane, and ModelDiscoveryPanel
+ * to avoid duplicated code.
+ * className can override the default pl-[4rem] left padding (e.g.
+ * ModelDiscoveryPanel does not need to align with a label).
  */
 export default function TestResultWithHint({ testResult, className }: Props) {
   const { t } = useTranslation();

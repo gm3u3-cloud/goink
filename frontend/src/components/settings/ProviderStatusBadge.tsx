@@ -7,15 +7,18 @@ interface Props {
 }
 
 /**
- * 服务商状态五态标签：未配置 / 未测试 / 已通过 / 通过(限流) / 失败。
- * Builtin 和 Custom 共用，替代旧的"已配置/未配置"二态（只反映 hasKey 的弱语义）。
+ * Five-state provider status badge: not configured / not tested / passed /
+ * passed (rate limited) / failed.
+ * Shared by Builtin and Custom; replaces the old "configured/not configured"
+ * two-state badge (which only reflected the weak hasKey semantics).
  *
- * 状态优先级：
- * 1. 未配置（hasKey=false）→ 灰色
- * 2. 已配置但未测试（testResult=undefined）→ 灰色
- * 3. 已测试通过（ok=true, warning 空）→ 绿色
- * 4. 已测试通过带 warning（ok=true, warning 非空，如 429）→ 黄色
- * 5. 已测试失败（ok=false）→ 红色
+ * State priority:
+ * 1. Not configured (hasKey=false) → gray
+ * 2. Configured but not tested (testResult=undefined) → gray
+ * 3. Tested and passed (ok=true, warning empty) → green
+ * 4. Tested and passed with warning (ok=true, warning non-empty, e.g. 429)
+ *    → yellow
+ * 5. Tested and failed (ok=false) → red
  */
 export default function ProviderStatusBadge({ hasKey, testResult }: Props) {
   const { t } = useTranslation();

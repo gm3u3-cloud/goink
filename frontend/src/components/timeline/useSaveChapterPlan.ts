@@ -3,12 +3,17 @@ import { UpdateChapterPlan } from "@/lib/wailsjs/go/app/App";
 import type { app } from "@/lib/wailsjs/go/models";
 import { chapterPlanKeys } from "@/lib/queryKeys";
 
-// useSaveChapterPlan: 保存章节计划 mutation（plan 3-slot next/near/far）。
-// mutationFn 直接 import wailsjs UpdateChapterPlan（不用 useApp）。
-// 后端 UpdateChapterPlan 按 scope upsert（next/near/far 各一条），无独立 Create API。
-// handler 负责 setEditMode(null) + 错误 throw（副作用不放进 mutation）。
-// onSuccess 失效 chapter-plans：plan 内容变更后 plan 区刷新。
-// 不失效 timeline/max-chapter：plan 不影响 entry 列表和小说最大章节号。
+// useSaveChapterPlan: save chapter plan mutation (plan 3-slot
+// next/near/far).
+// mutationFn imports wailsjs UpdateChapterPlan directly (not useApp).
+// The backend UpdateChapterPlan upserts by scope (one each for
+// next/near/far); there is no separate Create API.
+// The handler is responsible for setEditMode(null) + throwing the error
+// (the side effects differ, so they are not placed in the mutation).
+// onSuccess invalidates chapter-plans: after the plan content changes, the
+// plan area refreshes.
+// timeline/max-chapter are not invalidated: plans do not affect the entry
+// list or the novel's max chapter number.
 export function useSaveChapterPlan(novelId: number) {
   const qc = useQueryClient();
   return useMutation({

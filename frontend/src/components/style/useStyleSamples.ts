@@ -2,12 +2,18 @@ import { useQuery } from "@tanstack/react-query";
 import { ListStyleSamples } from "@/lib/wailsjs/go/app/App";
 import { styleSampleKeys } from "@/lib/queryKeys";
 
-// useStyleSamples: 风格样本单页列表 query（StyleView 上一页/下一页分页，PAGE_SIZE=15）。
-// queryKey 含 page/size/search，与 useInfiniteStyleSamples 的无限滚动缓存区分。
-// StyleSampleList 的无限滚动走 useInfiniteStyleSamples（page 由 pageParam 管理）。
-// 不设 enabled 守卫：novel_id=0 是合法的全局 samples 查询（is_global），始终 fetch。
-// 消费方：StyleView；CRUD 后由 mutation 的 invalidateQueries 同步（commit 2 抽 mutation）。
-// 5.3 commit 1：GET 错误由全局中间件接管（queryErrorToast.ts），组件不挂 toastError。
+// useStyleSamples: single-page list query for style samples (StyleView
+// previous/next pagination, PAGE_SIZE=15).
+// queryKey includes page/size/search, distinguishing the cache from
+// useInfiniteStyleSamples's infinite scroll cache.
+// StyleSampleList's infinite scroll uses useInfiniteStyleSamples (page
+// managed by pageParam).
+// No enabled guard is set: novel_id=0 is a valid global samples query
+// (is_global), so it always fetches.
+// Consumer: StyleView; after CRUD the mutation's invalidateQueries keeps it
+// in sync (mutation extracted in commit 2).
+// 5.3 commit 1: GET errors are handled by the global middleware
+// (queryErrorToast.ts); the component does not mount toastError.
 export function useStyleSamples(input: {
   novelId: number;
   page: number;

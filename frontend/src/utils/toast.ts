@@ -1,10 +1,12 @@
 import { toast } from "sonner";
+import i18n from "@/i18n";
 
-/** 显示错误 toast，带复制按钮，方便用户报告具体错误信息。 */
+/** Shows an error toast with a copy button so the user can report the
+ * specific error message. */
 export function toastError(msg: string) {
   return toast.error(msg, {
     action: {
-      label: "复制",
+      label: i18n.t("common.copy"),
       onClick: () => navigator.clipboard.writeText(msg),
     },
     actionButtonStyle: {
@@ -18,7 +20,8 @@ export function toastError(msg: string) {
   });
 }
 
-/** 显示成功 toast，用于非错误的正向反馈（如 URL 自动补全）。 */
+/** Shows a success toast for positive, non-error feedback (e.g. automatic
+ * URL completion). */
 export function toastSuccess(msg: string) {
   return toast.success(msg);
 }

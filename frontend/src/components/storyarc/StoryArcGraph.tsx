@@ -66,10 +66,13 @@ export default function StoryArcGraph({ novelId }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<Graph | null>(null);
 
-  // 4.3.1: arcs/allNodes/maxChapter 走 query（与 ArcList / ArcListView 共享缓存）。
-  // 删原 useApp.GetStoryArcs/GetArcNodes/GetMaxChapterNumber + load() + useState；
-  // CRUD 后由 invalidateQueries 触发 refetch（commit 2/3 抽 mutation）。
-  // 4a: query 错误 toast 由全局中间件接管（queryErrorToast.ts），此处不再挂 useEffect。
+  // 4.3.1: arcs/allNodes/maxChapter go through queries (sharing the cache
+  // with ArcList / ArcListView).
+  // Removes the old useApp.GetStoryArcs/GetArcNodes/GetMaxChapterNumber +
+  // load() + useState; after CRUD invalidateQueries triggers a refetch
+  // (mutations extracted in commits 2/3).
+  // 4a: the query error toast is handled by the global middleware
+  // (queryErrorToast.ts); no useEffect is mounted here.
   const arcsQuery = useStoryArcs(novelId);
   const nodesQuery = useArcNodes(novelId);
   const { data: chapters = [] } = useChapters(novelId);
@@ -81,8 +84,10 @@ export default function StoryArcGraph({ novelId }: Props) {
   const arcs = arcsQuery.data ?? [];
   const allNodes = nodesQuery.data ?? [];
   const loading = arcsQuery.isLoading || nodesQuery.isLoading;
-  // 4.3.1: loadFailed 只看 arcs（arcs 失败整图不可用）。
-  // nodes 失败时图仍渲染（空节点），nodes 错误 toast 由中间件弹，不阻塞图渲染。
+  // 4.3.1: loadFailed only looks at arcs (if arcs fail, the whole graph is
+  // unusable).
+  // When nodes fail, the graph still renders (empty nodes); the nodes error
+  // toast is shown by the middleware and does not block graph rendering.
   const loadFailed = arcsQuery.isError;
 
   const [selectedNode, setSelectedNode] = useState<storyarc.ArcNode | null>(
@@ -95,8 +100,10 @@ export default function StoryArcGraph({ novelId }: Props) {
   const [windowCenter, setWindowCenter] = useState(0);
   const [edgeCounts, setEdgeCounts] = useState({ left: 0, right: 0 });
 
-  // 4.3.1: maxChapter 就绪后初始化 windowCenter（替代原 load() 里的 setWindowCenter）。
-  // 只在 maxChapter 变化时设，不覆盖用户后续 shift 操作。
+  // 4.3.1: once maxChapter is ready, initialize windowCenter (replaces the
+  // setWindowCenter in the old load()).
+  // Only set when maxChapter changes; do not overwrite the user's
+  // subsequent shift operations.
   useEffect(() => {
     const max = maxChQuery.data ?? 0;
     if (max > 0) setWindowCenter(Math.max(1, max));
@@ -536,8 +543,8 @@ export default function StoryArcGraph({ novelId }: Props) {
           <div className="mt-1 text-xs text-muted-foreground">
             {t("storyarc.arcCount", { count: arcs.length })} ·{" "}
             {t("storyarc.nodeCountTotal", { count: allNodes.length })} ·{" "}
-            {t("sidebar.chapterRange", { start: windowFrom, end: windowTo })}（
-            {t("storyarc.totalChapters", { count: totalChapters })}）
+            {t("sidebar.chapterRange", { start: windowFrom, end: windowTo })} (
+            {t("storyarc.totalChapters", { count: totalChapters })})
           </div>
         </div>
         <div className="flex items-center gap-1.5 rounded-md border border-border/80 bg-card/82 p-1 shadow-sm backdrop-blur">
@@ -576,7 +583,8 @@ export default function StoryArcGraph({ novelId }: Props) {
           <button
             type="button"
             onClick={() => {
-              // 4.3.1: refresh 按钮 invalidate 三个 query（替代原 load()）。
+              // 4.3.1: the refresh button invalidates the three queries
+              // (replaces the old load()).
               queryClient.invalidateQueries({
                 queryKey: storyarcKeys.list(novelId),
               });

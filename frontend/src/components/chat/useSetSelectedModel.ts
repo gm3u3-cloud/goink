@@ -2,11 +2,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { SetSelectedModel } from "@/lib/wailsjs/go/app/App";
 import { settingsKeys } from "@/lib/queryKeys";
 
-// useSetSelectedModel: 设置选中模型 mutation（持久化 selected_model_key + reasoning_effort 到 AppSettings）。
-// 后端 API 签名是 SetSelectedModel(key, effort)，mutationFn 包装成对象 { key, effort }。
-// onSuccess invalidate settingsKeys.all —— useSettings refetch 拿新 selected_model_key/reasoning_effort。
-// 错误处理由调用方 try/catch + toastError。
-// 5.1 commit 4 补遗。
+// useSetSelectedModel: mutation to set the selected model (persists
+// selected_model_key + reasoning_effort to AppSettings).
+// The backend API signature is SetSelectedModel(key, effort); mutationFn
+// wraps it into an object { key, effort }.
+// onSuccess invalidates settingsKeys.all — useSettings refetches the new
+// selected_model_key/reasoning_effort.
+// Error handling is done by the caller with try/catch + toastError.
+// 5.1 commit 4 addendum.
 export function useSetSelectedModel() {
   const qc = useQueryClient();
   return useMutation({

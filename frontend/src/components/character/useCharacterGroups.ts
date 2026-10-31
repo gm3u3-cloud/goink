@@ -10,7 +10,8 @@ import {
 import type { app } from "@/lib/wailsjs/go/models";
 import { characterKeys } from "@/lib/queryKeys";
 
-// 树导航和角色卡片共用完整分类数据，与现有全量角色缓存配套。
+// The tree navigation and the character cards share the full category data,
+// paired with the existing full character cache.
 export function useCharacterGroups(novelId: number) {
   return useQuery({
     queryKey: characterKeys.groups(novelId),

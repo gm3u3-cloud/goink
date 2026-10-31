@@ -3,13 +3,19 @@ import { UpdateLocation } from "@/lib/wailsjs/go/app/App";
 import type { app } from "@/lib/wailsjs/go/models";
 import { locationKeys } from "@/lib/queryKeys";
 
-// useUpdateLocation: 更新地点 mutation（参考 useUpdateCharacter）。
-// mutationFn 直接 import wailsjs UpdateLocation（不用 useApp）。
-// 入参 {id, input}：input 用 app.UpdateLocationInput（PUT 语义，全量回传）。
-// handler 负责 setEditMode(null) + 错误 throw（副作用各异，不放进 mutation）。
-// onSuccess 失效 list：改名/改描述/改类型/改 parent 后列表同步（LocationList 树形结构 + Graph 节点同步重建）。
-// 不失效 relations：LocationRelation 只存 location_a/location_b 不存 name，
-// 改名/改描述/改类型/改 parent 不影响 relations 缓存（Graph 节点名来自 useLocations 的 refetch）。
+// useUpdateLocation: update location mutation (see useUpdateCharacter).
+// mutationFn imports wailsjs UpdateLocation directly (not useApp).
+// Input {id, input}: input uses app.UpdateLocationInput (PUT semantics,
+// full payload).
+// The handler is responsible for setEditMode(null) + throwing the error
+// (the side effects differ, so they are not placed in the mutation).
+// onSuccess invalidates the list: after renaming/description/type/parent
+// changes the list stays in sync (LocationList tree structure + Graph nodes
+// are rebuilt in sync).
+// relations is not invalidated: LocationRelation only stores
+// location_a/location_b, not name, so renaming/description/type/parent
+// changes do not affect the relations cache (the Graph node names come from
+// the useLocations refetch).
 export function useUpdateLocation(novelId: number) {
   const qc = useQueryClient();
   return useMutation({

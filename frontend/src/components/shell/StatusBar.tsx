@@ -2,7 +2,8 @@ import { useMemo, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useEditorStore } from "@/stores/useEditorStore";
 
-// 3.8 后续：content/isDirty 迁 useEditorStore，StatusBar 自己订阅（原由 WorkspaceView 透传 props）。
+// 3.8 follow-up: content/isDirty moved to useEditorStore; StatusBar
+// subscribes to it directly (previously prop-drilled from WorkspaceView).
 
 interface DetailedStats {
   wordCount: number;

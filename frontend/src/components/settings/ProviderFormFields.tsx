@@ -17,22 +17,30 @@ interface Props {
     { ok: boolean; msg?: string; warning?: string } | undefined
   >;
   testing: Record<string, boolean>;
-  // 自定义模型列表容器的额外 className（Custom 用 "mb-2" 与下方 ModelDiscoveryPanel 隔开，Builtin 不用）
+  // Extra className for the custom model list container (Custom uses
+  // "mb-2" to separate it from the ModelDiscoveryPanel below; Builtin does
+  // not)
   customModelListClassName?: string;
 }
 
 /**
- * Provider 表单字段共享组件：ChatURL + APIKey + TestResult + Temperature + CustomModelList。
- * BuiltinProviderPane 和 CustomProviderPane 共用，避免重复代码。
+ * Shared Provider form fields component: ChatURL + APIKey + TestResult +
+ * Temperature + CustomModelList.
+ * Used by both BuiltinProviderPane and CustomProviderPane to avoid
+ * duplicated code.
  *
- * 字段顺序统一为 ChatURL → APIKey → TestResult → Temperature → CustomModelList
- * （Builtin 原来是 APIKey → ChatURL，已统一为 ChatURL → APIKey 更合理：先填端点再填 Key）。
+ * Field order is unified as ChatURL → APIKey → TestResult → Temperature →
+ * CustomModelList (Builtin was originally APIKey → ChatURL; it was unified
+ * to ChatURL → APIKey, which is more reasonable: fill in the endpoint first,
+ * then the key).
  *
- * label 宽度统一为 w-16（Builtin 原来是 w-14，已统一为 w-16 更通用）。
- * Chat URL 提示 padding 统一为 pl-[5rem]（对应 w-16 + gap-3）。
+ * Label width is unified to w-16 (Builtin was originally w-14; unified to
+ * w-16 as more general).
+ * The Chat URL hint padding is unified to pl-[5rem] (matching w-16 + gap-3).
  *
- * Builtin 独有的注册链接/指引/内置模型、Custom 独有的 name/新建表单/删除按钮，
- * 由各自 Pane 在调用 ProviderFormFields 前后插入，不在此组件内处理。
+ * Builtin-only registration link/guide/built-in models and Custom-only
+ * name/new form/delete button are inserted by their respective Panes before
+ * and after the ProviderFormFields call, not handled in this component.
  */
 export default function ProviderFormFields({
   provider,
@@ -65,7 +73,7 @@ export default function ProviderFormFields({
         {t("settings.urlAutoDetectHint")}
       </p>
 
-      {/* API Key + 测试按钮 */}
+      {/* API Key + test button */}
       <div className="flex items-center gap-2">
         <label className="text-xs text-muted-foreground w-16 shrink-0">
           {t("settings.apiKey")}
@@ -90,10 +98,10 @@ export default function ProviderFormFields({
         </button>
       </div>
 
-      {/* 测试结果 */}
+      {/* Test result */}
       <TestResultWithHint testResult={testResult} />
 
-      {/* Temperature 滑块 */}
+      {/* Temperature slider */}
       <div className="flex items-center gap-3">
         <label className="text-xs text-muted-foreground w-16 shrink-0 flex items-center gap-1">
           {t("settings.creativity")}
@@ -115,7 +123,7 @@ export default function ProviderFormFields({
         </span>
       </div>
 
-      {/* 自定义模型列表 */}
+      {/* Custom model list */}
       {provider.custom_models && provider.custom_models.length > 0 && (
         <div>
           <span className="text-xs text-muted-foreground mb-2 block">

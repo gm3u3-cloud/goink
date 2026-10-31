@@ -2,13 +2,18 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DeleteLocation } from "@/lib/wailsjs/go/app/App";
 import { locationKeys } from "@/lib/queryKeys";
 
-// useDeleteLocation: 删除地点 mutation（参考 useDeleteCharacter）。
-// mutationFn 直接 import wailsjs DeleteLocation（不用 useApp）。
-// 两处共用：LocationListView 执行删除（confirmDelete 调 mutateAsync）；LocationList 只 dispatch store 不执行。
-// handler 负责 setDeletingLocationId(null) + 错误 throw（副作用各异，不放进 mutation）。
-// onSuccess 失效 list + relations：后端 DeleteLocation 事务级联删 LocationRelation
-// （location_a 或 location_b = locID 的都删），前端两个 query 缓存都要刷新
-// （LocationGraph 的 useLocationRelations 也 refetch，缓存干净）。
+// useDeleteLocation: delete location mutation (see useDeleteCharacter).
+// mutationFn imports wailsjs DeleteLocation directly (not useApp).
+// Shared in two places: LocationListView executes the deletion
+// (confirmDelete calls mutateAsync); LocationList only dispatches to the
+// store and does not execute.
+// The handler is responsible for setDeletingLocationId(null) + throwing the
+// error (the side effects differ, so they are not placed in the mutation).
+// onSuccess invalidates list + relations: the backend DeleteLocation
+// transaction cascades to delete LocationRelations (both where location_a
+// or location_b = locID), so both frontend query caches must refresh
+// (LocationGraph's useLocationRelations also refetches, keeping the cache
+// clean).
 export function useDeleteLocation(novelId: number) {
   const qc = useQueryClient();
   return useMutation({

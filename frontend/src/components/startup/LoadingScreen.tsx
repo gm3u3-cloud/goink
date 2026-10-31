@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 
-/** 启动期间的占位屏：拿到快照但还不能确定渲染哪个界面的那段时间。 */
+/** Placeholder screen during startup: the period after receiving the
+ * snapshot but before it is clear which view to render. */
 export default function LoadingScreen() {
   const { t } = useTranslation();
 

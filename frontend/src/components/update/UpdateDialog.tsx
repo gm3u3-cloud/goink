@@ -40,7 +40,7 @@ export default function UpdateDialog({ open, result, onClose }: Props) {
         onClick={handleDismiss}
       />
       <div className="relative w-[640px] max-w-[90vw] max-h-[85vh] rounded-xl border border-border bg-background shadow-2xl flex flex-col">
-        {/* 头部 */}
+        {/* Header */}
         <div className="flex items-start gap-3 p-6 pb-4 shrink-0">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <Sparkles className="h-5 w-5" />
@@ -67,7 +67,7 @@ export default function UpdateDialog({ open, result, onClose }: Props) {
           </div>
         )}
 
-        {/* 底部按钮 */}
+        {/* Footer buttons */}
         <div className="flex items-center justify-end gap-2 p-6 pt-4 shrink-0 border-t border-border">
           <button
             onClick={handleDismiss}

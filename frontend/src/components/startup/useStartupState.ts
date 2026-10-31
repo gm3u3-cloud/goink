@@ -3,32 +3,41 @@ import { FrontendReady, RetryStartup } from "@/lib/wailsjs/go/app/App";
 import type { app } from "@/lib/wailsjs/go/models";
 import { EventsOn } from "@/lib/wailsjs/runtime/runtime";
 
-/** 迁移遮罩的防抖窗口：状态保持超过它才显示遮罩，避免快启动时闪一下。 */
+/** Debounce window for the migration overlay: the overlay is only shown
+ * once the state persists longer than this, avoiding a flash on fast startup. */
 const PREPARING_DELAY_MS = 500;
 
 export interface StartupStatus {
-  /** 当前启动阶段；握手失败时为 "failed"，还没拿到任何快照时为 null。 */
+  /** Current startup phase; "failed" on handshake failure, null before any
+   * snapshot is received. */
   phase: string | null;
-  /** 当前快照版本；null 表示还没拿到快照。 */
+  /** Current snapshot version; null means no snapshot has been received. */
   version: number | null;
-  /** 当前该展示的启动错误，无错时为空串。 */
+  /** The startup error to display currently; empty string when none. */
   error: string;
-  /** 迁移中且已超过防抖窗口，应显示"正在准备数据"遮罩。 */
+  /** Migrating and past the debounce window; the "preparing data" overlay
+   * should be shown. */
   showPreparing: boolean;
-  /** 本次启动是否由首次配置页点火，用于进入主界面后展示引导。 */
+  /** Whether this startup was triggered from the first-time config page;
+   * used to show onboarding after entering the main view. */
   cameFromInit: boolean;
-  /** 失败页的"重试"按钮。 */
+  /** The "retry" button on the failure page. */
   retry: () => Promise<void>;
   retrying: boolean;
 }
 
 /**
- * 订阅后端启动状态，把"四态 + 版本号 + 防抖 + 重试"这一整套启动协议关在 hook 里。
+ * Subscribes to the backend startup state, keeping the whole startup
+ * protocol ("four states + version number + debounce + retry") inside the hook.
  *
- * 后端会用 startup:state 事件推送状态，但事件是瞬时且可能乱序的：
- * ① 快照走两条独立通道（event 推送 / FrontendReady 的返回值），二者顺序不保证；
- * ② 前端先注册再调用 FrontendReady，此时返回的返回值与随后到达的事件也可能交错。
- * 因此这里不比转速，只按 Version 单调递增取舍——旧快照一律丢弃。
+ * The backend pushes state via the startup:state event, but events are
+ * transient and may arrive out of order:
+ * ① Snapshots travel over two independent channels (event push / the
+ *    FrontendReady return value), and their order is not guaranteed;
+ * ② The frontend registers first and then calls FrontendReady, so the return
+ *    value and events arriving afterwards may interleave.
+ * Therefore this hook does not compare "spin-up" — it only accepts changes by
+ * monotonically increasing Version; older snapshots are always discarded.
  */
 export function useStartupState(): StartupStatus {
   const [state, setState] = useState<app.StartupState | null>(null);
@@ -61,8 +70,10 @@ export function useStartupState(): StartupStatus {
     const unsubscribe = EventsOn("startup:state", (data: app.StartupState) => {
       applyState(data);
     });
-    // 顺序不能反：先注册监听，再告知后端。FrontendReady 返回的是"这一刻"的快照，
-    // 它之后的变化都能通过事件到达；之前的变化已经包含在这份返回值里。
+    // The order cannot be reversed: register the listener first, then notify
+    // the backend. FrontendReady returns the snapshot "at this moment";
+    // changes after that all arrive via events; changes before that are
+    // already included in this return value.
     FrontendReady()
       .then(applyState)
       .catch((error) => {
@@ -98,7 +109,8 @@ export function useStartupState(): StartupStatus {
     }
   }, []);
 
-  // 握手失败（拿不到任何快照）也归一到 failed，让调用方只需看 phase 一个字段。
+  // A handshake failure (no snapshot received at all) is also normalized to
+  // failed, so callers only need to look at the single phase field.
   const phase = bootstrapError ? "failed" : (state?.phase ?? null);
   const error = bootstrapError || retryError || state?.error || "";
   const showPreparing =

@@ -3,11 +3,15 @@ import { CreateStoryArc } from "@/lib/wailsjs/go/app/App";
 import type { app } from "@/lib/wailsjs/go/models";
 import { storyarcKeys } from "@/lib/queryKeys";
 
-// useCreateStoryArc: 创建故事弧线 mutation。
-// mutationFn 直接 import wailsjs CreateStoryArc（不用 useApp），返回 storyarc.StoryArc。
-// handler 负责 setEditMode(null) + 错误 throw（副作用各异，不放进 mutation）。
-// onSuccess 失效 storyarcs：新 arc 入列表，ArcList / ArcListView / StoryArcGraph 同步。
-// 不失效 arc-nodes：新建 arc 无 node，arc-nodes 缓存无脏数据。
+// useCreateStoryArc: create story arc mutation.
+// mutationFn imports wailsjs CreateStoryArc directly (not useApp) and
+// returns storyarc.StoryArc.
+// The handler is responsible for setEditMode(null) + throwing the error
+// (the side effects differ, so they are not placed in the mutation).
+// onSuccess invalidates storyarcs: the new arc enters the list, and
+// ArcList / ArcListView / StoryArcGraph stay in sync.
+// arc-nodes is not invalidated: a newly created arc has no nodes, so the
+// arc-nodes cache has no dirty data.
 export function useCreateStoryArc(novelId: number) {
   const qc = useQueryClient();
   return useMutation({

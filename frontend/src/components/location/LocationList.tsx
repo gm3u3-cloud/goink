@@ -36,23 +36,29 @@ function buildTree(locations: location.Location[]): TreeNode[] {
 
 export default function LocationList({ novelId }: Props) {
   const { t } = useTranslation();
-  // 4.2.1: locations 走 useLocations query（与 LocationListView / LocationGraph 共享缓存）。
-  // 删原 useState<location[]> + load() + useEffect + useRefresh；CRUD 后由 invalidateQueries 触发 refetch。
-  // isError 内连显示加载失败（toast 由全局中间件接管）。
+  // 4.2.1: locations go through the useLocations query (sharing the cache
+  // with LocationListView / LocationGraph).
+  // Removes the old useState<location[]> + load() + useEffect + useRefresh;
+  // after CRUD, invalidateQueries triggers a refetch.
+  // isError shows the load failure inline (the toast is handled by the
+  // global middleware).
   const { data: locations = [], isError } = useLocations(novelId);
-  // 4.2.2: 删除合并 —— 点删除只 dispatch setDeletingLocationId，
-  // ConfirmDialog + 执行集中在 LocationListView（唯一确认入口，两处共用）。
+  // 4.2.2: consolidated deletion — clicking delete only dispatches
+  // setDeletingLocationId; the ConfirmDialog + execution are centralized in
+  // LocationListView (the single confirmation entry point, shared by both
+  // places).
   const setDeletingLocationId = useLocationStore(
     (s) => s.setDeletingLocationId,
   );
-  // 4b: 点击列表项触发 focusEntity（toggle + focus 同一 onClick），
-  // LocationListView 的 useEffect 收到后 scrollIntoView + 高亮。
+  // 4b: clicking a list item triggers focusEntity (toggle + focus in the
+  // same onClick); LocationListView's useEffect receives it and does
+  // scrollIntoView + highlight.
   const focusEntity = useFocusStore((s) => s.focusEntity);
 
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
-    // 默认展开根节点
+    // Expand the root nodes by default
     const roots = locations.filter((l) => !l.parent_location_id);
     setExpandedIds(new Set(roots.map((l) => l.id)));
   }, [locations]);

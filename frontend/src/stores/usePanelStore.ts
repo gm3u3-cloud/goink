@@ -10,9 +10,11 @@ interface PanelState {
   setSidebarClosed: (closed: boolean) => void;
 }
 
-// activePanel 默认 "novels"；WorkspaceView mount 时用 initialNovelId 覆盖为 "chapters"。
-// handleActivitySelect 的折叠/展开逻辑是 condition-based，由调用方用 3 个 setter 组合实现，
-// 不提供 toggleSidebar（无简单 toggle 语义）。
+// activePanel defaults to "novels"; WorkspaceView overrides it to "chapters"
+// on mount using initialNovelId.
+// The collapse/expand logic in handleActivitySelect is condition-based and is
+// composed by the caller from the 3 setters; there is no toggleSidebar (there
+// is no simple toggle semantics).
 export const usePanelStore = create<PanelState>((set) => ({
   activePanel: "novels",
   sidebarPanel: null,

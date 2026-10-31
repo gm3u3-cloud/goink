@@ -13,13 +13,14 @@ interface Props {
   agentType: "memory" | "review";
   segments: TurnSegment[];
   status: "streaming" | "done" | "failed";
-  // P1: 子 agent 重试状态（由 EventRetrying 携带 sub_task_id 时设置）
+  // P1: sub-agent retry state (set when EventRetrying carries a sub_task_id)
   retrying?: {
     attempt: number;
     maxRetries: number;
     errorMessage: string;
   } | null;
-  // P1: 子 agent 最终失败原因（由 EventError 携带 sub_task_id 时设置）
+  // P1: the sub-agent's final failure reason (set when EventError carries a
+  // sub_task_id)
   errorMessage?: string;
 }
 
@@ -87,7 +88,8 @@ export default memo(function SubagentCard({
 
           <span className="flex-1" />
 
-          {/* P1: 子 agent 重试时优先显示重试 badge（覆盖 streaming 的执行中） */}
+          {/* P1: while a sub-agent is retrying, prefer the retry badge
+           * (overrides streaming's "executing") */}
           {retrying ? (
             <span
               className="subagent-badge subagent-badge-running"

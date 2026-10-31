@@ -12,14 +12,19 @@ import { useSaveUserName } from "./useSaveUserName";
 
 export default function ProfileView() {
   const { t } = useTranslation();
-  // 5.7 commit 2: SaveAvatar/SaveUserName 改 mutation（删 useApp）。
-  // invalidate settingsKeys.all 由 useSaveUserName onSuccess 接管。
+  // 5.7 commit 2: SaveAvatar/SaveUserName changed to mutations (useApp
+  // removed).
+  // The settingsKeys.all invalidation is taken over by useSaveUserName's
+  // onSuccess.
   const saveAvatar = useSaveAvatar();
   const saveUserName = useSaveUserName();
 
-  // 5.7 commit 1: 3 GET query 化（删 load 三件套 + useEffect + Promise.all）。
-  // activity/stats/settings 各自独立 query，isLoading/isError 合并三态。
-  // GET 错误由全局中间件接管（queryErrorToast.ts），组件不挂 toastError。
+  // 5.7 commit 1: the 3 GETs were query-ified (the load trio + useEffect +
+  // Promise.all removed).
+  // activity/stats/settings are each independent queries; isLoading/isError
+  // merge the three states.
+  // GET errors are handled by the global middleware (queryErrorToast.ts);
+  // the component does not attach toastError.
   const activityQuery = useWritingActivity(12);
   const statsQuery = useWritingStats();
   const settingsQuery = useProfileSettings();
@@ -29,7 +34,7 @@ export default function ProfileView() {
   const isError =
     activityQuery.isError || statsQuery.isError || settingsQuery.isError;
 
-  // activity 数组转 dict（绿格子按 date 取 words）
+  // Convert the activity array to a dict (green cells read words by date)
   const activity = useMemo(() => {
     const dict: Record<string, WritingActivity> = {};
     for (const d of activityQuery.data ?? []) {
@@ -41,7 +46,7 @@ export default function ProfileView() {
   const stats = statsQuery.data ?? null;
   const settings = settingsQuery.data ?? null;
 
-  // 组件内 UI state（规则 10，不进 store）
+  // In-component UI state (rule 10, not put in the store)
   const [avatarKey, setAvatarKey] = useState(0);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
@@ -75,8 +80,9 @@ export default function ProfileView() {
     if (name && name !== settings?.user_name) {
       try {
         await saveUserName.mutateAsync(name);
-        // invalidate settingsKeys.all 由 useSaveUserName onSuccess 接管
-        // （useProfileSettings 自动 refetch 拿新 user_name）。
+        // The settingsKeys.all invalidation is taken over by
+        // useSaveUserName's onSuccess (useProfileSettings auto-refetches to
+        // get the new user_name).
         setNameError("");
       } catch (err) {
         setNameError(toErrorMessage(err));
@@ -116,7 +122,7 @@ export default function ProfileView() {
             {t("profile.loadFailed")}
           </p>
         )}
-        {/* 头像 + 问候 */}
+        {/* Avatar + greeting */}
         <div className="flex items-center gap-4">
           <div
             className="relative group flex-shrink-0 cursor-pointer select-none"
@@ -178,7 +184,7 @@ export default function ProfileView() {
           </div>
         </div>
 
-        {/* 统计卡片 */}
+        {/* Statistics cards */}
         <div className="grid grid-cols-2 gap-3">
           <StatCard
             icon={PenLine}
@@ -202,7 +208,7 @@ export default function ProfileView() {
           />
         </div>
 
-        {/* 作品/章节概览 */}
+        {/* Works/chapters overview */}
         <div className="flex gap-6 text-xs text-muted-foreground">
           <span>
             {t("profile.worksCount", { count: stats?.total_novels ?? 0 })}
@@ -212,7 +218,7 @@ export default function ProfileView() {
           </span>
         </div>
 
-        {/* 绿格子 */}
+        {/* Green cells */}
         <section>
           <h2 className="text-sm font-medium text-foreground mb-4">
             {t("profile.yearCalendar", { year: currentYear })}

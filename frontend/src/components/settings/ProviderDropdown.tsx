@@ -7,9 +7,10 @@ interface Props {
   providers: llm.ProviderView[];
   selectedKey: string;
   onSelect: (key: string) => void;
-  // icon 由调用方决定渲染：Builtin 传 ProviderIcon，Custom 传首字母圆形
+  // The icon is rendered by the caller: Builtin passes ProviderIcon,
+  // Custom passes a circular initial
   renderIcon: (key: string, name: string) => ReactNode;
-  // 失败红点 badge：testResults[key].ok === false 时显示
+  // Failure red-dot badge: shown when testResults[key].ok === false
   testResults?: Record<
     string,
     { ok: boolean; msg?: string; warning?: string } | undefined
@@ -17,14 +18,16 @@ interface Props {
 }
 
 /**
- * 服务商选择下拉：自定义 button + dropdown 列表。
- * Builtin 和 Custom 共用，差异通过 renderIcon 注入（Builtin 用 ProviderIcon，
- * Custom 用首字母圆形 fallback）。
+ * Provider selection dropdown: custom button + dropdown list.
+ * Shared by Builtin and Custom; the difference is injected via renderIcon
+ * (Builtin uses ProviderIcon, Custom uses a circular initial fallback).
  *
- * 列表项右侧失败红点 badge：testResults[key].ok === false 时显示，
- * 让用户在切换 provider 时一眼看到哪些是失败的。
+ * The red-dot failure badge on the right of each list item is shown when
+ * testResults[key].ok === false, so the user can see at a glance which
+ * providers are failing while switching.
  *
- * 注意：dropdownOpen 在 selectedKey 变化时自动重置（切换后收起列表）。
+ * Note: dropdownOpen is reset automatically when selectedKey changes (the
+ * list collapses after switching).
  */
 export default function ProviderDropdown({
   providers,
@@ -38,12 +41,12 @@ export default function ProviderDropdown({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const provider = providers.find((p) => p.key === selectedKey);
 
-  // 切换服务商时重置折叠和下拉状态
+  // Reset the collapse and dropdown state when the provider changes
   useEffect(() => {
     setDropdownOpen(false);
   }, [selectedKey]);
 
-  // 点击外部关闭下拉
+  // Click outside to close the dropdown
   useEffect(() => {
     if (!dropdownOpen) return;
     const handle = (e: MouseEvent) => {
@@ -76,9 +79,14 @@ export default function ProviderDropdown({
         <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-md border bg-popover text-popover-foreground shadow-md py-1 max-h-56 overflow-auto">
           {providers.map((p) => {
             const tr = testResults?.[p.key];
-            // 状态 badge 五态：未配置灰 / 未测试灰 / 通过绿 / 通过(限流)黄 / 失败红
-            // 颜色全部走主题色变量（--muted-foreground / --success-foreground / --warning-foreground / --destructive）
-            // 不赋初值：所有分支都会赋值，初始 "" 会被 ESLint no-useless-assignment 标记
+            // Status badge has five states: not configured (gray) / not
+            // tested (gray) / passed (green) / passed with rate limit
+            // (yellow) / failed (red)
+            // All colors use theme color variables
+            // (--muted-foreground / --success-foreground /
+            // --warning-foreground / --destructive)
+            // No initial value: every branch assigns, and an initial "" would
+            // be flagged by ESLint no-useless-assignment
             let badgeColor: string;
             let badgeLabel: string;
             if (!p.api_key) {

@@ -2,9 +2,12 @@ import { useCallback, useRef } from "react";
 import type { EditorTab } from "@/components/content/types";
 import { useEditorTabsStore } from "./useEditorTabsStore";
 
-// useEditorTabs: useEditorTabsStore 的按小说选择器薄封装，API 与旧实现一致。
-// 状态存全局 zustand 单例（ContentPanel 切面板 unmount 后不丢失，会话内恢复）+ 原生
-// localStorage 持久化（跨重启恢复），持久化细节见 useEditorTabsStore。
+// useEditorTabs: a thin per-novel selector wrapper over useEditorTabsStore,
+// with the same API as the old implementation.
+// State lives in the global zustand singleton (not lost when ContentPanel
+// unmounts on panel switch; restored within the session) + native
+// localStorage persistence (restored across restarts); see
+// useEditorTabsStore for persistence details.
 const EMPTY_TABS: EditorTab[] = [];
 
 export function useEditorTabs(novelId: number) {
@@ -14,8 +17,10 @@ export function useEditorTabs(novelId: number) {
     (s) => s.byNovel[key]?.activeTabId ?? null,
   );
   const activeTab = tabs.find((t) => t.id === activeTabId) ?? null;
-  // store 在模块加载时同步从 localStorage 恢复，首次渲染即有 tab，故恒为 true。
-  // 保留 initRef 仅因 ContentPanel 现有代码解构引用它。
+  // The store is synchronously restored from localStorage at module load,
+  // so tabs exist on the first render — always true.
+  // initRef is kept only because ContentPanel's existing code destructures
+  // it.
   const initRef = useRef(true);
 
   const openTab = useCallback(

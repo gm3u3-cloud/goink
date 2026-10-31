@@ -3,10 +3,13 @@ import { CreateNovel } from "@/lib/wailsjs/go/app/App";
 import type { app } from "@/lib/wailsjs/go/models";
 import { novelKeys } from "@/lib/queryKeys";
 
-// useCreateNovel: 创建小说 mutation。
-// mutationFn 直接 import wailsjs CreateNovel（不用 useApp），onSuccess 失效 novelKeys.all。
-// handler 负责 switchToNovel + 关 UI（副作用各异，不放进 mutation）。
-// 入参类型 app.CreateNovelInput：title 必填，description/genre 可选。
+// useCreateNovel: create-novel mutation.
+// mutationFn directly imports the wailsjs CreateNovel (no useApp); onSuccess
+// invalidates novelKeys.all.
+// The handler is responsible for switchToNovel + closing the UI (side effects
+// vary, so they are not put in the mutation).
+// The input type is app.CreateNovelInput: title is required, description/genre
+// are optional.
 export function useCreateNovel() {
   const qc = useQueryClient();
   return useMutation({

@@ -3,23 +3,30 @@ import { CancelQuit, ConfirmQuit } from "@/lib/wailsjs/go/app/App";
 import { EventsOn } from "@/lib/wailsjs/runtime/runtime";
 
 export interface QuitConfirmStatus {
-  /** 后端请求确认退出，应显示关窗确认弹窗。 */
+  /** The backend requested quit confirmation; the close-window confirm
+   * dialog should be shown. */
   open: boolean;
-  /** 用户确认退出：通知后端关闭窗口。 */
+  /** The user confirmed quitting: notify the backend to close the window. */
   confirm: () => void;
-  /** 用户选择继续等待：清除后端待确认标记，下次关窗重新劝阻。 */
+  /** The user chose to keep waiting: clear the backend's pending-confirmation
+   * flag so the next close attempt is dissuaded again. */
   cancel: () => void;
 }
 
 /**
- * 订阅后端的关窗确认请求，把"弹窗 + 回传用户选择"关在 hook 里。
+ * Subscribes to the backend's close-window confirmation request, keeping
+ * "dialog + sending the user's choice back" inside the hook.
  *
- * 确认由后端发起：OnBeforeClose 在初始化期间拦截关闭并发出 app:quit-confirm，
- * 因为 Wails v2 的 MessageDialog 在 Windows/Linux 会忽略自定义按钮，
- * 无法表达"继续等待 / 退出"这组选项。
+ * The confirmation is initiated by the backend: OnBeforeClose intercepts
+ * closing during initialization and emits app:quit-confirm, because Wails v2's
+ * MessageDialog ignores custom buttons on Windows/Linux and cannot express
+ * the "keep waiting / exit" option pair.
  *
- * 两个选择都必须回传后端，它靠标记决定下次关窗是再劝一次还是直接放行：
- * 只关掉弹窗而不取消，用户下一次关窗会被当成"确认期间再次关闭"而不再劝阻。
+ * Both choices must be sent back to the backend; it uses a flag to decide
+ * whether the next close attempt should be dissuaded once more or allowed
+ * through directly:
+ * closing the dialog without cancelling means the user's next close attempt
+ * is treated as "closing again during confirmation" and is no longer dissuaded.
  */
 export function useQuitConfirm(): QuitConfirmStatus {
   const [open, setOpen] = useState(false);

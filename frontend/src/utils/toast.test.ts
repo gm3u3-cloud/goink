@@ -32,7 +32,9 @@ describe("toastError", () => {
       "error message",
       expect.objectContaining({
         action: expect.objectContaining({
-          label: "复制",
+          // label is i18n-driven (i18n.t("common.copy")), so assert a non-empty
+          // string rather than a fixed translation.
+          label: expect.any(String),
           onClick: expect.any(Function),
         }),
       }),

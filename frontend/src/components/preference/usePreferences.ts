@@ -2,13 +2,16 @@ import { useQuery } from "@tanstack/react-query";
 import { GetPreferences } from "@/lib/wailsjs/go/app/App";
 import { preferenceKeys } from "@/lib/queryKeys";
 
-// usePreferences: 偏好列表 query（含全局 + 小说级两组 + token 预算）。
-// 后端 GetPreferences(novelId) 返回 app.PreferenceResult（含 global/novel/token_count/over_budget），
-// 非数组，区别于 reader/timeline 的数组返回。queryKey 用 ["preferences", novelId] 全量缓存，
-// invalidate 一次刷全部。
-// PreferenceView / PreferenceList 共享缓存：
-// - PreferenceView 取 result.global / result.novel / result.token_count / result.over_budget
-// - PreferenceList 合并 result.global + result.novel 为一个列表
+// usePreferences: preference list query (including the global + novel-level
+// groups + token budget).
+// The backend GetPreferences(novelId) returns app.PreferenceResult (with
+// global/novel/token_count/over_budget) — not an array, unlike
+// reader/timeline's array returns. The queryKey uses ["preferences", novelId]
+// for full caching; a single invalidate refreshes everything.
+// PreferenceView / PreferenceList share the cache:
+// - PreferenceView reads result.global / result.novel / result.token_count /
+//   result.over_budget
+// - PreferenceList merges result.global + result.novel into a single list
 export function usePreferences(novelId: number) {
   return useQuery({
     queryKey: preferenceKeys.list(novelId),

@@ -1,7 +1,9 @@
-// 数据可视化弧线调色板。
-// 用于 StoryArcGraph 和 ArcListView 区分不同故事弧线。
-// 图表/可视化库不接受 CSS 变量，必须用绝对颜色值（见 docs/frontend/theme-design.md §5§6）。
-// 故从 theme-check.mjs 的 oklch 检查中豁免（SKIP_FILES）。
+// Data-visualization arc color palette.
+// Used by StoryArcGraph and ArcListView to distinguish different story
+// arcs.
+// Chart/visualization libraries do not accept CSS variables; absolute
+// color values are required (see docs/frontend/theme-design.md §5§6).
+// Therefore it is exempted from theme-check.mjs's oklch check (SKIP_FILES).
 
 export interface ArcColor {
   fill: string;
@@ -65,7 +67,8 @@ const PALETTE_DARK: ArcColor[] = [
   },
 ];
 
-// arcPalette 按主题返回对应调色板，未知主题回退到浅色。
+// arcPalette returns the palette for the given theme; unknown themes fall
+// back to the light palette.
 export function arcPalette(theme: string): ArcColor[] {
   return theme === "dark" ? PALETTE_DARK : PALETTE_LIGHT;
 }

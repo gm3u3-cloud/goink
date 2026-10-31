@@ -2,11 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { GetCharacters } from "@/lib/wailsjs/go/app/App";
 import { characterKeys } from "@/lib/queryKeys";
 
-// useCharacters: 角色列表 query。
-// queryFn 直接 import wailsjs GetCharacters（不用 useApp），不设 staleTime（继承全局 30s，跟 useNovels 一致）。
-// enabled: !!novelId 守卫，novelId=0 时不 fetch（数据兜底空数组）。
-// 消费方：CharacterListView / CharacterGraph / CharacterList 共享缓存，
-// CRUD 后由 mutation 的 invalidateQueries 同步（4.1.2 抽 mutation）。
+// useCharacters: character list query.
+// queryFn imports wailsjs GetCharacters directly (not useApp); no staleTime
+// is set (inherits the global 30s, same as useNovels).
+// enabled: !!novelId guard; no fetch when novelId=0 (data falls back to an
+// empty array).
+// Consumers: CharacterListView / CharacterGraph / CharacterList share the
+// cache; after CRUD the mutation's invalidateQueries keeps them in sync
+// (mutations extracted in 4.1.2).
 export function useCharacters(novelId: number) {
   return useQuery({
     queryKey: characterKeys.list(novelId),

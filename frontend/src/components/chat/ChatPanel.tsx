@@ -106,7 +106,9 @@ export default function ChatPanel({
   const [turns, setTurns] = useState<Turn[]>([]);
   const [sessionId, setSessionId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  // selectedModel/reasoningEffort/approvalMode 从 useChatStore 订阅（跨组件共享，废弃拼接 key）。
+  // selectedModel/reasoningEffort/approvalMode are subscribed from
+  // useChatStore (shared across components; the concatenated key is
+  // deprecated).
   const selectedModel = useChatStore((s) => s.selectedModel);
   const setSelectedModel = useChatStore((s) => s.setSelectedModel);
   const reasoningEffort = useChatStore((s) => s.reasoningEffort);
@@ -140,10 +142,14 @@ export default function ChatPanel({
   }, [onFileEditFinished]);
   const restoredRef = useRef(false);
 
-  // 选中态恢复：依赖 useModels + useSettings 两个 query data 都 ready。
-  // restoredRef 保证只恢复一次（避免 query refetch 时重置用户手动选择）。
-  // 替代原 Promise.all([GetModels, GetSettings]) + setInitLoadError 逻辑。
-  // selectedModel 存结构化对象（含 ModelID/ProviderName），废弃拼接 key + splitModelKey。
+  // Selected-state restoration: depends on both the useModels and
+  // useSettings query data being ready.
+  // restoredRef guarantees restoration happens only once (avoids resetting
+  // the user's manual selection when a query refetches).
+  // Replaces the old Promise.all([GetModels, GetSettings]) +
+  // setInitLoadError logic.
+  // selectedModel stores a structured object (with ModelID/ProviderName);
+  // the concatenated key + splitModelKey are deprecated.
   useEffect(() => {
     if (restoredRef.current) return;
     const modelList = modelsQuery.data;
@@ -152,7 +158,8 @@ export default function ChatPanel({
     if (!novelId) return;
     restoredRef.current = true;
 
-    // 恢复模型选择（验证 key 仍存在）→ 设结构化 selectedModel
+    // Restore the model selection (verify the key still exists) → set the
+    // structured selectedModel
     const key = settings.selected_model_key || "";
     let model = modelList.find((m) => m.Key === key);
     if (!model) {
@@ -160,20 +167,21 @@ export default function ChatPanel({
     }
     setSelectedModel(model);
 
-    // 恢复推理程度（验证级别仍合法）
+    // Restore the reasoning effort (verify the level is still valid)
     let effort = settings.reasoning_effort || "";
     if (!effort || !model.ReasoningLevels?.includes(effort)) {
       effort = model.ReasoningLevels?.[0] || "";
     }
     setReasoningEffort(effort);
 
-    // 恢复审批模式
+    // Restore the approval mode
     const mode = settings.approval_mode;
     if (mode === "manual" || mode === "auto") {
       setApprovalMode(mode);
     }
 
-    // 直接恢复上次活跃会话（novelId 此时已有值，useLayoutEffect 先于 useEffect 执行）
+    // Directly restore the last active session (novelId already has a value
+    // here; useLayoutEffect runs before useEffect)
     if (settings.last_session_id) {
       GetSession(settings.last_session_id)
         .then((detail) => {
@@ -200,8 +208,10 @@ export default function ChatPanel({
     t,
   ]);
 
-  // models query refetch 后（如 SettingsDialog 保存触发 invalidate）：
-  // 检查当前 selectedModel 是否仍在新列表，不在则选第一个（替代原 onSaved 回调）。
+  // After the models query refetches (e.g. a SettingsDialog save triggers
+  // invalidation):
+  // check whether the current selectedModel is still in the new list; if not,
+  // select the first one (replaces the old onSaved callback).
   useEffect(() => {
     if (!restoredRef.current) return;
     const modelList = modelsQuery.data;
@@ -216,15 +226,19 @@ export default function ChatPanel({
     }
   }, [modelsQuery.data, selectedModel, setSelectedModel, setReasoningEffort]);
 
-  // 活跃会话详情 + 历史消息：useSession / useSessionMessages query。
-  // activeSid 为空（新对话/未选中）时 enabled false 不 fetch。
+  // Active session details + history messages: useSession /
+  // useSessionMessages queries.
+  // When activeSid is empty (new conversation / nothing selected), enabled
+  // is false and no fetch happens.
   const activeSid = activeSessionId ?? "";
   const sessionQuery = useSession(activeSid);
   const messagesQuery = useSessionMessages(activeSid);
 
-  // novelId 变化时重置会话视图。
-  // 会话恢复由上方 restoredRef effect 负责（首次加载时直接恢复）。
-  // 会话列表由 useSessions query 自动 fetch（novelId 变化 → queryKey 变化 → refetch）。
+  // Reset the session view when novelId changes.
+  // Session restoration is handled by the restoredRef effect above
+  // (restored directly on first load).
+  // The session list is auto-fetched by the useSessions query (novelId
+  // changes → queryKey changes → refetch).
   useEffect(() => {
     if (!novelId) return;
     setActiveSessionId(undefined);
@@ -232,8 +246,10 @@ export default function ChatPanel({
     setSessionId("");
   }, [novelId]);
 
-  // activeSessionId 变化时同步 sessionId；messagesQuery.data ready 时 rebuildTurns。
-  // 流式过程中 activeSessionId 不变、messagesQuery.data 不变，turns 由 agent 事件更新。
+  // Sync sessionId when activeSessionId changes; rebuildTurns when
+  // messagesQuery.data is ready.
+  // During streaming, activeSessionId does not change and
+  // messagesQuery.data does not change; turns are updated by agent events.
   useEffect(() => {
     if (!activeSessionId) {
       setSessionId("");
@@ -246,7 +262,8 @@ export default function ChatPanel({
     }
   }, [activeSessionId, messagesQuery.data]);
 
-  // lastUsage 从 useSession data 的 usage 字段恢复（替代原 handleSelectSession 内 GetSession）。
+  // lastUsage is restored from the usage field of the useSession data
+  // (replaces the old GetSession inside handleSelectSession).
   useEffect(() => {
     if (!activeSessionId) return;
     if (sessionQuery.data?.usage) {
@@ -281,7 +298,7 @@ export default function ChatPanel({
     };
   }, [isDragging, onChatPanelResize]);
 
-  // 清理事件监听器
+  // Clean up event listeners
   useEffect(() => {
     const eventQueues = eventQueuesRef.current;
     return () => {
@@ -294,9 +311,12 @@ export default function ChatPanel({
     };
   }, []);
 
-  // 监听 chat:turn_outcome：chat.go 在 Run 返回后 emit，携带权威 session.EventType。
-  // 前端按 event_type string 设 turn status（与 rebuildTurns 恢复用同一套映射）。
-  // 用顶层监听避免与 Chat() promise reject 的微任务竞态（turn_outcome 是 Run 返回前最后 emit）。
+  // Listen for chat:turn_outcome: chat.go emits it after Run returns,
+  // carrying the authoritative session.EventType.
+  // The frontend sets the turn status by the event_type string (the same
+  // mapping used by rebuildTurns restoration).
+  // A top-level listener avoids a microtask race with the Chat() promise
+  // reject (turn_outcome is the last event emitted before Run returns).
   useEffect(() => {
     const cleanup = EventsOn(
       "chat:turn_outcome",
@@ -320,7 +340,8 @@ export default function ChatPanel({
     return () => cleanup();
   }, []);
 
-  // 流式输出时自动滚到底部，但仅在用户未主动上滚时
+  // Auto-scroll to the bottom during streaming, but only when the user has
+  // not actively scrolled up
   useEffect(() => {
     if (isNearBottomRef.current) {
       messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
@@ -342,7 +363,8 @@ export default function ChatPanel({
         .catch((err) =>
           toastError(toErrorMessage(err, t("chat.setLastSessionFailed"))),
         );
-      // usage 由 useSession query 自动 fetch + lastUsage effect 恢复，不再手 fetch
+      // usage is auto-fetched by the useSession query + restored by the
+      // lastUsage effect; no manual fetch anymore
     },
     [setLastSessionMutation.mutateAsync, t],
   );
@@ -368,14 +390,15 @@ export default function ChatPanel({
     setShowHistoryPanel(false);
   }, []);
 
-  // slash 命令由 useSlashCommands query 自动 fetch；onListSlash 时 invalidate 触发 refetch。
+  // Slash commands are auto-fetched by the useSlashCommands query; onListSlash
+  // invalidates to trigger a refetch.
   const refreshSlashCommands = useCallback(() => {
     qc.invalidateQueries({ queryKey: slashCommandKeys.list(novelId) });
   }, [qc, novelId]);
 
   const applyAgentEvent = useCallback(
     (turnId: number, event: AgentEvent) => {
-      // 文件编辑审批 → 通知 ContentPanel 打开 diff 标签页
+      // File edit approval → notify ContentPanel to open the diff tab
       if (
         event.type === AgentEventType.ToolCall &&
         !event.sub_task_id &&
@@ -412,7 +435,8 @@ export default function ChatPanel({
             : undefined,
         );
       }
-      // P2: 流恢复事件清空 retrying 状态（agent 重试 LLM 调用成功）
+          // P2: stream-resume event clears the retrying state (the agent's
+          // LLM call retry succeeded)
       if (
         event.type === AgentEventType.Thinking ||
         event.type === AgentEventType.ThinkingDone ||
@@ -422,7 +446,8 @@ export default function ChatPanel({
         setTurns((prev) =>
           prev.map((turn) => {
             if (turn.turnId !== turnId) return turn;
-            // P1: 子 agent 重试后流恢复，清空对应 subagent segment 的 retrying
+            // P1: after a sub-agent retry, the stream resumes; clear the
+            // retrying state of the corresponding subagent segment
             if (event.sub_task_id) {
               const subIdx = turn.segments.findIndex(
                 (s) => s.type === "subagent" && s.taskId === event.sub_task_id,
@@ -434,7 +459,7 @@ export default function ChatPanel({
               }
               return turn;
             }
-            // 主 turn 重试后流恢复
+            // Stream resumed after the main turn's retry
             return turn.retrying ? { ...turn, retrying: null } : turn;
           }),
         );
@@ -447,9 +472,12 @@ export default function ChatPanel({
           return;
         }
         case AgentEventType.Error: {
-          // P1: 子 agent 失败时按 sub_task_id 路由到对应 subagent segment
-          // 后端 RunSubAgent 复用父 turn 的 TurnID+EventSeq，子 agent 失败触发的 EventError
-          // 会冒泡到主 turn。前端必须按 sub_task_id 区分，否则主 turn 误设为 failed。
+          // P1: when a sub-agent fails, route to the corresponding subagent
+          // segment by sub_task_id
+          // The backend RunSubAgent reuses the parent turn's TurnID+EventSeq,
+          // so an EventError triggered by a sub-agent failure bubbles up to
+          // the main turn. The frontend must distinguish by sub_task_id,
+          // otherwise the main turn would be wrongly set to failed.
           if (event.sub_task_id) {
             setTurns((prev) =>
               prev.map((turn) => {
@@ -470,7 +498,7 @@ export default function ChatPanel({
             );
             return;
           }
-          // 主 turn 失败
+          // Main turn failed
           setTurns((prev) =>
             prev.map((turn) =>
               turn.turnId === turnId
@@ -486,13 +514,19 @@ export default function ChatPanel({
           return;
         }
         case AgentEventType.Retrying: {
-          // P2: agent 层正在重试 LLM 调用，显示"重试 x/y"
-          // 同步清空本轮 streamLoop 已渲染的 partial segments（保留历史 segments firstSeq=0）
+          // P2: the agent layer is retrying the LLM call; show "retry x/y"
+          // Also clear the partial segments already rendered by this
+          // streamLoop iteration (historical segments with firstSeq=0 are
+          // kept)
           const clearFromSeq = event.clear_from_seq ?? 0;
-          // P1: 子 agent 重试时按 sub_task_id 路由到对应 subagent segment
-          // 后端 RunSubAgent 复用父 turn 的 TurnID+EventSeq，子 agent 重试触发的 EventRetrying
-          // 会冒泡到主 turn。前端必须按 sub_task_id 区分，否则主 turn 误显示 banner，
-          // 且子 agent 内 partial 不会被清空（bug 复现）。
+          // P1: when a sub-agent is retrying, route to the corresponding
+          // subagent segment by sub_task_id
+          // The backend RunSubAgent reuses the parent turn's TurnID+EventSeq,
+          // so an EventRetrying triggered by a sub-agent retry bubbles up to
+          // the main turn. The frontend must distinguish by sub_task_id,
+          // otherwise the main turn would wrongly show the banner, and the
+          // partials inside the sub-agent would not be cleared (bug
+          // reproduction).
           if (event.sub_task_id) {
             setTurns((prev) =>
               prev.map((turn) => {
@@ -628,14 +662,16 @@ export default function ChatPanel({
         prev.map((turn) => {
           if (turn.turnId !== turnId) return turn;
 
-          // 子 Agent 事件：按 sub_task_id 路由到对应 SubagentSegment
+          // Sub-Agent event: route to the corresponding SubagentSegment by
+          // sub_task_id
           if (event.sub_task_id) {
             let subIdx = turn.segments.findIndex(
               (s) => s.type === "subagent" && s.taskId === event.sub_task_id,
             );
             let updatedSegments = turn.segments;
             if (subIdx < 0) {
-              // run_subagent 的 ToolCall 事件还没 apply，子 Agent 事件先到了——就地创建
+              // The run_subagent ToolCall event has not been applied yet, but
+              // the sub-Agent event arrived first — create it in place
               const newSeg = {
                 ...emptySegment(`subagent_${event.sub_task_id}`),
                 type: "subagent" as const,
@@ -818,7 +854,7 @@ export default function ChatPanel({
                       ? ("failed" as const)
                       : ("executing" as const);
 
-              // run_subagent：维护对应的 subagent segment
+              // run_subagent: maintain the corresponding subagent segment
               if (isSubagent) {
                 const agentType =
                   (event.metadata?.agent_type as "memory" | "review") ||
@@ -856,7 +892,9 @@ export default function ChatPanel({
                     firstSeq: event.seq ?? 0,
                   });
                 }
-                // 移除同 toolId 的 tool segment（可能由空 toolName 的早期事件误创建）
+                // Remove the tool segment with the same toolId (it may have
+                // been created by mistake from an early event with an empty
+                // toolName)
                 const cleanSegs = toolId
                   ? segments.filter(
                       (seg) => !(seg.type === "tool" && seg.toolId === toolId),
@@ -999,7 +1037,8 @@ export default function ChatPanel({
 
   const handleConfigModel = useCallback(() => setShowSettings(true), []);
 
-  // 模型刷新：invalidate 触发 useModels refetch；选中态由下方 effect 自动修正。
+  // Model refresh: invalidation triggers a useModels refetch; the selected
+  // state is auto-corrected by the effect below.
   const refreshModels = useCallback(() => {
     qc.invalidateQueries({ queryKey: modelKeys.all });
   }, [qc]);
@@ -1058,7 +1097,7 @@ export default function ChatPanel({
 
     compressingRef.current = true;
     setIsCompressing(true);
-    // 创建压缩中 turn（用于动画展示）
+    // Create the compressing turn (for the animation display)
     const compTurnId = `comp_${++counterRef.current}`;
     const compressingTurn: Turn = {
       id: compTurnId,
@@ -1082,7 +1121,7 @@ export default function ChatPanel({
         provider_name: providerName,
         model_id: modelID,
       });
-      // 更新：回填真实 turnId + 完成状态
+      // Update: back-fill the real turnId + the completed state
       setTurns((prev) =>
         prev.map((t) => {
           if (t.id === compTurnId) {
@@ -1100,7 +1139,7 @@ export default function ChatPanel({
         }),
       );
     } catch (err) {
-      // 压缩失败，移除 compressing turn
+      // Compression failed; remove the compressing turn
       setTurns((prev) => prev.filter((t) => t.id !== compTurnId));
       toastError(toErrorMessage(err, t("chat.compressFailed")));
     } finally {
@@ -1133,14 +1172,15 @@ export default function ChatPanel({
         status: "streaming",
       };
 
-      // 如果是新对话，清除历史标记
+      // If this is a new conversation, clear the history marker
       if (activeSessionId === null || activeSessionId === undefined) {
         setActiveSessionId(null);
       }
 
       setTurns((prev) => [...prev, newTurn]);
 
-      // 监听 chat:started，拿到 turnId 后订阅 agent 事件流
+      // Listen for chat:started; once the turnId is obtained, subscribe to
+      // the agent event stream
       startedUnsubRef.current?.();
       const startedCleanup = EventsOn(
         "chat:started",
@@ -1155,7 +1195,8 @@ export default function ChatPanel({
               );
           }
 
-          // 更新 turn 的 turnId 为后端分配的真实值
+          // Update the turn's turnId to the real value assigned by the
+          // backend
           setTurns((prev) =>
             prev.map((t) =>
               t.id === turnId ? { ...t, turnId: data.turn_id } : t,
@@ -1181,7 +1222,8 @@ export default function ChatPanel({
           model_id: m,
           reasoning_effort: reasoningEffort,
         });
-        // 刷新会话列表（invalidate 触发 useSessions refetch）
+        // Refresh the session list (invalidation triggers a useSessions
+        // refetch)
         qc.invalidateQueries({ queryKey: sessionKeys.list(novelId, 1, 5, "") });
       } catch (err) {
         setTurns((prev) =>
@@ -1265,7 +1307,8 @@ export default function ChatPanel({
       ? t("chat.configureModelFirst")
       : t("chat.inputPlaceholder");
 
-  // 草稿 key：已有会话按 sessionId，新对话（未选中/新开）按小说分槽
+  // Draft key: existing sessions are keyed by sessionId; new conversations
+  // (unselected / newly opened) are slotted per novel
   const draftKey = sessionId ? sessionId : `new_${novelId}`;
 
   return (
@@ -1335,7 +1378,7 @@ export default function ChatPanel({
           </div>
         ) : (
           <>
-            {/* 消息列表 */}
+            {/* Message list */}
             {messagesQuery.isError ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
@@ -1382,7 +1425,8 @@ export default function ChatPanel({
                       }
 
                       if (seg.type === "tool") {
-                        // run_subagent 已由 subagent 段渲染，跳过纯工具卡
+                        // run_subagent is already rendered by the subagent
+                        // segment; skip the plain tool card
                         if (seg.toolName === "run_subagent") return null;
 
                         if (

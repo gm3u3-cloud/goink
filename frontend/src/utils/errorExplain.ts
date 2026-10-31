@@ -1,11 +1,18 @@
 /**
- * 根据服务商错误消息返回对应的 i18n key。
- * 组件里用 t(explainErrorKey(msg)) 显示翻译后的解释。
+ * Returns the matching i18n key for a provider error message.
+ * Components use t(explainErrorKey(msg)) to display the translated
+ * explanation.
  *
- * 匹配规则：按常见错误关键字（状态码、message 内容）映射到 i18n key。
- * 覆盖主流服务商（OpenAI/Anthropic/Gemini/DeepSeek/Kimi/GLM/Qwen/MiMo 等）及中转站。
+ * Matching rules: map common error keywords (status codes, message content)
+ * to i18n keys.
+ * Covers mainstream providers (OpenAI/Anthropic/Gemini/DeepSeek/Kimi/GLM/
+ * Qwen/MiMo, etc.) and relay stations.
  *
- * i18n key 命名空间：settings.errorHints.*
+ * i18n key namespace: settings.errorHints.*
+ *
+ * Note: the CJK keywords inside the regexes (余额不足, 限流, 超时, ...) are
+ * data values matched against Chinese provider error messages — they must
+ * not be translated (plan rule §1).
  */
 export function explainErrorKey(msg: string): string {
   if (!msg) {

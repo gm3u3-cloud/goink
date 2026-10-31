@@ -14,7 +14,8 @@ interface Props {
 export default memo(function WebFetchCard({ result, displayText }: Props) {
   const { t } = useTranslation();
   const [contentOpen, setContentOpen] = useState(false);
-  // 打开外部浏览器前弹确认框，避免误点外链
+  // Show a confirmation dialog before opening the external browser, to
+  // avoid accidentally clicking an external link
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
   const confirmOpenExternal = () => {
     if (!pendingUrl) return;

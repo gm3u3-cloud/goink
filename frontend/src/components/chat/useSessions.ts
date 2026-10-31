@@ -2,10 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { GetSessions } from "@/lib/wailsjs/go/app/App";
 import { sessionKeys } from "@/lib/queryKeys";
 
-// useSessions: 会话列表单页 query（ChatPanel 最近会话 page=1 size=5）。
-// queryKey 含 page/size/search，与 SessionHistory 的 useInfiniteSessions 区分缓存。
-// SessionHistory 的无限滚动走 useInfiniteSessions（page 由 pageParam 管理）。
-// enabled: !!novelId 守卫，novelId=0 时不 fetch。
+// useSessions: single-page query for the session list (ChatPanel recent
+// sessions page=1 size=5).
+// queryKey includes page/size/search, distinguishing the cache from
+// SessionHistory's useInfiniteSessions.
+// SessionHistory's infinite scroll uses useInfiniteSessions (page managed by
+// pageParam).
+// enabled: !!novelId guard; no fetch when novelId=0.
 export function useSessions(input: {
   novelId: number;
   page: number;

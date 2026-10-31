@@ -11,20 +11,25 @@ interface Props {
 
 export default function SidebarPreferenceList({ novelId }: Props) {
   const { t } = useTranslation();
-  // 4.6.1: preferences 走 query（与 PreferenceView 共享缓存）。
-  // 4a: query 错误 toast 由全局中间件接管，组件加 isError 内连显示（对齐 ReaderList）。
+  // 4.6.1: preferences go through a query (shares the cache with
+  // PreferenceView).
+  // 4a: query error toasts are handled by the global middleware; the
+  // component adds an inline isError display (aligned with ReaderList).
   const { data, isError } = usePreferences(novelId);
-  // 4b: 点击条目触发 focusEntity，PreferenceView useEffect 定位+高亮。
+  // 4b: clicking an entry triggers focusEntity; PreferenceView's useEffect
+  // handles positioning + highlighting.
   const focusEntity = useFocusStore((s) => s.focusEntity);
   const [search, setSearch] = useState("");
 
-  // PreferenceList 合并 global + novel 两组为一个列表（保持原 load() 行为）。
+  // PreferenceList merges the global + novel groups into a single list
+  // (preserving the original load() behavior).
   const items = useMemo(() => {
     if (!data) return [];
     return [...(data.global ?? []), ...(data.novel ?? [])];
   }, [data]);
 
-  // 4b: filter 字段对齐后端 Search（content OR category）。
+  // 4b: the filter fields align with the backend Search (content OR
+  // category).
   const filtered = useMemo(() => {
     if (!search.trim()) return items;
     const q = search.toLowerCase();

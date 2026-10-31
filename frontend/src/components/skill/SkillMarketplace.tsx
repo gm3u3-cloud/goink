@@ -64,8 +64,9 @@ function classifyError(
   msg: string,
   t: TFunction,
 ): { code: string; message: string } {
-  // 后端 err_code 是带模块前缀的全码（如 "githubapi.rate_limited"、"llm.not_found"），
-  // 用 endsWith 匹配短码，保持 canRetry 等下游逻辑用短码判断。
+  // The backend err_code is a full code with a module prefix (e.g.
+  // "githubapi.rate_limited", "llm.not_found"); match the short code with
+  // endsWith so downstream logic like canRetry keeps using short codes.
   if (code.endsWith("network"))
     return { code: "network", message: t("skill.marketplace.errorNetwork") };
   if (code.endsWith("rate_limited"))
@@ -86,8 +87,10 @@ function classifyError(
   };
 }
 
-// 从 query.error 提取 classifyError 结果（apperr 新 API 的 AppErr 带 errCode）。
-// query.error 是 unknown，用 instanceof AppErr 守卫提取 errCode；非 AppErr 时 code="" 走 other 分支。
+// Extract the classifyError result from query.error (the new apperr API's
+// AppErr carries errCode).
+// query.error is unknown; guard with instanceof AppErr to extract errCode;
+// when it is not an AppErr, code="" falls into the other branch.
 function classifyQueryError(
   err: unknown,
   t: TFunction,
@@ -115,8 +118,10 @@ export default function SkillMarketplace({
 
   const [selectedSkill, setSelectedSkill] =
     useState<remote.RemoteSkillMeta | null>(null);
-  // localContent / remoteContentForConfirm / contentError 是 confirm_overwrite phase 用的 local state：
-  // detail phase 的 remote content 走 useRemoteSkillContent query，confirm_overwrite 时拷贝过来。
+  // localContent / remoteContentForConfirm / contentError are local state
+  // for the confirm_overwrite phase:
+  // the detail phase's remote content comes from the useRemoteSkillContent
+  // query and is copied over when entering confirm_overwrite.
   const [localContent, setLocalContent] = useState("");
   const [remoteContentForConfirm, setRemoteContentForConfirm] = useState("");
   const [contentError, setContentError] = useState("");
@@ -125,14 +130,18 @@ export default function SkillMarketplace({
   const [checkingTarget, setCheckingTarget] = useState<InstallTarget | null>(
     null,
   );
-  // 5.4 commit 4: installing 由 mutation.isPending 推导（删 useState），mutation onSuccess 失效 skills + remote-skills。
-  // installTarget 仍需 useState：在 doInstall 之前 setInstallTarget 标记哪个按钮 loading，mutation 不持此信息。
+  // 5.4 commit 4: installing is derived from mutation.isPending (useState
+  // removed); the mutation's onSuccess invalidates skills + remote-skills.
+  // installTarget still needs useState: setInstallTarget before doInstall
+  // marks which button is loading; the mutation does not hold this info.
   const installMutation = useInstallRemoteSkill(novelId);
   const installing = installMutation.isPending;
   const installBusy = installing || checkingTarget !== null;
 
-  // 5.4 commit 3: skills（已安装索引）走 useSkills query（commit 1 建），与 SkillList 共享缓存。
-  // installedNames/installedVersions 由 query data 推导，删 loadInstalledIndex + useState。
+  // 5.4 commit 3: skills (installed index) go through the useSkills query
+  // (created in commit 1), sharing the cache with SkillList.
+  // installedNames/installedVersions are derived from the query data;
+  // loadInstalledIndex + useState are removed.
   const { data: installedSkills = [] } = useSkills(novelId);
   const { installedNames, installedVersions } = useMemo(() => {
     const nameSet = new Set<string>();
@@ -145,10 +154,15 @@ export default function SkillMarketplace({
     return { installedNames: nameSet, installedVersions: versionMap };
   }, [installedSkills]);
 
-  // 5.4 commit 3: 远程技能列表走 useRemoteSkills query（apperr 新 API，unwrapResult throw AppErr）。
-  // queryKey 含 page/size/query，debounce 由 debouncedQuery 进 key 实现（queryKey 变化自动 refetch）。
-  // enabled: open（modal 关闭时不 fetch，缓存保留 gcTime 供下次 open 快速显示）。
-  // error 由 query.error 经 classifyQueryError 映射 inline error bar（保留短码文案），中间件同时弹兜底 toast。
+  // 5.4 commit 3: the remote skill list goes through the useRemoteSkills
+  // query (new apperr API; unwrapResult throws AppErr).
+  // queryKey includes page/size/query; debounce is implemented by putting
+  // debouncedQuery into the key (a queryKey change auto-refetches).
+  // enabled: open (no fetch while the modal is closed; the cache is kept
+  // until gcTime for fast display on the next open).
+  // error is mapped from query.error via classifyQueryError to the inline
+  // error bar (short-code messages preserved); the middleware also pops a
+  // fallback toast.
   const remoteListQuery = useRemoteSkills(
     { page, size: pageSize, query: debouncedQuery },
     open,
@@ -162,8 +176,10 @@ export default function SkillMarketplace({
     [remoteListQuery.error, t],
   );
 
-  // 5.4 commit 3: 远程技能内容走 useRemoteSkillContent query（apperr 新 API）。
-  // enabled: !!selectedSkill && phase === "detail"（confirm_overwrite 不重新 fetch，用 remoteContentForConfirm）。
+  // 5.4 commit 3: remote skill content goes through the useRemoteSkillContent
+  // query (new apperr API).
+  // enabled: !!selectedSkill && phase === "detail" (confirm_overwrite does
+  // not refetch; it uses remoteContentForConfirm).
   const remoteContentQuery = useRemoteSkillContent(
     selectedSkill?.name ?? "",
     !!selectedSkill && phase === "detail",
@@ -183,7 +199,8 @@ export default function SkillMarketplace({
 
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Reset local state when modal closes（query 缓存保留，下次 open 快速显示后 refetch）
+  // Reset local state when the modal closes (the query cache is kept; it
+  // refetches after the fast display on the next open)
   useEffect(() => {
     if (!open) {
       setPhase("browse");
@@ -220,7 +237,8 @@ export default function SkillMarketplace({
     setContentError("");
   }, []);
 
-  // GetContent probe for install target（复用 content 领域 useFileContent，共享缓存）
+  // GetContent probe for the install target (reuses the content domain's
+  // useFileContent, sharing the cache)
   const probeLocal = useCallback(
     async (target: InstallTarget, name: string): Promise<string> => {
       if (target === "novel" && !novelId) return "";
@@ -233,9 +251,12 @@ export default function SkillMarketplace({
     [fetchContent, novelId, qc],
   );
 
-  // Install skill（commit 4: 走 useInstallRemoteSkill mutation + unwrapResult，删 InstallRemoteSkill 直接 import）。
-  // mutation onSuccess 已失效 skillKeys.list(novelId) + ["remote-skills"]，doInstall 内不再手动 invalidate。
-  // mutateAsync 稳定引用（TanStack Query 保证），进 deps 不会触发 doInstall 重建。
+  // Install skill (commit 4: uses the useInstallRemoteSkill mutation +
+  // unwrapResult; the direct InstallRemoteSkill import is removed).
+  // The mutation's onSuccess already invalidates skillKeys.list(novelId) +
+  // ["remote-skills"], so doInstall no longer manually invalidates.
+  // mutateAsync is a stable reference (guaranteed by TanStack Query), so
+  // including it in deps does not trigger doInstall rebuilds.
   const installMutateAsync = installMutation.mutateAsync;
   const doInstall = useCallback(
     async (target: InstallTarget, name: string, expectedContent: string) => {
@@ -246,7 +267,8 @@ export default function SkillMarketplace({
           novel_id: novelId,
           expected_content: expectedContent,
         });
-        // success — 触发回调，回 browse（query 失效由 mutation onSuccess 处理）
+        // success — trigger the callback, go back to browse (query
+        // invalidation is handled by the mutation's onSuccess)
         onInstalled?.();
         setPhase("browse");
         setSelectedSkill(null);
@@ -280,8 +302,9 @@ export default function SkillMarketplace({
           }
           return;
         }
-        // 统一到 catch toast（删 err_code 分支）：AppErr 用 classifyError 映射短码文案，
-        // 非 AppErr（如网络层错误）走 installFailed + msg 兜底。
+        // Unified into the catch toast (the err_code branch is removed):
+        // AppErr is mapped to short-code messages via classifyError;
+        // non-AppErr (e.g. network-layer errors) fall back to installFailed + msg.
         if (e instanceof AppErr) {
           const cls = classifyError(e.errCode, e.message, t);
           toastError(cls.message);
@@ -319,7 +342,8 @@ export default function SkillMarketplace({
         if (local) {
           // has same-name local skill → enter confirm_overwrite phase
           setLocalContent(local);
-          // 从 useRemoteSkillContent query 缓存取 content，或 fetchQuery 拉取（走同一 queryKey 复用缓存）
+          // Get the content from the useRemoteSkillContent query cache, or
+          // fetch it with fetchQuery (uses the same queryKey to reuse the cache)
           let remote = remoteContent;
           if (!remote) {
             try {
@@ -364,7 +388,7 @@ export default function SkillMarketplace({
     await doInstall(installTarget, selectedSkill.name, localContent);
   }, [selectedSkill, installTarget, localContent, doInstall]);
 
-  // Refresh button — invalidate queries（query 自动 refetch）
+  // Refresh button — invalidate the queries (queries auto-refetch)
   const handleRefresh = useCallback(() => {
     qc.invalidateQueries({ queryKey: ["remote-skills"] });
     qc.invalidateQueries({ queryKey: skillKeys.list(novelId) });

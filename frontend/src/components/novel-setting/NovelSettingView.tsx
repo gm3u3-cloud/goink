@@ -29,8 +29,10 @@ const EMPTY_FORM: EditForm = { category: "", content: "" };
 export default function NovelSettingView({ novelId }: Props) {
   const { t } = useTranslation();
 
-  // 4.7.1: settings 走 query（与 NovelSettingList 共享缓存）。
-  // 4a: query 错误 toast 由全局中间件接管（queryErrorToast.ts），此处不挂 useEffect。
+  // 4.7.1: settings go through a query (shares the cache with
+  // NovelSettingList).
+  // 4a: query error toasts are handled by the global middleware
+  // (queryErrorToast.ts); no useEffect is attached here.
   const settingsQuery = useNovelSettings(novelId);
   const items = settingsQuery.data?.items ?? [];
   const tokenCount = settingsQuery.data?.token_count ?? 0;
@@ -38,8 +40,11 @@ export default function NovelSettingView({ novelId }: Props) {
   const loading = settingsQuery.isLoading;
   const loadFailed = settingsQuery.isError;
 
-  // 4b: focus 定位——全局搜索/侧边栏点击触发 focusEntity("novel-settings", id)，
-  // NovelSettingView useEffect 定位 + 声明式高亮（setting 单组，不需要跨组 querySelector）。
+  // 4b: focus positioning — global search / sidebar clicks trigger
+  // focusEntity("novel-settings", id);
+  // NovelSettingView's useEffect handles positioning + declarative
+  // highlighting (settings are a single group, so no cross-group
+  // querySelector is needed).
   const focus = useFocusWithNonce("novel-settings");
   const focusId = focus?.id ?? 0;
   const [highlightedId, setHighlightedId] = useState<number | null>(null);
@@ -55,8 +60,10 @@ export default function NovelSettingView({ novelId }: Props) {
     return () => clearTimeout(timer);
   }, [focusId, items, focus?.nonce]);
 
-  // 4.7.2/4.7.3: CRUD 走 mutation，deleting/saving 由 mutation.isPending 推导（不再用 useState）。
-  // onSuccess 失效对应 query（entry CRUD 失效 novel-settings，NovelSettingView + NovelSettingList 共享缓存）。
+  // 4.7.2/4.7.3: CRUD goes through mutations; deleting/saving are derived
+  // from mutation.isPending (no longer useState).
+  // onSuccess invalidates the corresponding query (entry CRUD invalidates
+  // novel-settings; NovelSettingView + NovelSettingList share the cache).
   const deleteMutation = useDeleteNovelSetting(novelId);
   const createMutation = useCreateNovelSetting(novelId);
   const updateMutation = useUpdateNovelSetting(novelId);
@@ -90,7 +97,8 @@ export default function NovelSettingView({ novelId }: Props) {
       toastError(t("novelSetting.pleaseEnterContent"));
       return;
     }
-    // 4.7.3: 走 mutation（onSuccess 失效 novel-settings），删 setSaving/bumpRefresh。
+    // 4.7.3: use the mutation (onSuccess invalidates novel-settings);
+    // setSaving/bumpRefresh are removed.
     try {
       if (editMode.type === "create") {
         await createMutation.mutateAsync({
@@ -98,7 +106,7 @@ export default function NovelSettingView({ novelId }: Props) {
           content: form.content,
         });
       } else {
-        // 全量回传 input 所有字段（§6 等价 PUT）。
+        // Send all input fields back (a §6-equivalent PUT).
         await updateMutation.mutateAsync({
           id: editMode.item.id,
           input: {
@@ -121,7 +129,8 @@ export default function NovelSettingView({ novelId }: Props) {
 
   async function confirmDelete() {
     if (deleteTarget === null) return;
-    // 4.7.2: 走 mutation（onSuccess 失效 novel-settings），删 setDeleting/bumpRefresh。
+    // 4.7.2: use the mutation (onSuccess invalidates novel-settings);
+    // setDeleting/bumpRefresh are removed.
     try {
       await deleteMutation.mutateAsync(deleteTarget);
       setDeleteTarget(null);

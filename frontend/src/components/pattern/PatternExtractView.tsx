@@ -38,22 +38,29 @@ export default function PatternExtractView({ currentNovelId }: Props) {
     null,
   );
   const [targetNovelId, setTargetNovelId] = useState(currentNovelId);
-  // 3.9: novels 走 useNovels query（共享缓存）。refetchNovels 供 PopSelect onOpen 强制刷新。
+  // 3.9: novels go through the useNovels query (shared cache).
+  // refetchNovels is provided for PopSelect's onOpen forced refresh.
   const { data: novels = [], refetch: refetchNovels } = useNovels();
-  // 5.3 pattern commit 1: chapters/models/settings 走 query（共享 5.1/5.2 缓存），废弃 useApp + load 三件套。
-  //   targetNovelId 变化时 useChapters 自动 refetch（queryKey 含 novelId）；novelId=0 时 enabled 守卫不 fetch，chapters 兜底空数组。
-  //   GET 错误由全局中间件接管（queryErrorToast.ts），组件不挂 console.error。
+  // 5.3 pattern commit 1: chapters/models/settings go through queries
+  // (sharing the 5.1/5.2 caches); the useApp + load trio is deprecated.
+  //   When targetNovelId changes, useChapters auto-refetches (the queryKey
+  //   includes novelId); when novelId=0, the enabled guard prevents a fetch
+  //   and chapters falls back to an empty array.
+  //   GET errors are handled by the global middleware (queryErrorToast.ts);
+  //   the component does not attach console.error.
   const { data: chapters = [] } = useChapters(targetNovelId);
   const modelsQuery = useModels();
   const settingsQuery = useSettings();
   const models = useMemo(() => modelsQuery.data ?? [], [modelsQuery.data]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [scope, setScope] = useState<Scope>("all");
-  // 结构化选中模型（含 ProviderName/ModelID），替代 modelKey 字符串 + find。
+  // Structured selected model (including ProviderName/ModelID), replacing
+  // the modelKey string + find.
   const [selectedModel, setSelectedModel] = useState<llm.AvailableModel | null>(
     null,
   );
-  // reasoningEffort：跟随选中模型。model 支持时默认第一档，不支持时空串。
+  // reasoningEffort: follows the selected model. When the model supports it,
+  // the default is the first level; when it does not, an empty string.
   const [reasoningEffort, setReasoningEffort] = useState("");
 
   useEffect(() => {
@@ -62,12 +69,15 @@ export default function PatternExtractView({ currentNovelId }: Props) {
     }
   }, [currentNovelId]);
 
-  // targetNovelId 变化时清空 selected（替代原 loadChapters useEffect 内的 setSelected(new Set())）。
+  // Clear selected when targetNovelId changes (replaces the
+  // setSelected(new Set()) in the old loadChapters useEffect).
   useEffect(() => {
     setSelected(new Set());
   }, [targetNovelId]);
 
-  // 从 settings 恢复选中模型（models + settings query ready 后回填，替代手动 GetModels/GetSettings fetch）。
+  // Restore the selected model from settings (filled in after the models +
+  // settings queries are ready, replacing the manual GetModels/GetSettings
+  // fetches).
   useEffect(() => {
     if (!selectedModel && models.length > 0 && settingsQuery.data) {
       const key = settingsQuery.data.selected_model_key || "";
@@ -130,7 +140,8 @@ export default function PatternExtractView({ currentNovelId }: Props) {
 
   const handleExtract = useCallback(() => {
     if (!canExtract || !selectedModel) return;
-    // 结构化入参：直接取 selectedModel.ProviderName/ModelID（不再 find + splitModelKey）。
+    // Structured input: directly take selectedModel.ProviderName/ModelID
+    // (no more find + splitModelKey).
     const taskId = createPatternTaskID();
     setSessionParams({
       taskId,
@@ -154,7 +165,8 @@ export default function PatternExtractView({ currentNovelId }: Props) {
     targetNovelTitle,
   ]);
 
-  // 切 model：若支持 reasoning 默认第一档，不支持时清空（与 ChatControls 一致）。
+  // Switch model: if reasoning is supported, default to the first level;
+  // otherwise clear it (consistent with ChatControls).
   const handleSelectModel = useCallback(
     (key: string) => {
       const m = models.find((item) => item.Key === key);
@@ -308,7 +320,8 @@ export default function PatternExtractView({ currentNovelId }: Props) {
                     key={ch.id}
                     onClick={() => {
                       if (scope === "all") {
-                        // 整书模式下点击：切到自选模式，全选后移除该章
+                        // Click in whole-book mode: switch to custom mode,
+                        // select all, then remove this chapter
                         const allIds = new Set(chapters.map((c) => c.id));
                         allIds.delete(ch.id);
                         setSelected(allIds);

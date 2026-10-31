@@ -2,13 +2,17 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DeleteReaderPerspective } from "@/lib/wailsjs/go/app/App";
 import { readerKeys } from "@/lib/queryKeys";
 
-// useDeleteReaderPerspective: 删除读者视角条目 mutation。
-// mutationFn 直接 import wailsjs DeleteReaderPerspective（不用 useApp）。
-// 注意参数顺序：DeleteReaderPerspective(entryId, novelId)，与 timeline 的
-// DeleteTimelineEntry(novelId, entryId) 相反（reader 后端签名如此）。
-// 消费方：ReaderView.confirmDelete（mutateAsync 抛错由 handler try/catch 接住）。
-// handler 负责 setDeleteTarget(null) + 错误 toast（副作用不放进 mutation）。
-// onSuccess 失效 reader：entry 删除后列表同步（ReaderView + ReaderList 共享缓存）。
+// useDeleteReaderPerspective: delete reader-perspective entry mutation.
+// mutationFn directly imports the wailsjs DeleteReaderPerspective (no useApp).
+// Note the parameter order: DeleteReaderPerspective(entryId, novelId), which
+// is the reverse of timeline's DeleteTimelineEntry(novelId, entryId) (the
+// reader backend signature is like this).
+// Consumer: ReaderView.confirmDelete (mutateAsync errors are caught by the
+// handler's try/catch).
+// The handler is responsible for setDeleteTarget(null) + the error toast
+// (side effects are not put in the mutation).
+// onSuccess invalidates reader: the list syncs after the entry is deleted
+// (ReaderView + ReaderList share the cache).
 export function useDeleteReaderPerspective(novelId: number) {
   const qc = useQueryClient();
   return useMutation({

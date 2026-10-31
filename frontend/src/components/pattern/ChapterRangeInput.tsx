@@ -71,7 +71,7 @@ export default function ChapterRangeInput({
   const addRange = useCallback(() => {
     setRanges((prev) => {
       const next = [...prev, { start: "", end: "" }];
-      // 添加后超过 1 对时自动打开下拉框
+      // Auto-open the dropdown when there is more than one pair after adding
       if (next.length > 1) setOpen(true);
       return next;
     });
@@ -83,7 +83,7 @@ export default function ChapterRangeInput({
     );
   }, []);
 
-  // 点击外部关闭下拉
+  // Click outside to close the dropdown
   useEffect(() => {
     if (!open) return;
     const handleClickOutside = (e: MouseEvent) => {
@@ -105,7 +105,7 @@ export default function ChapterRangeInput({
 
   return (
     <div ref={containerRef} className="relative flex items-center gap-1.5">
-      {/* 第一对：始终在行内 */}
+      {/* First pair: always inline */}
       <input
         type="number"
         min={1}
@@ -126,7 +126,7 @@ export default function ChapterRangeInput({
         className={inputClass}
       />
 
-      {/* 有额外范围时：+N 下拉按钮 */}
+      {/* When there are extra ranges: +N dropdown button */}
       {extraCount > 0 && (
         <button
           onClick={() => setOpen((prev) => !prev)}
@@ -140,7 +140,7 @@ export default function ChapterRangeInput({
         </button>
       )}
 
-      {/* + 按钮 */}
+      {/* + button */}
       <button
         onClick={addRange}
         disabled={disabled}
@@ -150,7 +150,7 @@ export default function ChapterRangeInput({
         <Plus className="w-3.5 h-3.5" />
       </button>
 
-      {/* 浮层下拉框：显示额外范围对 */}
+      {/* Floating dropdown: shows the extra range pairs */}
       {open && extraCount > 0 && (
         <div className="absolute top-full left-0 mt-1 z-10 rounded-md border bg-popover p-2 shadow-md min-w-[200px]">
           <div className="space-y-1.5">

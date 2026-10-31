@@ -2,11 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { GetStoryArcs } from "@/lib/wailsjs/go/app/App";
 import { storyarcKeys } from "@/lib/queryKeys";
 
-// useStoryArcs: 叙事弧线列表 query。
-// queryFn 直接 import wailsjs GetStoryArcs（不用 useApp），不设 staleTime（继承全局 30s，跟 useNovels/useCharacters 一致）。
-// enabled: !!novelId 守卫，novelId=0 时不 fetch（数据兜底空数组）。
-// 消费方：ArcList / ArcListView / StoryArcGraph 共享缓存，
-// CRUD 后由 mutation 的 invalidateQueries 同步（commit 2/3 抽 mutation）。
+// useStoryArcs: narrative arc list query.
+// queryFn imports wailsjs GetStoryArcs directly (not useApp); no staleTime
+// is set (inherits the global 30s, same as useNovels/useCharacters).
+// enabled: !!novelId guard; no fetch when novelId=0 (data falls back to an
+// empty array).
+// Consumers: ArcList / ArcListView / StoryArcGraph share the cache; after
+// CRUD the mutation's invalidateQueries keeps them in sync (mutations
+// extracted in commits 2/3).
 export function useStoryArcs(novelId: number) {
   return useQuery({
     queryKey: storyarcKeys.list(novelId),

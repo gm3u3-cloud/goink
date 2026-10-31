@@ -12,11 +12,13 @@ interface Props {
 export default function SidebarTimelineList({ novelId }: Props) {
   const { t } = useTranslation();
   const { data: entries = [], isError } = useTimelineEntries(novelId);
-  // 4b: 点击条目触发 focusEntity，TimelineView 的 useEffect 滑窗对齐到 entry 章节。
+  // 4b: clicking an entry triggers focusEntity; TimelineView's useEffect
+  // slides the window to align with the entry's chapter.
   const focusEntity = useFocusStore((s) => s.focusEntity);
   const [search, setSearch] = useState("");
 
-  // 搜 title + content（与后端 ListByNovel(Search) 字段一致）
+  // Search title + content (consistent with the backend ListByNovel(Search)
+  // fields)
   const filtered = useMemo(() => {
     if (!search.trim()) return entries;
     const q = search.toLowerCase();

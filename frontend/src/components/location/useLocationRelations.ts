@@ -2,9 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { GetLocationRelations } from "@/lib/wailsjs/go/app/App";
 import { locationKeys } from "@/lib/queryKeys";
 
-// useLocationRelations: 地点空间关系 query（location.LocationRelation[]）。
-// enabled: !!novelId 守卫；不设 staleTime（继承全局 30s，跟 useNovels/useCharacters 一致）。
-// 消费方：LocationGraph。CRUD 后由 mutation 的 invalidateQueries 同步（4.2.2 抽 mutation）。
+// useLocationRelations: location spatial relation query
+// (location.LocationRelation[]).
+// enabled: !!novelId guard; no staleTime is set (inherits the global 30s,
+// same as useNovels/useCharacters).
+// Consumer: LocationGraph. After CRUD, the mutation's invalidateQueries
+// keeps it in sync (mutations extracted in 4.2.2).
 export function useLocationRelations(novelId: number) {
   return useQuery({
     queryKey: locationKeys.relations(novelId),

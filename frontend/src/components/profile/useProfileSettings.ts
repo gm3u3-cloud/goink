@@ -3,13 +3,16 @@ import { GetSettings } from "@/lib/wailsjs/go/app/App";
 import { settingsKeys } from "@/lib/queryKeys";
 import type { config } from "@/lib/wailsjs/go/models";
 
-// useProfileSettings: 应用设置 query（profile 消费 user_name / avatar 字段）。
-// 复用 settingsKeys.all 与 chat 的 useSettings 共享缓存——GetSettings 是全局设置，
-// chat 读 selected_model_key / reasoning_effort 等字段，profile 读 user_name / avatar，
-// 各取各字段，TanStack Query 只 fetch 一次。
-// queryFn 直接 import wailsjs GetSettings（不用 useApp）。
-// GET 错误由全局中间件接管（settings 前缀 → chat.settingsLoadFailed，文案通用）。
-// 5.7 commit 1。
+// useProfileSettings: app settings query (profile consumes the user_name /
+// avatar fields).
+// Reuses settingsKeys.all and shares the cache with chat's useSettings —
+// GetSettings is global settings; chat reads fields like selected_model_key /
+// reasoning_effort, profile reads user_name / avatar, each taking its own
+// fields, and TanStack Query only fetches once.
+// queryFn directly imports the wailsjs GetSettings (no useApp).
+// GET errors are handled by the global middleware (settings prefix →
+// chat.settingsLoadFailed, generic wording).
+// 5.7 commit 1.
 export type ProfileSettings = config.AppSettings;
 
 export function useProfileSettings() {

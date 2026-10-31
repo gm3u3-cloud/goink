@@ -66,8 +66,9 @@ const THEME_ICON: Record<Theme, React.ReactNode> = {
   dark: <Sun className="w-5 h-5" />,
 };
 
-// 走 ContentPanel 的面板（activePanel 路由层）。ContentPanel 内部通过 tab 机制
-// 显示章节/skill/goink.md/diff/大纲，不经过 activePanel 路由。
+// Panels routed through ContentPanel (the activePanel routing layer).
+// ContentPanel internally shows chapters/skills/goink.md/diff/outlines
+// via its tab mechanism, bypassing the activePanel routing.
 const CONTENT_PANEL_IDS = new Set<PanelId>(["chapters", "skills"]);
 
 interface Props {
@@ -89,8 +90,10 @@ export default function WorkspaceView({
   const initialNovelReported = useRef(false);
   const automaticNovelSwitchPending = useRef(false);
 
-  // novels 走 useNovels query（3.1）：替换原 novels state + loadNovels + useEffect。
-  // 30s staleTime 内切面板不重复 fetch；novelsLoading 守卫「自动选小说」effect（替代 loadedRef）。
+  // novels go through the useNovels query (3.1): replaces the former
+  // novels state + loadNovels + useEffect.
+  // Switching panels within the 30s staleTime does not refetch;
+  // novelsLoading guards the "auto-select novel" effect (replaces loadedRef).
   const {
     data: novels = [],
     isLoading: novelsLoading,
@@ -98,32 +101,39 @@ export default function WorkspaceView({
   } = useNovels();
   const queryClient = useQueryClient();
   useAIFileCacheInvalidation();
-  // 小说领域 UI 状态：activeNovelId 留 WorkspaceView（路由用）；
-  // 对话框开关 + setter 由 NovelDialogs 订阅（3.6）；唯独 setExportNovelId 留此
-  // —— SidePanel 通过 onExportNovel 触发开 dialog，setter 引用稳定不引发重渲染。
+  // Novel-domain UI state: activeNovelId stays in WorkspaceView (routing);
+  // dialog open/close + setters are subscribed by NovelDialogs (3.6); only
+  // setExportNovelId remains here — SidePanel opens the dialog via
+  // onExportNovel, and the stable setter reference avoids re-renders.
   const activeNovelId = useNovelStore((s) => s.activeNovelId);
   useEditorTabTitles(activeNovelId);
   const setActiveNovelId = useNovelStore((s) => s.setActiveNovelId);
   const setExportNovelId = useNovelStore((s) => s.setExportNovelId);
-  // 3.7: switchNovel action（set activeNovelId + SetActiveNovel 后端）。
-  // switchToNovel 改瘦 wrapper 调它；closeAllTabs 删（useEditorTabs 接管 tab 切换）。
+  // 3.7: switchNovel action (set activeNovelId + SetActiveNovel backend).
+  // switchToNovel is a thin wrapper calling it; closeAllTabs is removed
+  // (useEditorTabs takes over tab switching).
   const switchNovel = useNovelStore((s) => s.switchNovel);
-  // 3.3: 创建小说 mutation。onSuccess 失效 novelKeys.all；
-  // handleCreateNovel（SidePanel 内联表单）专用，dialog 路径的 createNovel 实例在 NovelDialogs。
+  // 3.3: create-novel mutation. onSuccess invalidates novelKeys.all;
+  // dedicated to handleCreateNovel (SidePanel inline form); the dialog
+  // path's createNovel instance lives in NovelDialogs.
   const createNovel = useCreateNovel();
-  // 5.9: 保存封面 mutation。onSuccess invalidate novelKeys.all 让 useNovels refetch 拿新封面。
+  // 5.9: save-cover mutation. onSuccess invalidates novelKeys.all so
+  // useNovels refetches and picks up the new cover.
   const saveCover = useSaveCover();
-  // activePanel/sidebarPanel/sidebarClosed 外置到 usePanelStore（2.7）。
-  // 用 selector 订阅（而非整体解构）：actions 引用稳定不触发 re-render；
-  // activePanel 等值变化才 re-render，避免同值 set 引发的循环。
+  // activePanel/sidebarPanel/sidebarClosed externalized to usePanelStore (2.7).
+  // Subscribed via selectors (not whole-store destructuring): action refs
+  // are stable and do not trigger re-renders; only value changes like
+  // activePanel re-render, avoiding loops from same-value sets.
   const activePanel = usePanelStore((s) => s.activePanel);
   const sidebarPanel = usePanelStore((s) => s.sidebarPanel);
   const sidebarClosed = usePanelStore((s) => s.sidebarClosed);
   const setActivePanel = usePanelStore((s) => s.setActivePanel);
   const setSidebarPanel = usePanelStore((s) => s.setSidebarPanel);
   const setSidebarClosed = usePanelStore((s) => s.setSidebarClosed);
-  // focusMap 外置到 useFocusStore（2.8）。各 View 自己订阅 focusId。
-  // styleSampleFocusId 语义不同（null=已处理），保留本地 state。
+  // focusMap externalized to useFocusStore (2.8). Each View subscribes to
+  // focusId on its own.
+  // styleSampleFocusId has different semantics (null = handled), so it
+  // stays as local state.
   const focusEntity = useFocusStore((s) => s.focusEntity);
   const [styleSampleFocusId, setStyleSampleFocusId] = useState<number | null>(
     null,
@@ -134,10 +144,13 @@ export default function WorkspaceView({
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [activeSkillName, setActiveSkillName] = useState<string | null>(null);
-  // 3.8 后续：tabTarget/activeContent/isDirty → useEditorStore；
-  // selectedGitFile → useGitStore。写方调 getState().setXxx，读方组件自己订阅。
-  // reset 由下方 effect 监听 activeNovelId 变化自动调，等价原 switchToNovel wrapper 的 3 行 setState。
+  // 3.8 follow-up: tabTarget/activeContent/isDirty → useEditorStore;
+  // selectedGitFile → useGitStore. Writers call getState().setXxx; reader
+  // components subscribe on their own.
+  // reset is called automatically by the effect below watching activeNovelId
+  // changes, equivalent to the 3 setState lines of the old switchToNovel wrapper.
   const [platformOS, setPlatformOS] = useState("");
+  const { showUpdate, updateResult, setShowUpdate } = useUpdateCheck();
   const { theme, toggle: toggleTheme } = useThemeStore();
   const { isMaximised, setIsMaximised } = useWindowState();
   const {
@@ -146,22 +159,26 @@ export default function WorkspaceView({
     setSidePanelWidth,
     setChatPanelWidth,
   } = useLayoutState();
-  // 首次 mount 同步初始化 activeNovelId + activePanel（store 默认 0/"novels"，用 initialNovelId 覆盖）。
-  // useLayoutEffect 在 paint 前跑，避免首屏用默认值再切换的闪烁。
-  // 注：原 useState(initialNovelId) 同步初值，改 store 后 store 默认 0，必须在这里同步覆盖。
-  // 恢复 ID 现在只作为候选，后端确认成功前保持未选书状态。
+  // On first mount, synchronously initialize activeNovelId + activePanel
+  // (store defaults to 0/"novels"; overridden with initialNovelId).
+  // useLayoutEffect runs before paint, avoiding a flash on first render from
+  // using the default value and then switching.
+  // Note: the former useState(initialNovelId) synchronous initial value;
+  // after moving to the store (default 0), it must be synchronously
+  // overridden here.
+  // The restored ID is now only a candidate; the unselected-book state is
+  // kept until the backend confirms successfully.
   useLayoutEffect(() => {
     setActiveNovelId(0);
     setActivePanel("novels");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── 更新检查（定时调度与状态封装在 useUpdateCheck）────────────────────────────
-  const { updateResult, showUpdate, setShowUpdate } = useUpdateCheck();
+  // ── Update check (scheduling and state encapsulated in useUpdateCheck) ──
 
-  // ── 书籍管理弹窗（state 见 useNovelStore，3.2 外置）──────────────────────────────
+  // ── Book management dialogs (state in useNovelStore, externalized in 3.2) ──
 
-  // ── 窗口状态 ────────────────────────────────────────────
+  // ── Window state ────────────────────────────────────────────
 
   useEffect(() => {
     GetPlatform().then((info) => {
@@ -169,18 +186,22 @@ export default function WorkspaceView({
     });
   }, []);
 
-  // ── 首次进入自动弹帮助 ──────────────────────────────────
+  // ── Auto-show help on first entry ──────────────────────────
 
   useEffect(() => {
     if (initialShowHelp) setShowHelp(true);
   }, [initialShowHelp]);
 
-  // 3.8 后续：删 switchToNovel wrapper。切 novel 的 reset 改由下方 effect 监听
-  // activeNovelId 变化自动调 useEditorStore/useGitStore 的 reset()——响应式而非命令式。
-  // 调用方（handleImportedNovel/handleSelectNovel/handleCreateNovel/NovelDialogs）直接调
-  // switchNovel(id) + setActivePanel("chapters")，tab 切换仍由 useEditorTabs 的 novelId effect 接管。
-  // 用 useLayoutEffect 而非 useEffect：reset 须在 paint 前执行，否则 StatusBar 切小说时
-  // 会多显一帧旧字数（useEffect 在 paint 后才跑，store 旧值多停留一帧）。
+  // 3.8 follow-up: remove the switchToNovel wrapper. The novel-switch reset
+  // is now called automatically by the effect below watching activeNovelId
+  // changes, invoking useEditorStore/useGitStore reset() — reactive rather
+  // than imperative.
+  // Callers (handleImportedNovel/handleSelectNovel/handleCreateNovel/
+  // NovelDialogs) directly call switchNovel(id) + setActivePanel("chapters");
+  // tab switching is still handled by useEditorTabs' novelId effect.
+  // useLayoutEffect (not useEffect): reset must run before paint, otherwise
+  // StatusBar would show one extra frame of stale word count when switching
+  // novels (useEffect runs after paint, keeping the old store value one frame).
   useLayoutEffect(() => {
     useEditorStore.getState().reset();
     useGitStore.getState().reset();
@@ -188,10 +209,12 @@ export default function WorkspaceView({
 
   const handleImportedNovel = useCallback(
     async (res: imp.ImportResult) => {
-      // 临时：invalidateQueries 触发 useNovels refetch；3.3 mutation 建好后由 onSuccess 接管。
+      // Temporary: invalidateQueries triggers a useNovels refetch; once the
+      // 3.3 mutation is in place, onSuccess takes over.
       await queryClient.invalidateQueries({ queryKey: novelKeys.all });
-      // 3.8 后续：删 switchToNovel wrapper，直接调 switchNovel + setActivePanel。
-      // reset 由 effect 监听 activeNovelId 变化自动调。
+      // 3.8 follow-up: remove the switchToNovel wrapper, directly call
+      // switchNovel + setActivePanel.
+      // reset is called automatically by the effect watching activeNovelId.
       await switchNovel(res.novel_id);
       setActivePanel("chapters");
     },
@@ -200,7 +223,7 @@ export default function WorkspaceView({
 
   const importNovel = useImportNovel({ onImported: handleImportedNovel });
 
-  // ── SidePanel → ContentPanel 桥接 ─────────────────────────
+  // ── SidePanel → ContentPanel bridge ─────────────────────────
 
   const {
     handleSelectChapter,
@@ -258,7 +281,7 @@ export default function WorkspaceView({
     contentRef.current?.openDiffTab(data);
   }
 
-  // ── 自动选择小说 ────────────────────────────────────────
+  // ── Auto-select novel ────────────────────────────────────────
 
   useEffect(() => {
     if (novelsLoading || !novelsLoaded || automaticNovelSwitchPending.current)
@@ -272,8 +295,10 @@ export default function WorkspaceView({
       const first = exists ?? novels[0];
       const nextID = first?.id ?? 0;
       automaticNovelSwitchPending.current = true;
-      // 5.9: 改用 switchNovel（已封装 setActiveNovelId + SetActiveNovel 后端），替代 app.SetActiveNovel。
-      // effect 内不 await（void 标记故意不等待），避免 effect 变 async。
+      // 5.9: use switchNovel (encapsulates setActiveNovelId + SetActiveNovel
+      // backend), replacing app.SetActiveNovel.
+      // No await inside the effect (the void marker intentionally does not
+      // wait), to avoid making the effect async.
       void switchNovel(nextID)
         .then(() => {
           if (useNovelStore.getState().activeNovelId === nextID) {
@@ -287,9 +312,11 @@ export default function WorkspaceView({
           automaticNovelSwitchPending.current = false;
         });
     }
-    // 3.9 fix: 只在 novels 变化时触发（不加 activeNovelId）。
-    // 否则新建小说时 switchToNovel 设 activeNovelId=新小说，但 useNovels refetch 未完，
-    // novels 旧列表不含新小说 → find 失败 → 误选 novels[0]（旧小说）。
+    // 3.9 fix: trigger only on novels changes (no activeNovelId).
+    // Otherwise, when creating a new novel, switchToNovel sets
+    // activeNovelId=new novel, but the useNovels refetch is not yet complete,
+    // the old novels list does not contain the new novel → find fails →
+    // novels[0] (the old novel) is mistakenly selected.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [novels, novelsLoading, novelsLoaded]);
 
@@ -309,8 +336,10 @@ export default function WorkspaceView({
     }
   }
 
-  // 3.8 后续：selectedGitFile 迁 useGitStore，GitHistoryList 自己写 store，不再透传 onSelectGitFile。
-  // 4b: 接 type 透传给 focusEntity（storyarc 全局搜索区分 arc/node 跳转，其他领域 undefined）。
+  // 3.8 follow-up: selectedGitFile moved to useGitStore; GitHistoryList
+  // writes to the store itself, so onSelectGitFile is no longer passed through.
+  // 4b: pass type through to focusEntity (storyarc global search distinguishes
+  // arc/node navigation; other domains use undefined).
   function handleSearchNavigateEntity(
     panelId: PanelId,
     entityId: number,
@@ -322,7 +351,8 @@ export default function WorkspaceView({
 
   async function handleSelectNovel(n: novel.Novel) {
     try {
-      // 3.8 后续：删 switchToNovel wrapper，直接调 switchNovel + setActivePanel。
+      // 3.8 follow-up: remove the switchToNovel wrapper, directly call
+      // switchNovel + setActivePanel.
       await switchNovel(n.id);
       setActivePanel("chapters");
     } catch (err) {
@@ -334,7 +364,8 @@ export default function WorkspaceView({
   async function handleCreateNovel() {
     try {
       if (!title.trim()) return;
-      // 3.3: 改用 mutation，invalidate 由 onSuccess 接管；switchNovel + 清表单留 handler。
+      // 3.3: use the mutation; invalidate is handled by onSuccess;
+      // switchNovel + form clearing stay in the handler.
       const n = await createNovel.mutateAsync({
         title: title.trim(),
         description: description.trim(),
@@ -342,7 +373,8 @@ export default function WorkspaceView({
       setTitle("");
       setDescription("");
       setShowCreate(false);
-      // 3.8 后续：删 switchToNovel wrapper，直接调 switchNovel + setActivePanel。
+      // 3.8 follow-up: remove the switchToNovel wrapper, directly call
+      // switchNovel + setActivePanel.
       await switchNovel(n.id);
       setActivePanel("chapters");
     } catch (err) {
@@ -351,8 +383,10 @@ export default function WorkspaceView({
     }
   }
 
-  // 3.6: 4 个对话框 handler（create-dialog/update/delete/export）已移到 NovelDialogs。
-  // handleCreateNovel（SidePanel 内联表单）留此——它不走 dialog，直接 mutateAsync + switchNovel。
+  // 3.6: the 4 dialog handlers (create-dialog/update/delete/export) have
+  // moved to NovelDialogs.
+  // handleCreateNovel (SidePanel inline form) stays here — it does not go
+  // through a dialog, directly doing mutateAsync + switchNovel.
 
   async function handleSaveCover(novelID: number, file: File) {
     const buf = await file.arrayBuffer();

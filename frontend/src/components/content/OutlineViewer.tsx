@@ -5,7 +5,8 @@ import { useEditorTabsStore } from "./useEditorTabsStore";
 
 interface Props {
   content: string;
-  // 位置键 `novelId:path:mode`：按 (tab, mode) 独立保存/恢复滚动位置。不传则不记忆。
+  // Position key `novelId:path:mode`: independently saves/restores the
+  // scroll position per (tab, mode). Not passed = not remembered.
   positionKey?: string;
 }
 
@@ -14,7 +15,9 @@ export default function OutlineViewer({ content, positionKey }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const restoredRef = useRef(false);
 
-  // 内容就绪后恢复滚动位置（outlineContent 先空后异步载入，故等首次有内容再恢复）
+  // Restore the scroll position once the content is ready (outlineContent
+  // starts empty and loads asynchronously, so wait for the first content
+  // before restoring)
   useEffect(() => {
     if (!content || !positionKey || restoredRef.current) return;
     restoredRef.current = true;
@@ -36,7 +39,8 @@ export default function OutlineViewer({ content, positionKey }: Props) {
     );
   }
 
-  // 同步写入 store（内存）——localStorage 落盘由 store 全局 subscribe 防抖负责。
+  // Write to the store (memory) synchronously — the localStorage write is
+  // handled by the store's global subscribe with debouncing.
   const onScroll = () => {
     if (!positionKey) return;
     const el = containerRef.current;

@@ -3,12 +3,16 @@ import { CreateLocation } from "@/lib/wailsjs/go/app/App";
 import type { app } from "@/lib/wailsjs/go/models";
 import { locationKeys } from "@/lib/queryKeys";
 
-// useCreateLocation: 创建地点 mutation（参考 useCreateCharacter）。
-// mutationFn 直接 import wailsjs CreateLocation（不用 useApp）。
-// 入参 app.CreateLocationInput：name 必填，location_type/description/parent_location_id/tags optional。
-// handler 负责 setEditMode(null) + 错误 throw（副作用各异，不放进 mutation）。
-// onSuccess 失效 list：新地点入列表，LocationListView / LocationList / LocationGraph 节点同步。
-// 不失效 relations：新建地点无关系，relations 缓存无脏数据。
+// useCreateLocation: create location mutation (see useCreateCharacter).
+// mutationFn imports wailsjs CreateLocation directly (not useApp).
+// Input app.CreateLocationInput: name is required;
+// location_type/description/parent_location_id/tags are optional.
+// The handler is responsible for setEditMode(null) + throwing the error
+// (the side effects differ, so they are not placed in the mutation).
+// onSuccess invalidates the list: the new location enters the list, and
+// the LocationListView / LocationList / LocationGraph nodes stay in sync.
+// relations is not invalidated: a newly created location has no relations,
+// so the relations cache has no dirty data.
 export function useCreateLocation(novelId: number) {
   const qc = useQueryClient();
   return useMutation({

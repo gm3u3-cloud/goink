@@ -21,13 +21,19 @@ export default function StyleSampleList({
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [submittedSearch, setSubmittedSearch] = useState("");
-  // 无限滚动：sentinel 进入视口时拉下一页（react-intersection-observer useInView）
+  // Infinite scroll: fetch the next page when the sentinel enters the
+  // viewport (react-intersection-observer useInView)
   const { ref: sentinelRef, inView } = useInView({ rootMargin: "100px" });
 
-  // 5.3 commit 1: samples 走 useInfiniteStyleSamples query（不再 useApp.ListStyleSamples + loadPageRef 三件套）。
-  // page 由 useInfiniteQuery 的 pageParam 管理（不进 queryKey）；submittedSearch 变化触发新 query。
-  // data.pages.flatMap(p => p.items) 得累积列表；novelId 变化自动 refetch（queryKey 含 novelId）。
-  // GET 错误由全局中间件接管（queryErrorToast.ts），组件不挂 toastError。对齐 SessionHistory 模式。
+  // 5.3 commit 1: samples go through the useInfiniteStyleSamples query
+  // (no more useApp.ListStyleSamples + loadPageRef trio).
+  // page is managed by useInfiniteQuery's pageParam (not in queryKey); a
+  // submittedSearch change triggers a new query.
+  // data.pages.flatMap(p => p.items) gives the accumulated list; a novelId
+  // change auto-refetches (queryKey includes novelId).
+  // GET errors are handled by the global middleware (queryErrorToast.ts);
+  // the component does not mount toastError. Aligned with the
+  // SessionHistory pattern.
   const samplesQuery = useInfiniteStyleSamples({
     novelId,
     size: PAGE_SIZE,
@@ -40,13 +46,15 @@ export default function StyleSampleList({
   const isLoading = samplesQuery.isLoading;
   const isFetchingMore = samplesQuery.isFetchingNextPage;
 
-  // novelId 变化时重置搜索词（query 因 queryKey 含 novelId 自动 refetch）
+  // Reset the search term when novelId changes (the query auto-refetches
+  // because the queryKey includes novelId)
   useEffect(() => {
     setSearch("");
     setSubmittedSearch("");
   }, [novelId]);
 
-  // 搜索防抖 300ms：search 输入 → submittedSearch 更新 → queryKey 变化 → refetch
+  // Search debounce 300ms: search input → submittedSearch updates →
+  // queryKey changes → refetch
   useEffect(() => {
     const timer = setTimeout(() => {
       setSubmittedSearch(search);
@@ -54,7 +62,8 @@ export default function StyleSampleList({
     return () => clearTimeout(timer);
   }, [search]);
 
-  // 无限滚动：sentinel 进入视口时拉下一页（替代原手写 scroll 事件 + 距离判断）
+  // Infinite scroll: fetch the next page when the sentinel enters the
+  // viewport (replaces the old hand-written scroll event + distance check)
   useEffect(() => {
     if (inView && hasMore && !isFetchingMore) {
       samplesQuery.fetchNextPage();
@@ -112,7 +121,8 @@ export default function StyleSampleList({
                 <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
               </div>
             )}
-            {/* 无限滚动 sentinel：进入视口时触发 fetchNextPage */}
+            {/* Infinite scroll sentinel: triggers fetchNextPage when it
+             * enters the viewport */}
             <div ref={sentinelRef} className="h-4" />
           </>
         )}

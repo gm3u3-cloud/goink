@@ -119,7 +119,9 @@ function MermaidBlock({ code }: { code: string }) {
   const uid = useId();
   const idRef = useRef(`m-${uid.replace(/:/g, "")}`);
 
-  // 防抖渲染：流式输出时 code 频繁变化，延迟等稳定后再渲染。不清空旧 SVG，避免源码/图表来回切换导致页面抖动。
+  // Debounced rendering: during streaming output the code changes frequently,
+  // so delay until it stabilizes before rendering. Don't clear the old SVG, to
+  // avoid page jitter from flipping back and forth between source/diagram.
   useEffect(() => {
     setError(false);
 
@@ -156,7 +158,7 @@ function MermaidBlock({ code }: { code: string }) {
     };
   }, [code]);
 
-  // 非 passive 滚轮监听，阻止页面滚动
+  // Non-passive wheel listener, to prevent page scrolling
   useEffect(() => {
     const el = containerRef.current;
     if (!el || !svg) return;

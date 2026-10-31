@@ -9,10 +9,13 @@ import { useLocationRelations } from "./useLocationRelations";
 
 interface Props {
   novelId: number;
-  // focus 通过 props 传递（而非子组件直接 useFocusWithNonce 订阅）：
-  // 子组件直接订阅会在 unmount（切 viewTab list/graph）时 clearFocus，
-  // 误清父组件 LocationListView 的 focus。props 传递让只有父组件订阅 + cleanup，
-  // 切 viewTab 不清 focus，切面板（父 unmount）才清。
+  // focus is passed via props (rather than the child subscribing directly
+  // with useFocusWithNonce):
+  // a direct child subscription would clearFocus on unmount (switching
+  // viewTab list/graph), wrongly clearing the parent LocationListView's
+  // focus. Passing via props means only the parent subscribes + cleans up,
+  // so switching viewTab does not clear focus; only switching panels
+  // (parent unmount) does.
   focus?: { id: number; nonce: number };
 }
 
@@ -58,11 +61,15 @@ export default function LocationGraph({ novelId, focus }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<Graph | null>(null);
 
-  // 4.2.1: locations + relations 走两个独立 query（参考 CharacterGraph）。
-  // 与 LocationListView / LocationList 共享 locations 缓存（同 queryKey）。
-  // 删除原 useState + useEffect + Promise.all 链路；
-  // CRUD 后由 mutation 的 invalidateQueries 同步（4.2.2 抽 mutation）。
-  // 4a: query 错误 toast 由全局中间件接管（queryErrorToast.ts），此处不挂 useEffect。
+  // 4.2.1: locations + relations go through two independent queries (see
+  // CharacterGraph).
+  // Shares the locations cache with LocationListView / LocationList (same
+  // queryKey).
+  // Removes the old useState + useEffect + Promise.all chain;
+  // after CRUD the mutation's invalidateQueries keeps it in sync (mutations
+  // extracted in 4.2.2).
+  // 4a: the query error toast is handled by the global middleware
+  // (queryErrorToast.ts); no useEffect is mounted here.
   const locsQuery = useLocations(novelId);
   const relsQuery = useLocationRelations(novelId);
   const locations = locsQuery.data ?? [];
@@ -71,7 +78,9 @@ export default function LocationGraph({ novelId, focus }: Props) {
   const relsLoading = relsQuery.isLoading;
   const locationsError = locsQuery.isError;
   const relationsError = relsQuery.isError;
-  // loading 合成：两个 query 任一在拉时整体显示 loading（同时拉难以独立区分）。
+  // Combined loading: when either of the two queries is fetching, show the
+  // overall loading state (fetching simultaneously makes it hard to
+  // distinguish independently).
   const loading = locationsLoading || relsLoading;
 
   const [selectedLocation, setSelectedLocation] =
@@ -370,7 +379,7 @@ export default function LocationGraph({ novelId, focus }: Props) {
                           typeof v === "string"
                             ? v
                             : Array.isArray(v)
-                              ? v.join("、")
+                              ? v.join(t("common.listSeparator"))
                               : String(v);
                         return (
                           <div key={k} className="flex gap-2 text-xs">
@@ -403,10 +412,17 @@ export default function LocationGraph({ novelId, focus }: Props) {
           );
         })()}
 
-      {/* 4.2.1: 独立 loading/error 分支（方式 B，参考 CharacterGraph）。
-          - loading 合成：两 query 任一在拉即整体 loading（同时拉难独立区分）
-          - error 独立：locationsError / relationsError 分别显示对应失败信息，便于定位错误来源
-          - toast 由全局中间件接管（queryErrorToast.ts），此处只负责 UI 显示 */}
+      {/* 4.2.1: independent loading/error branches (approach B, see
+          CharacterGraph).
+          - Combined loading: when either of the two queries is fetching,
+            show the overall loading (fetching simultaneously makes it hard
+            to distinguish independently)
+          - Independent errors: locationsError / relationsError show their
+            respective failure messages, making it easy to locate the error
+            source
+          - The toast is handled by the global middleware
+            (queryErrorToast.ts); this component is only responsible for the
+            UI display */}
       {locationsError ? (
         <div className="relative z-10 flex h-full items-center justify-center">
           <p className="text-xs text-destructive py-4">

@@ -36,7 +36,8 @@ const WINDOW = 20;
 
 const TYPE_FILTERS: {
   key: TypeFilter;
-  // 4b: label 由 t("reader." + key) 动态拼接（与搜索 subtitle 同机制）。
+  // 4b: the label is assembled dynamically via t("reader." + key) (the same
+  // mechanism as the search subtitle).
   icon: typeof BookOpen;
   color: string;
 }[] = [
@@ -56,7 +57,8 @@ const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
   { key: "revealed", label: "reader.recovered" },
 ];
 
-// 4b: TYPES 只存数据值，label 由 t("reader." + value) 动态拼接（与搜索 subtitle 同机制）。
+// 4b: TYPES only stores data values; the label is assembled dynamically via
+// t("reader." + value) (the same mechanism as the search subtitle).
 const TYPES = ["known", "suspense", "misconception"];
 
 type EditMode =
@@ -117,8 +119,9 @@ export default function ReaderView({ novelId }: Props) {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  // 4.5.1: entries 走 query（与 ReaderList 共享缓存）。
-  // 4a: query 错误 toast 由全局中间件接管（queryErrorToast.ts），此处不挂 useEffect。
+  // 4.5.1: entries go through a query (shares the cache with ReaderList).
+  // 4a: query error toasts are handled by the global middleware
+  // (queryErrorToast.ts); no useEffect is attached here.
   const entriesQuery = useReaderPerspectives(novelId);
   const entries = entriesQuery.data ?? [];
   const { data: chapters = [] } = useChapters(novelId);
@@ -128,8 +131,10 @@ export default function ReaderView({ novelId }: Props) {
   );
   const loading = entriesQuery.isLoading;
   const loadFailed = entriesQuery.isError;
-  // 4.5.2/4.5.3: CRUD 走 mutation，deleting/saving 由 mutation.isPending 推导（不再用 useState）。
-  // onSuccess 失效 reader（entry CRUD 都失效 reader，ReaderView + ReaderList 共享缓存）。
+  // 4.5.2/4.5.3: CRUD goes through mutations; deleting/saving are derived
+  // from mutation.isPending (no longer useState).
+  // onSuccess invalidates reader (all entry CRUD invalidates reader;
+  // ReaderView + ReaderList share the cache).
   const deleteMutation = useDeleteReaderPerspective(novelId);
   const createMutation = useCreateReaderPerspective(novelId);
   const updateMutation = useUpdateReaderPerspective(novelId);
@@ -139,7 +144,8 @@ export default function ReaderView({ novelId }: Props) {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  // 4b: 声明式高亮（state 驱动 className，不命令式 classList.add/remove）。
+  // 4b: declarative highlighting (state drives the className, not imperative
+  // classList.add/remove).
   const [highlightedId, setHighlightedId] = useState<number | null>(null);
   const [windowCenter, setWindowCenter] = useState(0);
   const [editMode, setEditMode] = useState<EditMode>(null);
@@ -152,8 +158,11 @@ export default function ReaderView({ novelId }: Props) {
     [chapterReferences],
   );
 
-  // 4.5.1: entries 就绪后初始化 windowCenter（替代原 load() 里的 setWindowCenter）。
-  // 保持原语义：(prev) => prev || maxCh（仅当 prev 为 0 时才设，不覆盖 focusId 联动已设的值）。
+  // 4.5.1: initialize windowCenter after entries are ready (replaces the
+  // setWindowCenter in the old load()).
+  // Keeps the original semantics: (prev) => prev || maxCh (only set when
+  // prev is 0, so it does not override a value already set by the focusId
+  // linkage).
   useEffect(() => {
     if (entries.length > 0) {
       const maxCh = Math.max(
@@ -163,7 +172,8 @@ export default function ReaderView({ novelId }: Props) {
     }
   }, [entries, readingNumberForChapterID]);
 
-  // 4b: focus 定位——窗口对齐 + 自动展开 + 声明式高亮 + 滚动。
+  // 4b: focus positioning — window alignment + auto-expand + declarative
+  // highlighting + scrolling.
   useEffect(() => {
     if (!focusId || focusId <= 0 || entries.length === 0) return;
     const entry = entries.find((e) => e.id === focusId);
@@ -270,7 +280,8 @@ export default function ReaderView({ novelId }: Props) {
       toastError(t("reader.chapterNotFound"));
       return;
     }
-    // 4.5.3: 走 mutation（onSuccess 失效 reader），删 setSaving/bumpRefresh。
+    // 4.5.3: use the mutation (onSuccess invalidates reader);
+    // setSaving/bumpRefresh are removed.
     try {
       const created = await createMutation.mutateAsync({
         type: form.type,
@@ -312,8 +323,9 @@ export default function ReaderView({ novelId }: Props) {
       return;
     }
     const entryId = editMode.item.id;
-    // 4.5.3: 走 mutation（onSuccess 失效 reader），删 setSaving/bumpRefresh。
-    // 全量回传 input 所有字段（§6 等价 PUT）。
+    // 4.5.3: use the mutation (onSuccess invalidates reader);
+    // setSaving/bumpRefresh are removed.
+    // Send all input fields back (a §6-equivalent PUT).
     try {
       await updateMutation.mutateAsync({
         id: entryId,
@@ -340,7 +352,8 @@ export default function ReaderView({ novelId }: Props) {
 
   async function confirmDelete() {
     if (deleteTarget === null) return;
-    // 4.5.2: 走 mutation（onSuccess 失效 reader），删 setDeleting/bumpRefresh。
+    // 4.5.2: use the mutation (onSuccess invalidates reader);
+    // setDeleting/bumpRefresh are removed.
     try {
       await deleteMutation.mutateAsync(deleteTarget);
       if (expandedId === deleteTarget) setExpandedId(null);
@@ -352,8 +365,11 @@ export default function ReaderView({ novelId }: Props) {
   }
 
   async function handleQuickReveal(item: reader.ReaderPerspective) {
-    // 4.5.3: 走 updateMutation（onSuccess 失效 reader），删 setSaving/bumpRefresh。
-    // 全量回传 input 所有字段（§6 等价 PUT）：其他字段传 item 原值，揭示章节设为种下章节。
+    // 4.5.3: use updateMutation (onSuccess invalidates reader);
+    // setSaving/bumpRefresh are removed.
+    // Send all input fields back (a §6-equivalent PUT): the other fields
+    // pass the item's original values, and the revealed chapter is set to
+    // the planted chapter.
     try {
       await updateMutation.mutateAsync({
         id: item.id,
@@ -490,7 +506,8 @@ export default function ReaderView({ novelId }: Props) {
                 · {t("storyarc.totalChapters", { count: maxChapter })}
               </span>
               <button
-                // 4.5.3: refresh 按钮 invalidate reader query（替代原 bumpRefresh，对齐 timeline/storyarc）。
+                // 4.5.3: the refresh button invalidates the reader query
+                // (replaces the old bumpRefresh, aligned with timeline/storyarc).
                 onClick={() =>
                   queryClient.invalidateQueries({
                     queryKey: readerKeys.list(novelId),

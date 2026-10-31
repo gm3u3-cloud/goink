@@ -36,11 +36,11 @@ export default function ModelDiscoveryPanel({
   onAddModel,
 }: Props) {
   const { t } = useTranslation();
-  // 手动添加
+  // Manual add
   const [showAddForm, setShowAddForm] = useState(false);
   const [draftModel, setDraftModel] = useState<llm.ModelInfo>(emptyModel());
 
-  // 自动发现
+  // Auto discovery
   const [discovering, setDiscovering] = useState(false);
   const [discoverError, setDiscoverError] = useState("");
   const [discoveredModels, setDiscoveredModels] = useState<llm.ModelInfo[]>([]);
@@ -132,7 +132,7 @@ export default function ModelDiscoveryPanel({
         </div>
       </div>
 
-      {/* 待导入可编辑卡片 */}
+      {/* Editable cards pending import */}
       {pendingImports.map((m, i) => (
         <div key={m.id + "_" + i} className="mb-2">
           <ModelEditForm
@@ -153,7 +153,7 @@ export default function ModelDiscoveryPanel({
         </div>
       ))}
 
-      {/* 手动添加表单 */}
+      {/* Manual add form */}
       {showAddForm && (
         <div className="mb-2">
           <ModelEditForm
@@ -167,7 +167,7 @@ export default function ModelDiscoveryPanel({
         </div>
       )}
 
-      {/* 发现错误（无结果时） */}
+      {/* Discovery error (when there are no results) */}
       {discoverError && !discovering && discoveredModels.length === 0 && (
         <TestResultWithHint
           testResult={{ ok: false, msg: discoverError }}
@@ -175,7 +175,7 @@ export default function ModelDiscoveryPanel({
         />
       )}
 
-      {/* 发现结果面板 */}
+      {/* Discovery results panel */}
       {discoveredModels.length > 0 && (
         <div className="border rounded-md mb-2">
           <div className="flex items-center justify-between px-3 py-2 border-b">

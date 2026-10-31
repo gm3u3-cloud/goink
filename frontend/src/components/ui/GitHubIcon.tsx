@@ -1,4 +1,5 @@
-// GitHub octocat 图标。lucide-react v1.17 已移除品牌图标（Github），故内联官方 mark。
+// GitHub octocat icon. lucide-react v1.17 removed brand icons (Github), so
+// the official mark is inlined here.
 export default function GitHubIcon({
   className = "w-4 h-4",
 }: {

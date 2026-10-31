@@ -27,9 +27,10 @@ import { toErrorMessage } from "@/utils/error";
 export default function GeneralConfigTab() {
   const { t, i18n } = useTranslation();
   const [dataDir, setDataDir] = useState("");
-  // 3.9: novels 走 useNovels query（共享缓存）。
+  // 3.9: novels uses the useNovels query (shared cache).
   const { data: novels = [] } = useNovels();
-  // 5.8: settings 走 useSettings query（与 chat/profile 共享 settingsKeys.all 缓存）。
+  // 5.8: settings uses the useSettings query (shares the settingsKeys.all
+  // cache with chat/profile).
   const settingsQuery = useSettings();
   const saveGitMutation = useSaveGitConfig();
   const rebuildMutation = useRebuildNovelIndex();
@@ -47,9 +48,11 @@ export default function GeneralConfigTab() {
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
 
-  // GetAppConfig: 直接 import wailsjs（无结构化类型，启动读一次，query 化收益低）。
-  // 失败时 toast 提示（原静默吞错违反规则 9），dataDir 保持空字符串 UI 正常渲染。
-  // GetVersion: 直接 import wailsjs，低频 GET，保留命令式。
+  // GetAppConfig: import wailsjs directly (no structured type; read once at
+  // startup; low benefit from query-ifying).
+  // On failure, show a toast (the original silent error-swallowing violated
+  // rule 9); dataDir stays an empty string so the UI renders normally.
+  // GetVersion: import wailsjs directly; low-frequency GET; kept imperative.
   useEffect(() => {
     GetAppConfig()
       .then((cfg) => {
@@ -63,9 +66,11 @@ export default function GeneralConfigTab() {
       .catch(() => {});
   }, [t]);
 
-  // GetSettings: 复用 useSettings query（与 chat/profile 共享 settingsKeys.all 缓存）。
-  // query data ready 后回填 selectedID/gitName/gitEmail。
-  // GET 错误由全局中间件接管（settings 前缀 → chat.settingsLoadFailed），不在此处理。
+  // GetSettings: reuses the useSettings query (shares the settingsKeys.all
+  // cache with chat/profile).
+  // Once the query data is ready, back-fill selectedID/gitName/gitEmail.
+  // GET errors are handled by the global middleware (settings prefix →
+  // chat.settingsLoadFailed), not here.
   useEffect(() => {
     const s = settingsQuery.data;
     if (!s) return;
@@ -203,7 +208,7 @@ export default function GeneralConfigTab() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            中文
+            {t("settings.langZh")}
           </button>
           <button
             onClick={() => i18n.changeLanguage("en")}

@@ -2,11 +2,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { UpdateChapterTitle } from "@/lib/wailsjs/go/app/App";
 import { chapterKeys } from "@/lib/queryKeys";
 
-// useUpdateChapterTitle: 更新章节标题 mutation。
-// mutationFn 直接 import wailsjs UpdateChapterTitle（不用 useApp），3 参 (novelId, chapterID, title)。
-// §6 全量回传：入参 {chapterID, title} 完整传入（UpdateChapterTitle 入参就是这两个，无 patch 语义）。
-// onSuccess 失效 chapterKeys.list（ChapterList 标题刷新）。
-// 调用方 commitEdit 负责 setEditingId(null) + try/catch + toastError。
+// useUpdateChapterTitle: update-chapter-title mutation.
+// mutationFn directly imports wailsjs UpdateChapterTitle (no useApp); 3 args
+// (novelId, chapterID, title).
+// §6 full payload: the input {chapterID, title} is passed in full
+// (UpdateChapterTitle takes exactly these two, no patch semantics).
+// onSuccess invalidates chapterKeys.list (refresh the ChapterList title).
+// The caller commitEdit is responsible for setEditingId(null) + try/catch +
+// toastError.
 export function useUpdateChapterTitle(novelId: number) {
   const qc = useQueryClient();
   return useMutation({

@@ -17,8 +17,10 @@ const winBtn =
 const closeBtn =
   "w-12 h-full flex items-center justify-center cursor-pointer text-foreground/80 hover:text-destructive-foreground hover:bg-destructive transition-colors";
 
-// 非 macOS（darwin）显示自定义窗口按钮；macOS 走原生红绿灯。
-// 从 WorkspaceView 抽出，header 双击最大化仍留在 WorkspaceView。
+// Non-macOS (darwin) shows custom window buttons; macOS uses the native
+// traffic lights.
+// Extracted from WorkspaceView; header double-click maximize stays in
+// WorkspaceView.
 export default function WindowControls({
   platformOS,
   isMaximised,

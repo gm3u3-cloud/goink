@@ -37,12 +37,12 @@ export default function GitCommitTooltip({ commit }: Props) {
 
   return (
     <div className="w-80 p-4 rounded-lg border bg-card text-card-foreground shadow-xl">
-      {/* 完整 commit message */}
+      {/* Full commit message */}
       <p className="text-sm font-medium whitespace-pre-wrap break-words mb-3">
         {commit.message || t("git.noCommitMessage")}
       </p>
 
-      {/* 作者 + 日期 */}
+      {/* Author + date */}
       <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
         <GitCommitHorizontal className="w-3.5 h-3.5 shrink-0" />
         <span className="font-medium text-foreground">{commit.authorName}</span>
@@ -54,14 +54,14 @@ export default function GitCommitTooltip({ commit }: Props) {
         {formatFullDate(commit.time, i18n.language)}
       </p>
 
-      {/* 变更统计 */}
+      {/* Change statistics */}
       <div className="flex items-center gap-1.5 text-xs mb-3">
         <span>{t("git.filesChanged", { count: commit.filesChanged })}</span>
         <span className="text-tag-green-foreground">+{commit.insertions}</span>
         <span className="text-tag-rose-foreground">-{commit.deletions}</span>
       </div>
 
-      {/* short hash + copy（复制完整 hash） */}
+      {/* Short hash + copy (copies the full hash) */}
       <div className="flex items-center gap-2 p-2 rounded-md bg-muted">
         <code className="text-xs font-mono text-muted-foreground">
           {commit.shortHash}

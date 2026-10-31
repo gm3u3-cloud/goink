@@ -2,13 +2,17 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { SaveGitConfig } from "@/lib/wailsjs/go/app/App";
 import { settingsKeys } from "@/lib/queryKeys";
 
-// useSaveGitConfig: 保存 Git 提交作者配置 mutation。
-// onSuccess invalidate settingsKeys.all —— GetSettings 返回 git_name/git_email 字段，
-// 保存后需让 useSettings refetch 拿新值，避免 GeneralConfigTab 切走再切回时
-// useEffect 用旧 settingsQuery.data 回填 gitName/gitEmail 显示旧值。
-// chat/profile 的 useSettings/useProfileSettings refetch 后数据一样（不读 git 字段），无副作用。
-// 错误处理由调用方 try/catch + inline gitError（保留组件级 inline 错误展示）。
-// 5.8 commit 2。
+// useSaveGitConfig: mutation to save the Git commit author config.
+// onSuccess invalidates settingsKeys.all — GetSettings returns the
+// git_name/git_email fields, so after saving useSettings must refetch the
+// new values; otherwise, when GeneralConfigTab is left and returned to, the
+// useEffect back-fills gitName/gitEmail from the stale settingsQuery.data
+// and shows the old values.
+// chat/profile's useSettings/useProfileSettings refetch the same data (they
+// do not read the git fields), so there are no side effects.
+// Error handling is done by the caller with try/catch + inline gitError
+// (keeps the component-level inline error display).
+// 5.8 commit 2.
 export function useSaveGitConfig() {
   const qc = useQueryClient();
   return useMutation({

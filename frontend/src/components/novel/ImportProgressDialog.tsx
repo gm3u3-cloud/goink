@@ -63,10 +63,7 @@ export default function ImportProgressDialog({
   const percent = Math.max(0, Math.min(100, progress.percent || 0));
   const chapterText =
     progress.total > 0
-      ? t("novel.chapterCount", {
-          current: progress.current,
-          total: progress.total,
-        })
+      ? t("novel.chapterCount", { count: progress.total })
       : "";
 
   return (
@@ -114,7 +111,7 @@ export default function ImportProgressDialog({
           )}
         </div>
 
-        {/* 进度条 */}
+        {/* Progress bar */}
         {!isNeedsLLM && (
           <div className="mt-5">
             <div className="mb-2 flex items-center justify-between gap-3">
@@ -144,7 +141,7 @@ export default function ImportProgressDialog({
           </div>
         )}
 
-        {/* needs_llm: 提示用户使用 AI 分析 + 模型选择 */}
+        {/* needs_llm: prompt the user to use AI analysis + model selection */}
         {isNeedsLLM && !isError && (
           <div className="mt-4 space-y-3">
             <p className="text-sm text-muted-foreground">

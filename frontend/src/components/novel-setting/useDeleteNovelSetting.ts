@@ -2,12 +2,16 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DeleteNovelSetting } from "@/lib/wailsjs/go/app/App";
 import { novelSettingKeys } from "@/lib/queryKeys";
 
-// useDeleteNovelSetting: 删除小说设定条目 mutation。
-// mutationFn 直接 import wailsjs DeleteNovelSetting（不用 useApp）。
-// 单参 API：DeleteNovelSetting(settingId)（同 preference 的 DeletePreference(id)，区别于 reader 双参）。
-// 消费方：NovelSettingView.confirmDelete（mutateAsync 抛错由 handler try/catch 接住）。
-// handler 负责 setDeleteTarget(null) + 错误 toast（副作用不放进 mutation）。
-// onSuccess 失效 novel-settings：entry 删除后列表同步（NovelSettingView + NovelSettingList 共享缓存）。
+// useDeleteNovelSetting: delete novel-setting entry mutation.
+// mutationFn directly imports the wailsjs DeleteNovelSetting (no useApp).
+// Single-parameter API: DeleteNovelSetting(settingId) (same as preference's
+// DeletePreference(id), unlike reader's two-parameter version).
+// Consumer: NovelSettingView.confirmDelete (mutateAsync errors are caught by
+// the handler's try/catch).
+// The handler is responsible for setDeleteTarget(null) + the error toast
+// (side effects are not put in the mutation).
+// onSuccess invalidates novel-settings: the list syncs after the entry is
+// deleted (NovelSettingView + NovelSettingList share the cache).
 export function useDeleteNovelSetting(novelId: number) {
   const qc = useQueryClient();
   return useMutation({

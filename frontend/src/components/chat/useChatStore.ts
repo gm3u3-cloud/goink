@@ -1,14 +1,23 @@
 import { create } from "zustand";
 import type { llm, app } from "@/lib/wailsjs/go/models";
 
-// useChatStore: chat 领域跨组件共享的 UI 状态。
-// selectedModel: 结构化选中模型（废弃拼接 key + splitModelKey），ChatPanel/ChatControls 共享。
-//   handleSend/handleCompress 直接取 ProviderName + ModelID，不再 splitModelKey 拆字符串。
-// reasoningEffort/approvalMode: 与 selectedModel 强相关（选模型时重置 effort），一起进 store 更内聚。
-// deletingSession: 删除合并用（SessionHistory + RecentSessions 只 dispatch，DeleteSessionDialog 集中执行）。
-//   存完整 SessionMeta 对象而非只 id，ConfirmDialog 需 title（分页场景下 ChatPanel 无法从 query data 查到所有 session）。
-// 不进 store：turns/sessionId/isLoading（流式本地）、activeSessionId（ChatPanel 内协调）、
-//   showSettings/showHistoryPanel（纯 UI 开关）、拖拽/滚动 refs（5.1 特殊点 1 + 规则 10）。
+// useChatStore: UI state shared across components in the chat domain.
+// selectedModel: the structured selected model (the concatenated key +
+// splitModelKey are deprecated); shared by ChatPanel/ChatControls.
+//   handleSend/handleCompress read ProviderName + ModelID directly, no more
+//   splitModelKey string splitting.
+// reasoningEffort/approvalMode: strongly related to selectedModel (effort is
+// reset when the model changes); more cohesive to keep them in the store
+// together.
+// deletingSession: consolidated deletion (SessionHistory + RecentSessions
+// only dispatch; DeleteSessionDialog executes centrally).
+//   Stores the full SessionMeta object rather than just the id, since the
+//   ConfirmDialog needs the title (in the paginated case ChatPanel cannot
+//   look up all sessions from the query data).
+// Not in the store: turns/sessionId/isLoading (streaming local state),
+//   activeSessionId (coordinated inside ChatPanel),
+//   showSettings/showHistoryPanel (pure UI toggles), drag/scroll refs
+//   (5.1 special point 1 + rule 10).
 interface ChatUIState {
   selectedModel: llm.AvailableModel | null;
   setSelectedModel: (model: llm.AvailableModel | null) => void;

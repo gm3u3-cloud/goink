@@ -30,7 +30,8 @@ interface Props {
   approvalPayload?: Record<string, unknown>;
   onApprove?: (feedback: string) => void;
   onReject?: (feedback: string) => void;
-  // 完成态富文本结果（web_search / web_fetch / delete_record）
+  // Completed-state rich-text result (web_search / web_fetch /
+  // delete_record)
   result?: Record<string, unknown>;
 }
 
@@ -190,8 +191,10 @@ function ApprovalBody({
   return <span>{t("chat.waitingApproval")}</span>;
 }
 
-// DeletedEntityBody 在完成态渲染 delete_record 的具体内容。
-// 复用 ApprovalBody 的字段读取逻辑，但使用 deletedEntity* i18n key（"已删除 xxx"）。
+// DeletedEntityBody renders the specific content of delete_record in the
+// completed state.
+// Reuses ApprovalBody's field-reading logic, but uses the deletedEntity*
+// i18n keys ("deleted xxx").
 function DeletedEntityBody({ deleted }: { deleted: Record<string, unknown> }) {
   const { t } = useTranslation();
   const s = (v: unknown) => (v == null ? "" : String(v));
@@ -343,7 +346,8 @@ export default memo(function ToolCallCard({
 }: Props) {
   const { t } = useTranslation();
 
-  // 失败错误信息 hover（参考 ContextRing 的 delay 模式，避免鼠标移到 popover 时消失）
+  // Failure error message hover (following ContextRing's delay pattern to
+  // avoid disappearing when the mouse moves onto the popover)
   const [showFullError, setShowFullError] = useState(false);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showErrorEnter = useCallback(() => {
@@ -357,7 +361,7 @@ export default memo(function ToolCallCard({
     hideTimerRef.current = setTimeout(() => setShowFullError(false), 150);
   }, []);
 
-  // 审批中状态
+  // Awaiting-approval state
   if (status === "awaiting_approval" && onApprove && onReject) {
     return (
       <ApprovalView
@@ -375,7 +379,8 @@ export default memo(function ToolCallCard({
   const isCompleted = status === "completed";
   const isFailed = status === "failed";
 
-  // delete_record 完成态：渲染"已删除 xxx"具体内容（result.deleted 由后端 metadata 透传）
+  // delete_record completed state: renders the specific "deleted xxx"
+  // content (result.deleted is passed through from the backend metadata)
   const deletedEntity =
     isCompleted && toolName === "delete_record" && result?.deleted
       ? (result.deleted as Record<string, unknown>)

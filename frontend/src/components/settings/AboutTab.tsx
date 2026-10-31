@@ -16,7 +16,7 @@ export default function AboutTab() {
   const [appVersion, setAppVersion] = useState("dev");
   const [buildHash, setBuildHash] = useState("");
 
-  // GetVersion: 与 GeneralConfigTab 一致，低频 GET，保留命令式。
+  // GetVersion: same as GeneralConfigTab; low-frequency GET; kept imperative.
   useEffect(() => {
     GetVersion()
       .then((v) => setAppVersion(v || "dev"))
@@ -35,7 +35,8 @@ export default function AboutTab() {
     t("settings.aboutFeature6"),
   ];
 
-  // 随安装包打包的第三方运行时组件（仅分发部分，不含源码级依赖）。
+  // Third-party runtime components bundled with the installer (distribution
+  // parts only, no source-level dependencies).
   const deps: {
     name: string;
     version?: string;
@@ -72,7 +73,7 @@ export default function AboutTab() {
 
   return (
     <div className="flex-1 overflow-y-auto pr-1">
-      {/* 头部：应用名 + 版本 */}
+      {/* Header: app name + version */}
       <div className="flex items-center gap-3">
         <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
           <Logo className="w-7 h-7" />
@@ -86,12 +87,12 @@ export default function AboutTab() {
         </div>
       </div>
 
-      {/* 简介 */}
+      {/* Intro */}
       <p className="mt-4 text-xs leading-5 text-muted-foreground">
         {t("settings.aboutIntro")}
       </p>
 
-      {/* 核心特性 */}
+      {/* Core features */}
       <h4 className="mt-6 flex items-center gap-1.5 text-xs font-medium text-foreground">
         <Info className="w-3.5 h-3.5 text-muted-foreground" />
         {t("settings.aboutFeaturesTitle")}
@@ -108,7 +109,7 @@ export default function AboutTab() {
         ))}
       </ul>
 
-      {/* 开源信息 */}
+      {/* Open source info */}
       <h4 className="mt-6 flex items-center gap-1.5 text-xs font-medium text-foreground">
         <GitHubIcon className="w-3.5 h-3.5 text-muted-foreground" />
         {t("settings.aboutOpenSourceTitle")}
@@ -151,7 +152,7 @@ export default function AboutTab() {
         </p>
       </div>
 
-      {/* 赞赏 */}
+      {/* Donate */}
       <h4 className="mt-6 flex items-center gap-1.5 text-xs font-medium text-foreground">
         <Heart className="w-3.5 h-3.5 text-muted-foreground" />
         {t("settings.aboutDonateTitle")}
@@ -182,7 +183,7 @@ export default function AboutTab() {
         </div>
       </div>
 
-      {/* 第三方依赖 */}
+      {/* Third-party dependencies */}
       <h4 className="mt-6 flex items-center gap-1.5 text-xs font-medium text-foreground">
         <Package className="w-3.5 h-3.5 text-muted-foreground" />
         {t("settings.aboutDepsTitle")}

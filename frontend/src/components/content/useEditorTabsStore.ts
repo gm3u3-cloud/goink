@@ -1,20 +1,30 @@
 import { create } from "zustand";
 import { isContentPath, type EditorTab } from "@/components/content/types";
 
-// useEditorTabsStore: 编辑器 tab 集的全局内存单例 + 持久化。
+// useEditorTabsStore: global in-memory singleton for the editor tab set +
+// persistence.
 //
-// 背景（issue #46）：ContentPanel 在切换面板时会整体 unmount，之前 useEditorTabs 用
-// useState 本地状态 + 仅 beforeunload 写 localStorage，导致：
-//  1. 会话内切走面板再回来，tab 列表丢失（恢复的是上次关应用时的旧 tab 集）；
-//  2. 滚动位置（Monaco viewState / 大纲 scrollTop）无记忆；
-//  3. ContentEditor 无 key，所有 tab 共用一个 Monaco 实例，滚动位置被共享。
+// Background (issue #46): ContentPanel unmounts entirely when switching
+// panels. Previously useEditorTabs used useState local state + writing to
+// localStorage only on beforeunload, which caused:
+//  1. Leaving and returning to the panel within a session lost the tab list
+//     (it restored the old tab set from the last app close);
+//  2. Scroll position (Monaco viewState / outline scrollTop) was not
+//     remembered;
+//  3. ContentEditor had no key, so all tabs shared one Monaco instance and
+//     the scroll position was shared.
 //
-// 方案：普通 zustand store（内存单例，unmount 不丢状态）+ 原生 localStorage 手写读写
-// （debounced + beforeunload 批写 + 版本号字段）。
-// - 不持久化 content/isDirty（跨重启重新 fetch，与现状一致）、diff tab（临时审批流程）。
-// - 位置按 `novelId:path:mode` 键控：tabId 每次会话重新生成，不能用作持久化键；
-//   path 取各 mode 的实际文件路径（正文=chapters/NNN.md，大纲=outlines/NNN.md），
-//   天然契合未来统一容器 tab 模型（子 tab 即独立 path）。schema 变更走版本号迁移。
+// Solution: a plain zustand store (in-memory singleton, state survives
+// unmount) + hand-written native localStorage reads/writes
+// (debounced + batch write on beforeunload + a version-number field).
+// - content/isDirty are not persisted (refetched across restarts, same as
+//   before); nor are diff tabs (the temporary approval flow).
+// - Positions are keyed by `novelId:path:mode`: tabId is regenerated each
+//   session and cannot be a persistence key; path is the real file path for
+//   each mode (body=chapters/NNN.md, outline=outlines/NNN.md), which
+//   naturally fits the future unified container tab model (a sub tab is just
+//   an independent path). Schema changes go through version-number
+//   migration.
 
 const STORAGE_KEY = "goink_tabs_all";
 const STORAGE_VERSION = 2;
@@ -25,15 +35,16 @@ function nextId(type: EditorTab["type"]): string {
   return `${type}_${++idSeq}`;
 }
 
-// TabMeta：持久化的 tab 字段（不含运行时 content / diff 等）。
+// TabMeta: the persisted tab fields (excluding runtime content / diff, etc.).
 type TabMeta = Pick<
   EditorTab,
   "path" | "outlinePath" | "title" | "type" | "viewMode" | "readOnly"
 >;
 
-// ReadingPosition：单个 (novelId, path, mode) 的阅读位置。
-// - viewState：Monaco editor.saveViewState() 输出（content / outline-edit 模式）
-// - scrollTop：大纲 Markdown 视图滚动位置（outline 模式）
+// ReadingPosition: the reading position for a single (novelId, path, mode).
+// - viewState: the output of Monaco editor.saveViewState() (content /
+//   outline-edit modes)
+// - scrollTop: the outline Markdown view scroll position (outline mode)
 export interface ReadingPosition {
   scrollTop?: number;
   viewState?: unknown;
@@ -72,7 +83,7 @@ interface EditorTabsStoreState {
   setPosition: (key: string, pos: ReadingPosition) => void;
 }
 
-// ── 持久化 ├─ 序列化 ─────────────────────────────────────────
+// ── Persistence ├─ Serialization ──
 
 type PersistedNovel = { tabs: TabMeta[]; activePath: string | null };
 type PersistedEnvelope = {
@@ -109,7 +120,8 @@ function toPersisted(state: EditorTabsStoreState): PersistedEnvelope {
   };
 }
 
-// ── 持久化 ├─ 反序列化（版本不匹配/解析失败 → 空）─────────────
+// ── Persistence ├─ Deserialization (version mismatch / parse failure →
+// empty) ──
 
 const EMPTY_BYNOVEL: Record<string, NovelTabs> = {};
 
@@ -146,7 +158,7 @@ function loadInitial(): {
 
 const initial = loadInitial();
 
-// ── 持久化 ├─ debounce + beforeunload 批写 ───────────────────
+// ── Persistence ├─ Debounce + batch write on beforeunload ──
 
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -170,7 +182,8 @@ function flushPersist() {
   }
 }
 
-// withNovel：对指定小说条目做局部更新（无条目时按空集起步）。
+// withNovel: do a partial update of a specific novel's entry (start from an
+// empty set if there is no entry).
 function withNovel(
   key: string,
   updater: (entry: NovelTabs) => NovelTabs,
@@ -183,17 +196,20 @@ function withNovel(
   });
 }
 
-// positionKeysForTab：该 tab 关闭时需要清理的所有位置键。
-// 与 ContentPanel.positionKeyFor 的键名规则保持一致：
-//   - 正文：`novelId:chapters/NNN.md:content`
-//   - 大纲/大纲编辑：`novelId:outlines/NNN.md:outline` / `:outline-edit`
+// positionKeysForTab: all position keys that need to be cleaned up when this
+// tab is closed.
+// Consistent with the key-naming rules in ContentPanel.positionKeyFor:
+//   - Body: `novelId:chapters/NNN.md:content`
+//   - Outline / outline edit: `novelId:outlines/NNN.md:outline` /
+//     `:outline-edit`
 function positionKeysForTab(
   novelId: number,
   tab: Pick<EditorTab, "path" | "outlinePath">,
 ): string[] {
   const ns = `${novelId}:`;
   const keys = new Set<string>([`${ns}${tab.path}:content`]);
-  // chapters/NNN.md（goink.md 除外）才有对应的大纲文件键
+  // Only chapters/NNN.md (excluding goink.md) has a corresponding outline
+  // file key
   if (isContentPath(tab.path) && tab.path !== "goink.md" && tab.outlinePath) {
     keys.add(`${ns}${tab.outlinePath}:outline`);
     keys.add(`${ns}${tab.outlinePath}:outline-edit`);

@@ -22,7 +22,8 @@ export function useContentNavigation({
 
   function handleSelectChapter(ch: chapter.Chapter) {
     const chTitle = describeFile(ch.file_path, t, [ch]).title;
-    // 3.8 后续：tabTarget 迁 useEditorStore，写方调 getState().setTabTarget。
+    // 3.8 follow-up: tabTarget moved to useEditorStore; the writer calls
+    // getState().setTabTarget.
     useEditorStore
       .getState()
       .setTabTarget({ path: ch.file_path, title: chTitle });

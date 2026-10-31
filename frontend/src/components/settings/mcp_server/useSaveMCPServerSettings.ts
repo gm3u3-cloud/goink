@@ -9,7 +9,8 @@ export function useSaveMCPServerSettings() {
     mutationFn: (input: servercfg.Local) => SaveMCPServerSettings(input),
     onMutate: () => qc.cancelQueries({ queryKey: mcpServerKeys.all }),
     onSuccess: (view) => qc.setQueryData(mcpServerKeys.all, view),
-    // 配置可能已保存而启停失败，成功和失败后都重新查询后端真实状态。
+    // The config may have been saved while start/stop failed; re-query the
+    // backend's real state after both success and failure.
     onSettled: () => qc.invalidateQueries({ queryKey: mcpServerKeys.all }),
   });
 }

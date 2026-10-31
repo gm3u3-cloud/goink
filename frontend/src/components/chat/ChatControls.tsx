@@ -17,10 +17,13 @@ interface Props {
   isCompressing?: boolean;
 }
 
-// ChatControls: 模型/推理/审批控件。
-// models 列表走 useModels query 订阅；selectedModel/reasoningEffort/approvalMode
-// 从 useChatStore 订阅（跨组件共享，废弃拼接 key）。回调仍由 props 传入（mutation commit 4 迁）。
-// 5.x: 模型 + reasoning 合并进 ModelPicker（按 provider 聚类 + 底部 reasoning 跟随区域）。
+// ChatControls: model/reasoning/approval controls.
+// The models list is subscribed via the useModels query;
+// selectedModel/reasoningEffort/approvalMode are subscribed from useChatStore
+// (shared across components; the concatenated key is deprecated). Callbacks
+// are still passed via props (migrated in mutation commit 4).
+// 5.x: model + reasoning are merged into ModelPicker (clustered by provider
+// + a trailing reasoning section at the bottom).
 export default function ChatControls({
   onSelectModel,
   onRefreshModels,

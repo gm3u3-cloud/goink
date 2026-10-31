@@ -2,11 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { GetArcNodes } from "@/lib/wailsjs/go/app/App";
 import { arcNodeKeys } from "@/lib/queryKeys";
 
-// useArcNodes: 弧线节点全量列表 query。
-// 4b: GetArcNodes 签名改为单参数（废弃 fromChapter/toChapter，后端改调 ListNodesByNovel(Size=-1) 全量）。
-// enabled: !!novelId 守卫，novelId=0 时不 fetch（数据兜底空数组）。
-// 消费方：ArcListView / StoryArcGraph / ArcList 共享缓存，
-// CRUD 后由 mutation 的 invalidateQueries 同步（commit 2/3 抽 mutation）。
+// useArcNodes: full arc-node list query.
+// 4b: the GetArcNodes signature changed to a single parameter (deprecated
+// fromChapter/toChapter; the backend now calls ListNodesByNovel(Size=-1)
+// for the full list).
+// enabled: !!novelId guard; no fetch when novelId=0 (data falls back to an
+// empty array).
+// Consumers: ArcListView / StoryArcGraph / ArcList share the cache; after
+// CRUD the mutation's invalidateQueries keeps them in sync (mutations
+// extracted in commits 2/3).
 export function useArcNodes(novelId: number) {
   return useQuery({
     queryKey: arcNodeKeys.list(novelId),

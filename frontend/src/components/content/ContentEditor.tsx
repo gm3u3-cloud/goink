@@ -7,8 +7,9 @@ interface Props {
   onChange: (value: string | undefined) => void;
   onMount: OnMount;
   editorTheme?: string;
-  // 位置键 `novelId:path:mode`：按 (tab, mode) 独立保存/恢复 Monaco viewState
-  // （滚动 + 光标 + 折叠）。不传则不记忆。
+  // Position key `novelId:path:mode`: independently saves/restores the
+  // Monaco viewState (scroll + cursor + folding) per (tab, mode). Not
+  // passed = not remembered.
   positionKey?: string;
 }
 
@@ -31,11 +32,15 @@ export default function ContentEditor({
           try {
             editor.restoreViewState(saved as EditorViewState);
           } catch {
-            // 保存的 viewState 与当前 model 不兼容时静默忽略（内容已变化）
+            // Silently ignore the saved viewState when it is incompatible
+            // with the current model (the content has changed)
           }
-          // Monaco 失焦时不渲染 caret（光标）。onMount 阶段同步 focus() 可能因
-          // 编辑器内部尚未完成焦点绑定而静默失败（wails webview 下尤甚），
-          // 延迟到下一帧再 focus。不调用 render(true)：全量重绘会引发视觉闪烁。
+          // Monaco does not render the caret (cursor) when unfocused. A
+          // synchronous focus() during the onMount phase may silently fail
+          // because the editor's internal focus binding is not yet complete
+          // (especially under the wails webview); defer the focus to the
+          // next frame. Do not call render(true): a full re-render would
+          // cause visual flicker.
           let disposed = false;
           editor.onDidDispose(() => {
             disposed = true;
@@ -45,8 +50,11 @@ export default function ContentEditor({
             editor.focus();
           });
         }
-        // 同步写入 store（内存）——localStorage 落盘由 store 全局 subscribe 防抖负责。
-        // 不做组件内 debounce：光标/滚动变化立即进内存，切走不丢；写盘频率不受影响。
+        // Write to the store (memory) synchronously — the localStorage
+        // write is handled by the store's global subscribe with debouncing.
+        // No in-component debounce: cursor/scroll changes go to memory
+        // immediately and are not lost on switch; the write-to-disk
+        // frequency is unaffected.
         const save = () => {
           const vs = editor.saveViewState();
           if (vs) {

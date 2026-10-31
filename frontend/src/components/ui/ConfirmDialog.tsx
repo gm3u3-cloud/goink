@@ -15,12 +15,15 @@ interface ConfirmDialogProps {
   onClose: () => void;
 }
 
-// ConfirmDialog 是通用的居中确认弹窗，用于替代浏览器原生 confirm()。
-// 原生 confirm 位置在窗口顶部、样式由系统决定且不可控；本组件是真正的 DOM 元素，
-// 位置居中、样式跟随应用主题。后续各领域的删除确认可统一迁移到此组件。
+// ConfirmDialog is a generic centered confirmation dialog used to replace the
+// browser-native confirm(). Native confirm sits at the top of the window, its
+// styling is system-determined and uncontrollable; this component is a real
+// DOM element, centered and styled to follow the app theme. Delete
+// confirmations in other domains can be migrated here uniformly later.
 //
-// 通过 createPortal 渲染到 document.body，脱离调用方 DOM 树，
-// 避免祖先的 pointer-events:none / transform / z-index 影响弹窗交互与定位。
+// Rendered to document.body via createPortal, detached from the caller's DOM
+// tree, to avoid an ancestor's pointer-events:none / transform / z-index
+// affecting the dialog's interaction and positioning.
 export default function ConfirmDialog({
   open,
   title,
@@ -34,8 +37,10 @@ export default function ConfirmDialog({
 }: ConfirmDialogProps) {
   const { t } = useTranslation();
 
-  // Escape 关闭、Enter 确认。回调与 loading 进依赖，保证绑定到的始终是最新值；
-  // 仅在 open 时注册，调用方若想减少重绑可对回调 useCallback 稳定引用。
+  // Escape closes, Enter confirms. The callback and loading go into the deps
+  // so the binding always sees the latest values; registered only when open.
+  // Callers that want fewer rebindings can stabilize the callback with
+  // useCallback.
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {

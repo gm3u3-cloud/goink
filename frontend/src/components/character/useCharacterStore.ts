@@ -1,10 +1,15 @@
 import { create } from "zustand";
 
-// useCharacterStore: 角色领域跨组件共享的删除目标状态。
-// 仅放 deletingCharacterId —— 主区 CharacterListView（挂唯一 ConfirmDialog + 执行删除）
-// 与侧边栏 CharacterList（点删除只 dispatch）共享，合并成单一删除确认流程。
-// editMode/form/viewTab/search 等组件内自用状态不进 store（README 总原则 10）。
-// 数据走 useCharacters query；create/update/delete 走 mutation（4.1.2）。
+// useCharacterStore: the deletion-target state shared across components in
+// the character domain.
+// Only holds deletingCharacterId — shared between the main-area
+// CharacterListView (mounts the single ConfirmDialog + executes the delete)
+// and the sidebar CharacterList (delete clicks only dispatch), merging into
+// a single deletion confirmation flow.
+// Component-internal states like editMode/form/viewTab/search do not go into
+// the store (README general principle 10).
+// Data goes through the useCharacters query; create/update/delete go through
+// mutations (4.1.2).
 interface CharacterUIState {
   deletingCharacterId: number | null;
   setDeletingCharacterId: (id: number | null) => void;

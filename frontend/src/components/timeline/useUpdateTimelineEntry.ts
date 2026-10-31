@@ -3,12 +3,15 @@ import { UpdateTimelineEntry } from "@/lib/wailsjs/go/app/App";
 import type { app } from "@/lib/wailsjs/go/models";
 import { timelineKeys } from "@/lib/queryKeys";
 
-// useUpdateTimelineEntry: 更新时间线条目 mutation。
-// mutationFn 直接 import wailsjs UpdateTimelineEntry（不用 useApp）。
-// 入参 {id, input}：input 用 app.UpdateTimelineEntryInput（PUT 语义，全量回传），含 handleQuickStatus 全量回传。
-// handler 负责 setEditMode(null) + 错误 throw（副作用各异，不放进 mutation）。
-// onSuccess 失效 timeline：entry 字段变更入列表。
-// 不失效 chapter-plans/max-chapter：entry 字段不影响 plan 和小说最大章节号。
+// useUpdateTimelineEntry: update timeline entry mutation.
+// mutationFn imports wailsjs UpdateTimelineEntry directly (not useApp).
+// Input {id, input}: input uses app.UpdateTimelineEntryInput (PUT
+// semantics, full payload), including handleQuickStatus's full payload.
+// The handler is responsible for setEditMode(null) + throwing the error
+// (the side effects differ, so they are not placed in the mutation).
+// onSuccess invalidates timeline: the entry field changes enter the list.
+// chapter-plans/max-chapter are not invalidated: entry fields do not affect
+// the plans or the novel's max chapter number.
 export function useUpdateTimelineEntry(novelId: number) {
   const qc = useQueryClient();
   return useMutation({

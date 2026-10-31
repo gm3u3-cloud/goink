@@ -5,10 +5,11 @@ import { toastError } from "@/utils/toast";
 import { toErrorMessage } from "@/utils/error";
 
 /**
- * 主界面就绪前的最后一步：读取"上次打开的书籍"。
+ * The final step before the main view is ready: read the "last opened book".
  *
- * 以 phase/version 为输入而不是只看 phase：每次启动状态变化（含重试）都要重新
- * 取一次；且取完之前不放行主界面，否则会先闪一下 novelId=0 的书架。
+ * Uses phase/version as input, not just phase: every startup-state change
+ * (including retries) must refetch; and the main view is not released before
+ * the fetch completes, otherwise a bookshelf with novelId=0 would flash first.
  */
 export function useWorkspaceBoot(phase: string | null, version: number | null) {
   const { t } = useTranslation();

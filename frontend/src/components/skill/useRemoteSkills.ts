@@ -4,14 +4,18 @@ import type { app, storage, remote } from "@/lib/wailsjs/go/models";
 import { skillKeys } from "@/lib/queryKeys";
 import { unwrapResult } from "@/utils/wailsResult";
 
-// useRemoteSkills: 远程技能市场列表 query（apperr 新 API）。
-// queryFn 用 unwrapResult 解包 Result[PageResult[RemoteSkillMeta]]，
-// err_code 非空时 throw AppErr（带 errCode），query 进 error 状态触发中间件兜底 toast。
-// 组件读 query.error（AppErr）的 errCode，传给 classifyError 算 inline 具体文案。
-// enabled 由调用方控制（SkillMarketplace 在 open 时才 fetch）。
-// debounce 由调用方控制 debouncedQuery 进 queryKey，queryKey 变化自动 refetch。
+// useRemoteSkills: remote skill marketplace list query (new apperr API).
+// queryFn uses unwrapResult to unwrap Result[PageResult[RemoteSkillMeta]];
+// throws AppErr (with errCode) when err_code is non-empty, putting the query
+// into the error state and triggering the middleware's fallback toast.
+// The component reads query.error's (AppErr) errCode and passes it to
+// classifyError to compute the specific inline message.
+// enabled is controlled by the caller (SkillMarketplace only fetches when open).
+// debounce is controlled by the caller putting debouncedQuery into the
+// queryKey; a queryKey change auto-refetches.
 //
-// T 明确为 PageResult 结构类型（unwrapResult 泛型推断会退化为 {}，需手动标注）。
+// T is explicitly the PageResult struct type (unwrapResult's generic
+// inference degrades to {}, so a manual annotation is needed).
 type RemoteSkillPageResult = {
   items: remote.RemoteSkillMeta[];
   total: number;

@@ -2,12 +2,17 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DeleteArcNode } from "@/lib/wailsjs/go/app/App";
 import { arcNodeKeys } from "@/lib/queryKeys";
 
-// useDeleteArcNode: 删除弧线节点 mutation。
-// mutationFn 直接 import wailsjs DeleteArcNode（不用 useApp）。
-// 消费方：ArcListView.confirmDelete（mutateAsync 抛错由 handler try/catch 接住）。
-// handler 负责 setExpandedId(null) + setDeleteTarget(null) + 错误 toast（副作用不放进 mutation）。
-// onSuccess 只失效 arc-nodes：删 node 不影响 arcs 列表（useStoryArcs）也不影响 max-chapter。
-// ArcListView/StoryArcGraph 的 useArcNodes 都 refetch，缓存干净。
+// useDeleteArcNode: delete arc node mutation.
+// mutationFn imports wailsjs DeleteArcNode directly (not useApp).
+// Consumer: ArcListView.confirmDelete (the mutateAsync throw is caught by
+// the handler's try/catch).
+// The handler is responsible for setExpandedId(null) +
+// setDeleteTarget(null) + the error toast (side effects are not placed in
+// the mutation).
+// onSuccess only invalidates arc-nodes: deleting a node does not affect
+// the arcs list (useStoryArcs) nor max-chapter.
+// ArcListView/StoryArcGraph's useArcNodes both refetch, keeping the cache
+// clean.
 export function useDeleteArcNode(novelId: number) {
   const qc = useQueryClient();
   return useMutation({

@@ -22,10 +22,14 @@ interface ThemeState {
   toggle: () => void;
 }
 
-// 7.1：useTheme 迁移到 zustand store + persist。原 MutationObserver 跨组件同步 hack 删除
-// （store 单一数据源天然跨组件同步）。原 localStorage 手写读写由 persist 中间件接管。
-// 行为变更：首次启动不再跟随系统主题（原 localStorage.getItem("theme") === null fallback 删除），
-// 默认 light；用户选过后持久化保持。接受此行为变更以换取 store 简化。
+// 7.1: useTheme migrated to a zustand store + persist. The old
+// MutationObserver cross-component sync hack is removed (a store as a single
+// source of truth syncs across components by nature). The old hand-written
+// localStorage read/write is now handled by the persist middleware.
+// Behavior change: first launch no longer follows the system theme (the old
+// localStorage.getItem("theme") === null fallback is removed); the default is
+// light, and once the user picks a theme it persists. This behavior change is
+// accepted in exchange for a simpler store.
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set, get) => ({

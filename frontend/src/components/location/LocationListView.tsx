@@ -53,9 +53,12 @@ export default function LocationListView({ novelId }: Props) {
   const focus = useFocusWithNonce("locations");
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  // 4.2.1: locations 走 useLocations query（与 LocationList / LocationGraph 共享缓存）。
-  // 删原 useState<locations[]> + load() + useEffect + useRefresh；CRUD 后由 invalidateQueries 触发 refetch。
-  // 4a: query 错误 toast 由全局中间件接管（queryErrorToast.ts），此处不再挂 useEffect。
+  // 4.2.1: locations go through the useLocations query (sharing the cache
+  // with LocationList / LocationGraph).
+  // Removes the old useState<locations[]> + load() + useEffect + useRefresh;
+  // after CRUD, invalidateQueries triggers a refetch.
+  // 4a: the query error toast is handled by the global middleware
+  // (queryErrorToast.ts); no useEffect is mounted here.
   const locsQuery = useLocations(novelId);
   const locations = locsQuery.data ?? [];
   const loading = locsQuery.isLoading;
@@ -64,12 +67,17 @@ export default function LocationListView({ novelId }: Props) {
   const [viewTab, setViewTab] = useState<ViewTab>("list");
   const [editMode, setEditMode] = useState<EditMode>(null);
   const [form, setForm] = useState<LocForm>(EMPTY_FORM);
-  // 4b: 高亮声明式——focus 触发后由 state 驱动 className，render 阶段应用。
-  // 参考 CharacterListView 的 highlightedId。
   const [highlightedId, setHighlightedId] = useState<number | null>(null);
-  // 4.2.2: create/update/delete 走 mutation，saving 由 mutation.isPending 推导（不再用 useState）。
-  // create/update 共用 saving（同一时刻只可能开一个编辑表单）；delete 用 deleteMutation.isPending。
-  // 删除合并：deletingLocationId 走 useLocationStore，LocationList 侧边栏 dispatch 同一 store。
+  // 4b: declarative highlighting — after focus is triggered, state drives
+  // the className and it is applied during render.
+  // See CharacterListView's highlightedId.
+  //
+  // 4.2.2: create/update/delete go through mutations; saving is derived
+  // from mutation.isPending (no more useState).
+  // create/update share saving (only one edit form can be open at a time);
+  // delete uses deleteMutation.isPending.
+  // Consolidated deletion: deletingLocationId goes through
+  // useLocationStore; the LocationList sidebar dispatches the same store.
   const createMutation = useCreateLocation(novelId);
   const updateMutation = useUpdateLocation(novelId);
   const deleteMutation = useDeleteLocation(novelId);
@@ -85,8 +93,10 @@ export default function LocationListView({ novelId }: Props) {
     return m;
   }, [locations]);
 
-  // 4b: list 模式 focusId 定位——搜索点击后 scrollIntoView + 临时高亮（声明式）。
-  // graph 模式定位由 LocationGraph 内部 useEffect 处理（setSelectedLocation）。
+  // 4b: list-mode focusId positioning — scrollIntoView + a temporary
+  // highlight after a search click (declarative).
+  // graph-mode positioning is handled by a useEffect inside LocationGraph
+  // (setSelectedLocation).
   useEffect(() => {
     if (!focus || focus.id <= 0 || locations.length === 0) return;
     setHighlightedId(focus.id);
@@ -211,7 +221,8 @@ export default function LocationListView({ novelId }: Props) {
       toastError(t("location.pleaseEnterName"));
       return;
     }
-    // 4.2.2: create 走 mutation，onSuccess 失效 list；setEditMode + 错误 toast 留 handler。
+    // 4.2.2: create goes through the mutation; onSuccess invalidates the
+    // list; setEditMode + the error toast stay in the handler.
     try {
       await createMutation.mutateAsync(buildPayload());
       setEditMode(null);
@@ -227,7 +238,8 @@ export default function LocationListView({ novelId }: Props) {
       toastError(t("location.pleaseEnterName"));
       return;
     }
-    // 4.2.2: update 走 mutation，onSuccess 失效 list；setEditMode + 错误 toast 留 handler。
+    // 4.2.2: update goes through the mutation; onSuccess invalidates the
+    // list; setEditMode + the error toast stay in the handler.
     try {
       await updateMutation.mutateAsync({
         id: editMode.item.id,
@@ -244,8 +256,9 @@ export default function LocationListView({ novelId }: Props) {
     setDeletingLocationId(locId);
   }
 
-  // 4.2.2: delete 走 useDeleteLocation mutation（onSuccess 失效 list + relations，
-  // 后端 DeleteLocation 事务级联删 LocationRelation，两个缓存都要刷）。
+  // 4.2.2: delete goes through the useDeleteLocation mutation (onSuccess
+  // invalidates list + relations; the backend DeleteLocation transaction
+  // cascades to delete LocationRelations, so both caches must refresh).
   async function confirmDelete() {
     if (deletingLocationId === null) return;
     try {

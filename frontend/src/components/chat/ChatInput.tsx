@@ -3,10 +3,12 @@ import { ArrowUp, Square, Zap, Play, Star, Loader2 } from "lucide-react";
 import type { app } from "@/lib/wailsjs/go/models";
 import SlashMenu from "./SlashMenu";
 
-// 草稿 localStorage key 前缀（per-session 持久化，沿用 goink_ 惯例）
+// Draft localStorage key prefix (per-session persistence, following the
+// goink_ convention)
 const DRAFT_PREFIX = "goink_chat_draft_";
 
-// charMatch 检查 q 的所有字符是否按顺序出现在 s 中（模糊匹配）
+// charMatch checks whether all characters of q appear in s in order
+// (fuzzy matching)
 const charMatch = (s: string, q: string): boolean => {
   let qi = 0;
   for (let i = 0; i < s.length && qi < q.length; i++) {
@@ -15,7 +17,8 @@ const charMatch = (s: string, q: string): boolean => {
   return qi === q.length;
 };
 
-// score 计算匹配得分，越低越好（0=完全匹配，1=前缀，2=包含，3=字符顺序，4=描述，5=不匹配）
+// score computes the match score; lower is better (0=exact match, 1=prefix,
+// 2=contains, 3=character order, 4=description, 5=no match)
 const score = (c: app.SlashCommand, q: string): number => {
   const name = c.name.toLowerCase();
   if (name === q) return 0;
@@ -54,7 +57,8 @@ export default function ChatInput({
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastDraftKeyRef = useRef(draftKey);
 
-  // 草稿恢复：draftKey 变化时先落盘旧 key 的当前内容，再恢复新 key 的草稿。
+  // Draft restoration: when draftKey changes, first flush the current
+  // content of the old key to disk, then restore the draft for the new key.
   useEffect(() => {
     const key = draftKey;
     const prevKey = lastDraftKeyRef.current;
@@ -81,7 +85,8 @@ export default function ChatInput({
     }
   }, [draftKey]);
 
-  // 草稿兜底：关窗前 flush 一次；卸载时清掉待写入 timer。
+  // Draft safety net: flush once before the window closes; clear the pending
+  // write timer on unmount.
   useEffect(() => {
     const flush = () => {
       if (draftTimerRef.current) {
@@ -116,7 +121,8 @@ export default function ChatInput({
   );
 
   const q = slashFilter.toLowerCase();
-  // filteredItems 用 score 过滤+排序，与 SlashMenu 渲染列表一致（修复高亮≠选中 bug）
+  // filteredItems uses score for filtering + sorting, consistent with the
+  // SlashMenu rendered list (fixes the highlight ≠ selection bug)
   const filteredItems = useMemo(() => {
     if (!q) return slashItems;
     return slashItems
@@ -124,7 +130,9 @@ export default function ChatInput({
       .sort((a, b) => score(a, q) - score(b, q));
   }, [slashItems, q]);
 
-  // 跟踪上次 filter 值，filter 变化时同步重置 slashIndex（避免 useEffect 异步窗口导致 Enter 取到 undefined）
+  // Track the last filter value; reset slashIndex in sync when the filter
+  // changes (avoids Enter picking up undefined due to the useEffect async
+  // window)
   const prevFilterRef = useRef("");
 
   const closeSlash = useCallback(() => {
@@ -235,7 +243,7 @@ export default function ChatInput({
           setHasContent(false);
           setActiveCommand(null);
           closeSlash();
-          // 发送成功：清掉已落盘/待写入的草稿
+          // Send succeeded: clear the drafted / pending-write draft
           if (draftTimerRef.current) {
             clearTimeout(draftTimerRef.current);
             draftTimerRef.current = null;
@@ -262,7 +270,8 @@ export default function ChatInput({
       target.style.height = Math.min(target.scrollHeight, 180) + "px";
       setHasContent(target.value.trim().length > 0);
       checkSlash(target.value);
-      // 草稿持久化：防抖 300ms 落盘（与 useLayoutState 同风格）
+      // Draft persistence: debounced 300ms write to disk (same style as
+      // useLayoutState)
       if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
       draftTimerRef.current = setTimeout(() => {
         draftTimerRef.current = null;
@@ -286,7 +295,7 @@ export default function ChatInput({
       setHasContent(false);
       setActiveCommand(null);
       closeSlash();
-      // 发送成功：清掉已落盘/待写入的草稿
+      // Send succeeded: clear the drafted / pending-write draft
       if (draftTimerRef.current) {
         clearTimeout(draftTimerRef.current);
         draftTimerRef.current = null;

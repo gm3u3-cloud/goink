@@ -1,6 +1,7 @@
 import type { session } from "@/lib/wailsjs/go/models";
 
-// 与 Go 端 internal/agent/events.go 的 AgentEventType 枚举一一对应
+// Corresponds one-to-one with the AgentEventType enum in Go's
+// internal/agent/events.go
 export enum AgentEventType {
   Thinking = 0,
   ThinkingDone = 1,
@@ -8,11 +9,12 @@ export enum AgentEventType {
   ToolCall = 3,
   Usage = 4,
   Error = 5,
-  Retrying = 6, // 可恢复错误重试中
+  Retrying = 6, // Retrying a recoverable error
   Compression = 7,
 }
 
-// AgentEvent 与 Go 端 AgentEvent 的 JSON 序列化一一对应
+// AgentEvent corresponds one-to-one with the JSON serialization of Go's
+// AgentEvent
 export interface AgentEvent {
   turn_id: number;
   sub_task_id?: string;
@@ -31,14 +33,15 @@ export interface AgentEvent {
   usage?: Record<string, unknown>;
   compression_phase?: string; // "compressing" | "done"
   summary?: string;
-  attempt?: number; // EventRetrying 时：第几次重试（1-indexed）
-  max_retries?: number; // EventRetrying 时：最大重试次数
-  backoff_ms?: number; // EventRetrying 时：本次退避毫秒数
-  clear_from_seq?: number; // EventRetrying 时：本轮 streamLoop 起点事件 seq（前端据此清空本轮 partial segments）
+  attempt?: number; // On EventRetrying: which retry attempt (1-indexed)
+  max_retries?: number; // On EventRetrying: max retry count
+  backoff_ms?: number; // On EventRetrying: backoff for this attempt in ms
+  clear_from_seq?: number; // On EventRetrying: the seq of the start event of this streamLoop iteration (the frontend clears this iteration's partial segments based on it)
   timestamp: string;
 }
 
-// TurnSegment 是 turn 内的一个片段：文本块、工具调用、子 Agent 或压缩标记
+// TurnSegment is a fragment within a turn: a text block, tool call, sub
+// Agent, or compression marker
 export interface TurnSegment {
   id: string;
   type: "text" | "tool" | "subagent" | "compression";
@@ -64,20 +67,26 @@ export interface TurnSegment {
   finalText?: string;
   // compression
   compressionPhase?: "compressing" | "done";
-  // web_search / web_fetch 的富文本结果
+  // Rich-text result for web_search / web_fetch
   result?: Record<string, unknown>;
-  // P2: 创建该 segment 时的事件 seq（实时流式用，>= 1）
-  // rebuildTurns 创建的历史 segment 默认 0，永远不会被 EventRetrying 清空（clear_from_seq >= 1）
+  // P2: the event seq when this segment was created (for live streaming,
+  // >= 1)
+  // Historical segments created by rebuildTurns default to 0 and are never
+  // cleared by EventRetrying (clear_from_seq >= 1)
   firstSeq: number;
-  // P1: 子 agent 重试状态（主 turn 用 Turn.retrying，子 agent segment 用此字段）
-  // 仅 type='subagent' 的 segment 会用到，由 EventRetrying 携带 sub_task_id 时设置
+  // P1: sub-agent retry state (the main turn uses Turn.retrying; subagent
+  // segments use this field)
+  // Only segments with type='subagent' use this; set when EventRetrying
+  // carries a sub_task_id
   retrying?: {
     attempt: number;
     maxRetries: number;
     errorMessage: string;
   } | null;
-  // P1: 子 agent 最终失败原因（由 EventError 携带 sub_task_id 时设置）
-  // 与 retrying.errorMessage 的区别：retrying=null 后丢失，errorMessage 持久保留
+  // P1: the sub-agent's final failure reason (set when EventError carries a
+  // sub_task_id)
+  // Difference from retrying.errorMessage: retrying is lost once set to
+  // null; errorMessage persists
   errorMessage?: string;
 }
 
@@ -99,11 +108,15 @@ export function emptySegment(id: string): TurnSegment {
   };
 }
 
-// filterSegmentsBySeq 清空本轮 streamLoop 已渲染的 partial segments。
-// 规则：保留 firstSeq < clearFromSeq 的 segments（历史 + 前面轮）。
-// - 历史 segments（rebuildTurns 创建）firstSeq=0，clearFromSeq >= 1，永远保留
-// - 本轮 segments firstSeq >= clearFromSeq，被清空
-// 后端 emit EventRetrying 时附带 clear_from_seq = streamStartSeq = *eventSeq + 1
+// filterSegmentsBySeq clears the partial segments already rendered by this
+// streamLoop iteration.
+// Rule: keep segments with firstSeq < clearFromSeq (history + previous
+// turns).
+// - Historical segments (created by rebuildTurns) have firstSeq=0 and
+// clearFromSeq >= 1, so they are always kept
+// - This iteration's segments have firstSeq >= clearFromSeq and are cleared
+// The backend emits EventRetrying with clear_from_seq = streamStartSeq =
+// *eventSeq + 1
 export function filterSegmentsBySeq(
   segments: TurnSegment[],
   clearFromSeq: number,
@@ -111,7 +124,7 @@ export function filterSegmentsBySeq(
   return segments.filter((s) => s.firstSeq < clearFromSeq);
 }
 
-// Turn 是一次对话轮次：用户消息 + AI 回复的 segments
+// Turn is one conversation turn: the user message + the AI reply's segments
 export interface Turn {
   id: string;
   turnId: number;
@@ -119,12 +132,12 @@ export interface Turn {
   segments: TurnSegment[];
   status: "streaming" | "done" | "failed" | "interrupted" | "stopped";
   errorMessage?: string;
-  compressionOnly?: boolean; // 纯压缩 turn（手动压缩），无用户消息
+  compressionOnly?: boolean; // Pure compression turn (manual compression), no user message
   retrying?: {
-    // P2: 可恢复错误重试状态
-    attempt: number; // 第几次重试（1-indexed）
-    maxRetries: number; // 最大重试次数
-    errorMessage: string; // 触发重试的错误信息
+    // P2: recoverable error retry state
+    attempt: number; // which retry attempt (1-indexed)
+    maxRetries: number; // max retry count
+    errorMessage: string; // the error message that triggered the retry
   } | null;
 }
 
@@ -135,7 +148,8 @@ export function rebuildTurns(messages: session.Message[]): Turn[] {
   const subagentCache = new Map<string, TurnSegment>();
 
   for (const msg of messages) {
-    // 中断标记：根据 event_type 区分用户停止和系统中断
+    // Interruption marker: distinguish user stop from system interruption by
+    // event_type
     if (
       msg.event_type === "user_stopped" ||
       msg.event_type === "system_interrupted" ||
@@ -156,7 +170,7 @@ export function rebuildTurns(messages: session.Message[]): Turn[] {
       continue;
     }
 
-    // 压缩边界标记：独立成一个纯压缩 turn
+    // Compression boundary marker: becomes a standalone pure compression turn
     if (msg.event_type === "compression") {
       if (msg.agent_type !== "main" && msg.sub_task_id) {
         const cached = subagentCache.get(msg.sub_task_id);
@@ -204,7 +218,7 @@ export function rebuildTurns(messages: session.Message[]): Turn[] {
       };
       turns.push(current);
     } else if (msg.role === "assistant") {
-      // 子 Agent 消息：agent_type !== 'main' 且有 sub_task_id
+      // Sub-Agent message: agent_type !== 'main' and has a sub_task_id
       if (msg.agent_type !== "main" && msg.sub_task_id && current) {
         const subTaskId = msg.sub_task_id;
         const cached = subagentCache.get(subTaskId);
@@ -220,12 +234,14 @@ export function rebuildTurns(messages: session.Message[]): Turn[] {
               segments: [],
               finalText: "",
             };
-            // 不直接 push——等遇到 run_subagent tool_display 时插到正确位置
+            // Do not push directly — wait until the run_subagent
+            // tool_display is encountered, then insert at the correct
+            // position
             subagentCache.set(subTaskId, seg);
             return seg;
           })();
 
-        // 追加子 agent 的文本内容
+        // Append the sub-agent's text content
         if ((msg.content || msg.thinking_content) && subSeg.segments) {
           subSeg.segments.push({
             ...emptySegment(`seg_${segCounter++}`),
@@ -243,7 +259,7 @@ export function rebuildTurns(messages: session.Message[]): Turn[] {
           }
         }
 
-        // 子 agent 的工具调用
+        // The sub-agent's tool calls
         const toolDisplays = parseToolDisplays(msg.extra_metadata);
         if (toolDisplays.length > 0 && subSeg.segments) {
           for (const td of toolDisplays) {
@@ -270,12 +286,12 @@ export function rebuildTurns(messages: session.Message[]): Turn[] {
         continue;
       }
 
-      // 主 Agent 消息
+      // Main Agent message
       if (!current) continue;
 
       const thinkingContent = msg.thinking_content || "";
 
-      // 文本内容
+      // Text content
       if (msg.content || thinkingContent) {
         current.segments.push({
           ...emptySegment(`seg_${segCounter++}`),
@@ -287,20 +303,24 @@ export function rebuildTurns(messages: session.Message[]): Turn[] {
         });
       }
 
-      // 工具展示信息
+      // Tool display info
       const toolDisplays = parseToolDisplays(msg.extra_metadata);
       for (const td of toolDisplays) {
-        // run_subagent：在此位置插入子 Agent 卡片
+        // run_subagent: insert the sub-Agent card at this position
         if (td.tool_name === "run_subagent") {
           const cached = subagentCache.get(td.tool_id);
           if (cached) {
-            // P1: 从 tool_display 的 phase 修正 subagent segment 的 status
-            // rebuildTurns 创建 subagent segment 时默认 status='done'，
-            // 这里根据 run_subagent 的 phase 修正为 failed（历史回放保留失败状态）
+            // P1: correct the subagent segment's status from the
+            // tool_display's phase
+            // rebuildTurns creates the subagent segment with status='done'
+            // by default; here it is corrected to failed based on the
+            // run_subagent phase (history playback preserves the failed
+            // state)
             if (td.phase === "failed") {
               cached.status = "failed";
             }
-            // 从 tool_display.error 恢复 errorMessage（历史回放）
+            // Restore errorMessage from tool_display.error (history
+            // playback)
             if (td.error) {
               cached.errorMessage = td.error;
             }

@@ -13,19 +13,22 @@ interface Props {
 
 export default function SidebarReaderList({ novelId }: Props) {
   const { t } = useTranslation();
-  // 4.5.1: entries 走 query（与 ReaderView 共享缓存）。
-  // 4a: query 错误 toast 由全局中间件接管，组件加 isError 内连显示（对齐 TimelineList）。
+  // 4.5.1: entries go through a query (shares the cache with ReaderView).
+  // 4a: query error toasts are handled by the global middleware; the
+  // component adds an inline isError display (aligned with TimelineList).
   const { data: items = [], isError } = useReaderPerspectives(novelId);
   const { data: chapters = [] } = useChapters(novelId);
   const chapterReferences = useMemo(
     () => buildChapterReferenceMap(chapters),
     [chapters],
   );
-  // 4b: 点击条目触发 focusEntity，ReaderView useEffect 定位+展开+高亮。
+  // 4b: clicking an entry triggers focusEntity; ReaderView's useEffect
+  // handles positioning + expanding + highlighting.
   const focusEntity = useFocusStore((s) => s.focusEntity);
   const [search, setSearch] = useState("");
 
-  // 4b: filter 字段对齐后端 Search（content OR related_truth）。
+  // 4b: the filter fields align with the backend Search (content OR
+  // related_truth).
   const filtered = useMemo(() => {
     if (!search.trim()) return items;
     const q = search.toLowerCase();

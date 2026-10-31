@@ -42,7 +42,7 @@ export default function StyleSampleCard({
             : "border-white/15 hover:border-primary/20 hover:shadow-lg hover:-translate-y-0.5"
         }`}
     >
-      {/* 头部：点击区域 = 选中/取消 */}
+      {/* Header: click area = select/deselect */}
       <div
         onClick={onToggle}
         className="flex items-start justify-between mb-2 cursor-pointer"
@@ -63,7 +63,7 @@ export default function StyleSampleCard({
         </div>
       </div>
 
-      {/* 内容：点击区域 = 编辑 */}
+      {/* Content: click area = edit */}
       <div onClick={onClick} className="flex-1 flex flex-col cursor-pointer">
         <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-3 mb-3">
           {sample.preview}

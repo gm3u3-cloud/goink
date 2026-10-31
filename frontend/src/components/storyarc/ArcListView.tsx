@@ -40,7 +40,8 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: "abandoned", label: "storyarc.abandoned" },
 ];
 
-// 4b: ARC_TYPES 只存数据值，label 由 t("storyarc." + value) 动态拼接（与搜索 subtitle 同机制）。
+// 4b: ARC_TYPES stores only data values; the label is built dynamically
+// with t("storyarc." + value) (the same mechanism as the search subtitle).
 const ARC_TYPES = ["main", "sub", "character", "background"];
 
 const ARC_STATUSES = [
@@ -108,10 +109,13 @@ export default function ArcListView({ novelId }: Props) {
   const { theme } = useThemeStore();
   const PALETTE = arcPalette(theme);
 
-  // 4.3.1: arcs/allNodes/maxChapter 走 query（与 ArcList / StoryArcGraph 共享缓存）。
-  // 删原 useApp.GetStoryArcs/GetArcNodes/GetMaxChapterNumber + load() + useState；
-  // CRUD 后由 mutation onSuccess invalidate 触发 refetch（4.3.2/4.3.3）。
-  // 4a: query 错误 toast 由全局中间件接管（queryErrorToast.ts），此处不再挂 useEffect。
+  // 4.3.1: arcs/allNodes/maxChapter go through queries (sharing the cache
+  // with ArcList / StoryArcGraph).
+  // Removes the old useApp.GetStoryArcs/GetArcNodes/GetMaxChapterNumber +
+  // load() + useState; after CRUD the mutation onSuccess invalidation
+  // triggers a refetch (4.3.2/4.3.3).
+  // 4a: the query error toast is handled by the global middleware
+  // (queryErrorToast.ts); no useEffect is mounted here.
   const arcsQuery = useStoryArcs(novelId);
   const nodesQuery = useArcNodes(novelId);
   const { data: chapters = [] } = useChapters(novelId);
@@ -123,12 +127,18 @@ export default function ArcListView({ novelId }: Props) {
   const arcs = arcsQuery.data ?? [];
   const allNodes = nodesQuery.data ?? [];
   const loading = arcsQuery.isLoading || nodesQuery.isLoading;
-  // loadFailed 只看 arcs（arcs 失败整列表不可用）。nodes 失败时列表仍渲染（空节点）+ toast。
+  // loadFailed only looks at arcs (if arcs fail, the whole list is
+  // unusable). When nodes fail, the list still renders (empty nodes) +
+  // toast.
   const loadFailed = arcsQuery.isError;
 
-  // 4.3.2/4.3.3: CRUD 走 mutation，deleting/saving 由 mutation.isPending 推导（不再用 useState）。
-  // onSuccess 失效对应 query（删/改 arc 失效 storyarcs；删/改 node 失效 arc-nodes；
-  // 删 arc 级联删其下 node，故额外失效 arc-nodes；create arc 无 node 不失效 arc-nodes）。
+  // 4.3.2/4.3.3: CRUD goes through mutations; deleting/saving are derived
+  // from mutation.isPending (no more useState).
+  // onSuccess invalidates the corresponding query (delete/update arc
+  // invalidates storyarcs; delete/update node invalidates arc-nodes;
+  // deleting an arc cascades to delete its nodes, so arc-nodes is
+  // additionally invalidated; create arc has no nodes, so arc-nodes is not
+  // invalidated).
   const deleteArcMutation = useDeleteStoryArc(novelId);
   const deleteNodeMutation = useDeleteArcNode(novelId);
   const createArcMutation = useCreateStoryArc(novelId);
@@ -154,7 +164,9 @@ export default function ArcListView({ novelId }: Props) {
     kind: "arc" | "node";
     id: number;
   } | null>(null);
-  // 4b: node 高亮声明式——focus type=node 触发后由 state 驱动 className（参考 CharacterListView highlightedId）。
+  // 4b: declarative node highlighting — after a focus with type=node is
+  // triggered, state drives the className (see CharacterListView's
+  // highlightedId).
   const [highlightedNodeId, setHighlightedNodeId] = useState<number | null>(
     null,
   );
@@ -165,28 +177,38 @@ export default function ArcListView({ novelId }: Props) {
     [chapterReferences],
   );
 
-  // 4.3.1: maxChapter 就绪后初始化 windowCenter（替代原 load() 里的 setWindowCenter）。
+  // 4.3.1: once maxChapter is ready, initialize windowCenter (replaces the
+  // setWindowCenter in the old load()).
   useEffect(() => {
     const max = maxChQuery.data ?? 0;
     if (max > 0) setWindowCenter(Math.max(1, max));
   }, [maxChQuery.data]);
 
-  // 4b: soloArc——只看目标 arc，隐藏其他所有 arc（等价用户手动逐条 toggleArc 隐藏其他）。
-  // 点击搜索结果 arc/node 都会触发，过滤只看这一条弧线的 node。
+  // 4b: soloArc — show only the target arc, hiding all other arcs
+  // (equivalent to the user manually toggling each other arc off).
+  // Triggered by clicking a search-result arc/node; the filter shows only
+  // the nodes of this one arc.
   function soloArc(arcId: number) {
     setHiddenArcIds(
       new Set(arcs.filter((a) => a.id !== arcId).map((a) => a.id)),
     );
   }
 
-  // 4b: focus 按 type 分流定位（arc→过滤+窗口右边界对齐 arc 末节点章节+展开首节点；node→过滤+高亮+窗口对齐node章节+展开）。
+  // 4b: focus is routed by type for positioning (arc → filter + align the
+  // window's right edge to the arc's last node chapter + expand the first
+  // node; node → filter + highlight + align the window to the node chapter
+  // + expand).
   useEffect(() => {
     if (!focus || focusId <= 0) return;
 
     if (focusType === "arc") {
-      // 点击 arc 条目 → soloArc 只看这条弧线 + 窗口右边界对齐到 arc 末节点章节 + 展开首节点
-      // 注：右边界=windowCenter+WINDOW，故 windowCenter = maxChapterOfArc - WINDOW；
-      // arc 没节点才 fallback 到全书 maxChapter。
+      // Clicking an arc entry → soloArc shows only this arc + align the
+      // window's right edge to the arc's last node chapter + expand the
+      // first node
+      // Note: right edge = windowCenter + WINDOW, so windowCenter =
+      // maxChapterOfArc - WINDOW;
+      // only fall back to the whole-novel maxChapter when the arc has no
+      // nodes.
       soloArc(focusId);
       const arcNodes = allNodes.filter((n) => n.story_arc_id === focusId);
       if (arcNodes.length > 0) {
@@ -204,7 +226,8 @@ export default function ArcListView({ novelId }: Props) {
     }
 
     if (focusType === "node") {
-      // 点击 node 条目 → soloArc(所属弧线) + 窗口对齐到 node 章节 + 展开 + 高亮该 node
+      // Clicking a node entry → soloArc (its parent arc) + align the window
+      // to the node chapter + expand + highlight that node
       const node = allNodes.find((n) => n.id === focusId);
       if (!node) return;
       soloArc(node.story_arc_id);
@@ -215,7 +238,7 @@ export default function ArcListView({ novelId }: Props) {
       );
       setExpandedId(node.id);
       setHighlightedNodeId(node.id);
-      // 滚动到 node 卡片（DOM API 留 useEffect）
+      // Scroll to the node card (the DOM API stays in a useEffect)
       const el = document.querySelector<HTMLElement>(
         `[data-node-id="${node.id}"]`,
       );
@@ -224,7 +247,8 @@ export default function ArcListView({ novelId }: Props) {
       return () => clearTimeout(timer);
     }
 
-    // 兼容无 type 的旧 focus（按 arc 处理，但不 soloArc，避免无谓过滤）
+    // Backward compatible with old focus that has no type (treated as an
+    // arc, but no soloArc, to avoid pointless filtering)
     if (allNodes.length > 0) {
       const arcNodes = allNodes.filter((n) => n.story_arc_id === focusId);
       if (arcNodes.length > 0) {
@@ -313,8 +337,10 @@ export default function ArcListView({ novelId }: Props) {
   }
 
   function openEditArc(arc: storyarc.StoryArc) {
-    // 4.3.3: 全量回传（§6）— 编辑时把 status 也填进 form，
-    // handleUpdateArc 直接传 arcForm 所有字段，等价 PUT。
+    // 4.3.3: full payload (§6) — when editing, also fill status into the
+    // form;
+    // handleUpdateArc passes all arcForm fields directly, equivalent to a
+    // PUT.
     setArcForm({
       name: arc.name,
       arc_type: arc.arc_type,
@@ -334,8 +360,10 @@ export default function ArcListView({ novelId }: Props) {
       toastError(t("storyarc.pleaseSelectArcType"));
       return;
     }
-    // 4.3.3: create 走 mutation（onSuccess 失效 storyarcs），删 setSaving/bumpRefresh。
-    // input 只传 CreateStoryArcInput 字段（create 不含 status/reactivate_at）。
+    // 4.3.3: create goes through the mutation (onSuccess invalidates
+    // storyarcs); removed setSaving/bumpRefresh.
+    // input only passes CreateStoryArcInput fields (create does not include
+    // status/reactivate_at).
     try {
       await createArcMutation.mutateAsync({
         name: arcForm.name,
@@ -352,8 +380,10 @@ export default function ArcListView({ novelId }: Props) {
 
   async function handleUpdateArc() {
     if (!editMode || editMode.type !== "edit_arc") return;
-    // 4.3.3: update 走 mutation（onSuccess 失效 storyarcs），删 setSaving/bumpRefresh。
-    // 全量回传 input 所有字段（§6 等价 PUT，openEditArc 已把 status 填进 form）。
+    // 4.3.3: update goes through the mutation (onSuccess invalidates
+    // storyarcs); removed setSaving/bumpRefresh.
+    // Pass all input fields (full payload, §6 equivalent to a PUT;
+    // openEditArc has already filled status into the form).
     try {
       await updateArcMutation.mutateAsync({
         id: editMode.arc.id,
@@ -388,8 +418,10 @@ export default function ArcListView({ novelId }: Props) {
   }
 
   function openEditNode(node: storyarc.ArcNode) {
-    // 4.3.3: 全量回传（§6）— 编辑时把 actual_chapter/status 也填进 form，
-    // handleUpdateNode 直接传 nodeForm 所有字段，等价 PUT。
+    // 4.3.3: full payload (§6) — when editing, also fill
+    // actual_chapter/status into the form;
+    // handleUpdateNode passes all nodeForm fields directly, equivalent to a
+    // PUT.
     setNodeForm({
       story_arc_id: node.story_arc_id,
       title: node.title,
@@ -415,8 +447,10 @@ export default function ArcListView({ novelId }: Props) {
       return;
     }
     try {
-      // 4.3.3: create 走 mutation（onSuccess 失效 arc-nodes），删 setSaving/bumpRefresh。
-      // 返回值 created.id 用于 setExpandedId（副作用各异，不放进 mutation）。
+      // 4.3.3: create goes through the mutation (onSuccess invalidates
+      // arc-nodes); removed setSaving/bumpRefresh.
+      // The returned created.id is used for setExpandedId (the side effects
+      // differ, so they are not placed in the mutation).
       const created = await createNodeMutation.mutateAsync({
         story_arc_id: nodeForm.story_arc_id,
         title: nodeForm.title,
@@ -437,8 +471,10 @@ export default function ArcListView({ novelId }: Props) {
       toastError(t("storyarc.pleaseEnterNodeTitle"));
       return;
     }
-    // 4.3.3: update 走 mutation（onSuccess 失效 arc-nodes），删 setSaving/bumpRefresh。
-    // 全量回传 input 所有字段（§6 等价 PUT，openEditNode 已把 actual_chapter/status 填进 form）。
+    // 4.3.3: update goes through the mutation (onSuccess invalidates
+    // arc-nodes); removed setSaving/bumpRefresh.
+    // Pass all input fields (full payload, §6 equivalent to a PUT;
+    // openEditNode has already filled actual_chapter/status into the form).
     const nodeId = editMode.node.id;
     try {
       await updateNodeMutation.mutateAsync({
@@ -465,7 +501,8 @@ export default function ArcListView({ novelId }: Props) {
 
   async function confirmDelete() {
     if (!deleteTarget) return;
-    // 4.3.2: delete 走 mutation（onSuccess 失效对应 query），删 setDeleting + bumpRefresh。
+    // 4.3.2: delete goes through the mutation (onSuccess invalidates the
+    // corresponding query); removed setDeleting + bumpRefresh.
     try {
       if (deleteTarget.kind === "arc") {
         await deleteArcMutation.mutateAsync(deleteTarget.id);
@@ -488,8 +525,10 @@ export default function ArcListView({ novelId }: Props) {
     node: storyarc.ArcNode,
     newStatus: string,
   ) {
-    // 4.3.3: 走 updateNodeMutation（onSuccess 失效 arc-nodes），删 setSaving/bumpRefresh。
-    // 全量回传 input 所有字段（§6 等价 PUT）：其他字段传 node 原值，status 传 newStatus。
+    // 4.3.3: goes through updateNodeMutation (onSuccess invalidates
+    // arc-nodes); removed setSaving/bumpRefresh.
+    // Pass all input fields (full payload, §6 equivalent to a PUT): other
+    // fields pass the node's original values, status passes newStatus.
     try {
       await updateNodeMutation.mutateAsync({
         id: node.id,
@@ -829,7 +868,8 @@ export default function ArcListView({ novelId }: Props) {
                 </span>
                 <button
                   onClick={() => {
-                    // 4.3.1: refresh 按钮 invalidate 三个 query（替代原 load()）。
+                    // 4.3.1: the refresh button invalidates the three
+                    // queries (replaces the old load()).
                     queryClient.invalidateQueries({
                       queryKey: storyarcKeys.list(novelId),
                     });

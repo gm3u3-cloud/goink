@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import SkillContributeDialog from "@/components/skill/SkillContributeDialog";
 
-// ── 工具参考（i18n key） ──────────────────────────
+// ── Tool reference (i18n key) ──────────────────────────
 import { toolGroups } from "@/components/tools/catalog";
 import ToolSummary from "@/components/tools/ToolSummary";
 
@@ -30,7 +30,7 @@ interface Props {
   onClose: () => void;
 }
 
-// ── 子代理介绍（i18n key） ──────────────────────────────────
+// ── Subagent introduction (i18n key) ──────────────────────────────────
 
 const subAgentCards = [
   {
@@ -47,7 +47,7 @@ const subAgentCards = [
   },
 ];
 
-// ── Tab 定义 ─────────────────────────────────────────────
+// ── Tab definition ─────────────────────────────────────────────
 
 export default function HelpDialog({ open, onClose }: Props) {
   const { t } = useTranslation();
@@ -98,7 +98,7 @@ export default function HelpDialog({ open, onClose }: Props) {
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
       <div className="relative bg-background rounded-xl shadow-2xl border flex w-[960px] h-[680px] max-w-[95vw] max-h-[90vh]">
-        {/* 左侧导航 */}
+        {/* Left navigation */}
         <nav className="w-[160px] border-r py-4 px-2 flex flex-col gap-1 shrink-0">
           <div className="text-sm font-medium px-3 pb-3 text-foreground">
             {t("help.help")}
@@ -119,9 +119,9 @@ export default function HelpDialog({ open, onClose }: Props) {
           ))}
         </nav>
 
-        {/* 右侧内容区 */}
+        {/* Right content area */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {/* 关闭按钮 */}
+          {/* Close button */}
           <button
             onClick={onClose}
             className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors z-10"
@@ -144,7 +144,7 @@ export default function HelpDialog({ open, onClose }: Props) {
   );
 }
 
-// ── 快速入门 ─────────────────────────────────────────────
+// ── Quick start ─────────────────────────────────────────────
 
 function QuickStartTab() {
   const { t } = useTranslation();
@@ -255,7 +255,7 @@ function QuickStartTab() {
   );
 }
 
-// ── 工具参考 ─────────────────────────────────────────────
+// ── Tool reference ─────────────────────────────────────────────
 
 function ToolsTab() {
   const { t } = useTranslation();
@@ -280,7 +280,7 @@ function ToolsTab() {
   );
 }
 
-// ── 子代理 ───────────────────────────────────────────────
+// ── Subagents ───────────────────────────────────────────────
 
 function SubAgentsTab() {
   const { t } = useTranslation();
@@ -332,7 +332,7 @@ function SubAgentsTab() {
   );
 }
 
-// ── 技能系统 ─────────────────────────────────────────────
+// ── Skill system ─────────────────────────────────────────────
 
 function SkillsTab() {
   const { t } = useTranslation();
@@ -437,7 +437,7 @@ function SkillsTab() {
   );
 }
 
-// ── 模型配置 ─────────────────────────────────────────────
+// ── Model configuration ─────────────────────────────────────────────
 
 function LLMConfigTab() {
   const { t } = useTranslation();
@@ -569,7 +569,7 @@ function LLMConfigTab() {
   );
 }
 
-// ── 上下文与缓存 ─────────────────────────────────────────
+// ── Context and cache ─────────────────────────────────────────
 
 function ContextCacheTab() {
   const { t } = useTranslation();
@@ -657,28 +657,28 @@ function ContextCacheTab() {
             <span className="text-foreground font-medium">
               {t("help.context_tip1Label")}
             </span>
-            。{t("help.context_tip1Desc")}
+              . {t("help.context_tip1Desc")}
           </p>
           <p>
             •{" "}
             <span className="text-foreground font-medium">
               {t("help.context_tip2Label")}
             </span>
-            。{t("help.context_tip2Desc")}
+              . {t("help.context_tip2Desc")}
           </p>
           <p>
             •{" "}
             <span className="text-foreground font-medium">
               {t("help.context_tip3Label")}
             </span>
-            。{t("help.context_tip3Desc")}
+              . {t("help.context_tip3Desc")}
           </p>
           <p>
             •{" "}
             <span className="text-foreground font-medium">
               {t("help.context_tip4Label")}
             </span>
-            ，{t("help.context_tip4Desc")}
+              , {t("help.context_tip4Desc")}
           </p>
         </div>
       </section>
@@ -686,7 +686,7 @@ function ContextCacheTab() {
   );
 }
 
-// ── 审批模式 ─────────────────────────────────────────────
+// ── Approval mode ─────────────────────────────────────────────
 
 function ApprovalTab() {
   const { t } = useTranslation();

@@ -11,8 +11,11 @@ interface State {
   error?: Error;
 }
 
-// ErrorBoundary 捕获子组件树渲染阶段的 JavaScript 错误，防止整棵 React 树崩溃白屏。
-// 注意：ErrorBoundary 必须用类组件实现，React 没有提供 hook 等价物。
+// ErrorBoundary catches JavaScript errors during the render phase of the
+// child component tree, preventing the whole React tree from crashing to a
+// blank screen.
+// Note: ErrorBoundary must be implemented as a class component; React does not
+// provide a hook equivalent.
 export default class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);

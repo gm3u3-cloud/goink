@@ -3,19 +3,23 @@ import { GetRemoteSkillContent } from "@/lib/wailsjs/go/app/App";
 import { skillKeys } from "@/lib/queryKeys";
 import { unwrapResult } from "@/utils/wailsResult";
 
-// fetchRemoteSkillContent: 拉取远程技能内容（apperr 新 API）。
-// 导出供 SkillMarketplace.handleInstall 在 confirm_overwrite 流程中复用：
-// detail phase 已通过 useRemoteSkillContent query 缓存，handleInstall 走 qc.fetchQuery
-// 同 queryKey 复用缓存，避免重复拉取。
+// fetchRemoteSkillContent: fetch remote skill content (new apperr API).
+// Exported for SkillMarketplace.handleInstall to reuse in the
+// confirm_overwrite flow:
+// the detail phase has already cached it via the useRemoteSkillContent
+// query; handleInstall uses qc.fetchQuery with the same queryKey to reuse
+// the cache and avoid a duplicate fetch.
 export async function fetchRemoteSkillContent(name: string): Promise<string> {
   const res = await GetRemoteSkillContent(name);
   return unwrapResult(res);
 }
 
-// useRemoteSkillContent: 远程技能内容 query（apperr 新 API）。
-// queryFn 用 unwrapResult 解包 Result[string]，err_code 非空时 throw AppErr。
-// enabled: !!name && phase === "detail"（调用方传），confirm_overwrite phase 不重新 fetch
-// （用 handleInstall 时拷贝到 remoteContentForConfirm 的缓存值）。
+// useRemoteSkillContent: remote skill content query (new apperr API).
+// queryFn uses unwrapResult to unwrap Result[string]; throws AppErr when
+// err_code is non-empty.
+// enabled: !!name && phase === "detail" (passed by the caller); the
+// confirm_overwrite phase does not refetch (it uses the cached value copied
+// to remoteContentForConfirm during handleInstall).
 export function useRemoteSkillContent(name: string, enabled: boolean) {
   return useQuery({
     queryKey: skillKeys.remoteContent(name),

@@ -3,11 +3,15 @@ import { CreateArcNode } from "@/lib/wailsjs/go/app/App";
 import type { app } from "@/lib/wailsjs/go/models";
 import { arcNodeKeys } from "@/lib/queryKeys";
 
-// useCreateArcNode: 创建弧线节点 mutation。
-// mutationFn 直接 import wailsjs CreateArcNode（不用 useApp），返回 storyarc.ArcNode。
-// handler 用返回值 created.id 做 setExpandedId（副作用各异，不放进 mutation）。
-// onSuccess 失效 arc-nodes：新 node 入列表，ArcListView / StoryArcGraph 同步。
-// 不失效 storyarcs：新建 node 不影响 arc 列表。
+// useCreateArcNode: create arc node mutation.
+// mutationFn imports wailsjs CreateArcNode directly (not useApp) and
+// returns storyarc.ArcNode.
+// The handler uses the returned created.id for setExpandedId (the side
+// effects differ, so they are not placed in the mutation).
+// onSuccess invalidates arc-nodes: the new node enters the list, and
+// ArcListView / StoryArcGraph stay in sync.
+// storyarcs is not invalidated: a newly created node does not affect the
+// arc list.
 export function useCreateArcNode(novelId: number) {
   const qc = useQueryClient();
   return useMutation({

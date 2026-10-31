@@ -3,12 +3,16 @@ import { UpdateStoryArc } from "@/lib/wailsjs/go/app/App";
 import type { app } from "@/lib/wailsjs/go/models";
 import { storyarcKeys } from "@/lib/queryKeys";
 
-// useUpdateStoryArc: 更新故事弧线 mutation。
-// mutationFn 直接 import wailsjs UpdateStoryArc（不用 useApp）。
-// 入参 {id, input}：input 用 app.UpdateStoryArcInput（PUT 语义，全量回传）。
-// handler 负责 setEditMode(null) + 错误 throw（副作用各异，不放进 mutation）。
-// onSuccess 失效 storyarcs：arc 名/类型/重要度/status 变更入列表。
-// 不失效 arc-nodes：arc 字段不影响 node 缓存（node 只存 story_arc_id 引用）。
+// useUpdateStoryArc: update story arc mutation.
+// mutationFn imports wailsjs UpdateStoryArc directly (not useApp).
+// Input {id, input}: input uses app.UpdateStoryArcInput (PUT semantics,
+// full payload).
+// The handler is responsible for setEditMode(null) + throwing the error
+// (the side effects differ, so they are not placed in the mutation).
+// onSuccess invalidates storyarcs: the arc name/type/importance/status
+// changes enter the list.
+// arc-nodes is not invalidated: arc fields do not affect the node cache
+// (nodes only store a story_arc_id reference).
 export function useUpdateStoryArc(novelId: number) {
   const qc = useQueryClient();
   return useMutation({

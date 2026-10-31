@@ -22,8 +22,9 @@ interface Props {
     { ok: boolean; msg?: string; warning?: string } | undefined
   >;
   testing: Record<string, boolean>;
-  // 父组件外部指令：focusNonce 自增时 setSelectedKey(focusKey)，
-  // 用于保存测试失败时把视图切到失败 provider 方便用户定位
+  // Parent external directive: when focusNonce increments, setSelectedKey
+  // (focusKey) is called; used to switch the view to the failed provider
+  // when a save test fails, so the user can locate it
   focusKey?: string;
   focusNonce?: number;
 }
@@ -43,27 +44,32 @@ export default function BuiltinProviderPane({
   const [selectedKey, setSelectedKey] = useState(providers[0]?.key || "");
   const [helpOpen, setHelpOpen] = useState(false);
 
-  // 切换服务商时重置折叠状态（dropdown 已由 ProviderDropdown 内部管理）
+  // Reset the collapse state when the provider changes (the dropdown is
+  // already managed internally by ProviderDropdown)
   useEffect(() => {
     setHelpOpen(false);
   }, [selectedKey]);
 
-  // providers 异步加载后同步 selectedKey：父组件 providers 初值为 []，
-  // 首次挂载 selectedKey 被锁成 ""，providers 就绪后需自愈到首项 key
+  // Sync selectedKey after providers load asynchronously: the parent's
+  // providers initial value is [], so on first mount selectedKey is locked
+  // to ""; once providers are ready it must self-heal to the first item's
+  // key
   useEffect(() => {
     if (providers.length > 0 && !providers.find((p) => p.key === selectedKey)) {
       setSelectedKey(providers[0].key);
     }
   }, [providers, selectedKey]);
 
-  // 父组件外部指令：focusNonce 自增时强制选中 focusKey
-  // （focusNonce 自增保证即便 focusKey 未变也能触发，比如连续失败同一 provider）
+  // Parent external directive: when focusNonce increments, force-select
+  // focusKey (the focusNonce increment guarantees the trigger even when
+  // focusKey is unchanged, e.g. consecutive failures of the same provider)
   useEffect(() => {
     if (focusKey && providers.find((p) => p.key === focusKey)) {
       setSelectedKey(focusKey);
     }
-    // 故意只依赖 focusNonce，不依赖 focusKey/providers
-    // （providers 变化时上面那个 effect 已处理，这里只响应外部指令）
+    // Deliberately depends only on focusNonce, not focusKey/providers
+    // (when providers change, the effect above handles it; here we only
+    // respond to external directives)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusNonce]);
 
@@ -83,7 +89,7 @@ export default function BuiltinProviderPane({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* 服务商选择 + 状态 */}
+      {/* Provider selection + status */}
       <div className="flex items-center gap-3">
         <label className="text-xs text-muted-foreground w-14 shrink-0">
           {t("settings.provider")}
@@ -106,7 +112,8 @@ export default function BuiltinProviderPane({
         />
       </div>
 
-      {/* 共享表单字段：ChatURL → APIKey → TestResult → Temperature → CustomModelList */}
+      {/* Shared form fields: ChatURL → APIKey → TestResult → Temperature →
+       * CustomModelList */}
       <ProviderFormFields
         provider={provider}
         selectedKey={selectedKey}
@@ -117,7 +124,7 @@ export default function BuiltinProviderPane({
         testing={testing}
       />
 
-      {/* 注册链接 */}
+      {/* Registration link */}
       {provider.platform_url && (
         <div className="flex items-center gap-3">
           <label className="text-xs text-muted-foreground w-14 shrink-0">
@@ -134,7 +141,7 @@ export default function BuiltinProviderPane({
         </div>
       )}
 
-      {/* 注册指引 */}
+      {/* Registration guide */}
       {provider.help_text && (
         <div className="border rounded-md overflow-hidden">
           <button
@@ -162,7 +169,7 @@ export default function BuiltinProviderPane({
         </div>
       )}
 
-      {/* 内置模型 */}
+      {/* Built-in models */}
       {provider.builtin_models && provider.builtin_models.length > 0 && (
         <div>
           <div className="text-xs text-muted-foreground mb-2">

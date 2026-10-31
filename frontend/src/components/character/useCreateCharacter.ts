@@ -3,12 +3,16 @@ import { CreateCharacter } from "@/lib/wailsjs/go/app/App";
 import type { app } from "@/lib/wailsjs/go/models";
 import { characterKeys } from "@/lib/queryKeys";
 
-// useCreateCharacter: 创建角色 mutation。
-// mutationFn 直接 import wailsjs CreateCharacter（不用 useApp）。
-// 入参 app.CreateCharacterInput：name 必填，description/personality/abilities optional。
-// handler 负责 setEditMode(null) + 错误 throw（副作用各异，不放进 mutation）。
-// onSuccess 失效 list：新角色入列表，CharacterListView / CharacterList / CharacterGraph 节点同步。
-// 不失效 relations：新建角色无关系，relations 缓存无脏数据。
+// useCreateCharacter: create character mutation.
+// mutationFn imports wailsjs CreateCharacter directly (not useApp).
+// Input app.CreateCharacterInput: name is required;
+// description/personality/abilities are optional.
+// The handler is responsible for setEditMode(null) + throwing the error
+// (the side effects differ, so they are not placed in the mutation).
+// onSuccess invalidates the list: the new character enters the list, and
+// the CharacterListView / CharacterList / CharacterGraph nodes stay in sync.
+// relations is not invalidated: a newly created character has no relations,
+// so the relations cache has no dirty data.
 export function useCreateCharacter(novelId: number) {
   const qc = useQueryClient();
   return useMutation({

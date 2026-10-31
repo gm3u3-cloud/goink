@@ -1,7 +1,9 @@
-// 面板路由标识。activePanel 是主区渲染的 13 种面板之一。
-// 来源：WorkspaceView 否定链排除的 10 个专门 View（characters/locations/
-// storyarcs/timeline/reader/preferences/novel-settings/profile/git/style-samples）
-// + BookshelfView 分支（novels）+ ContentPanel 默认（chapters、skills）。
+// Panel routing identifier. activePanel is one of the 13 panels rendered in
+// the main area.
+// Source: the 10 dedicated Views excluded by WorkspaceView's negation chain
+// (characters/locations/storyarcs/timeline/reader/preferences/
+// novel-settings/profile/git/style-samples) + the BookshelfView branch
+// (novels) + ContentPanel defaults (chapters, skills).
 export type PanelId =
   | "novels"
   | "chapters"
@@ -18,5 +20,6 @@ export type PanelId =
   | "skills"
   | "style-samples";
 
-// 侧栏可额外为 "search"（搜索面板覆盖在 SidePanel 内）。
+// The sidebar can additionally be "search" (the search panel overlays inside
+// SidePanel).
 export type SidebarPanelId = PanelId | "search";

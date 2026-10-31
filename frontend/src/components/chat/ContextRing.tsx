@@ -1,4 +1,5 @@
-// ContextRing — SVG 圆环显示 token 用量，照搬 Python ContextRing.tsx
+// ContextRing — an SVG ring displaying token usage, ported from the Python
+// ContextRing.tsx
 import { useState, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 

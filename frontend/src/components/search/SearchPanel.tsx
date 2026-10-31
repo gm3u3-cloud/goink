@@ -21,7 +21,8 @@ import { useSearchStore } from "@/stores/useSearchStore";
 
 interface Props {
   novelId: number;
-  // 4b: type 透传——storyarc 全局搜索区分 arc/node 跳转（其他领域 undefined）。
+  // 4b: pass type through — storyarc global search distinguishes arc/node
+  // navigation (other domains use undefined).
   onNavigateEntity: (
     panelId: PanelId,
     entityId: number,
@@ -41,7 +42,8 @@ const TYPE_CONFIG: Record<
   {
     icon: typeof Search;
     labelKey: string;
-    // 4b: 有此字段的领域，subtitle 走 i18n（t(prefix + subtitle)）；无则原样显示。
+    // 4b: for domains with this field, the subtitle goes through i18n
+    // (t(prefix + subtitle)); without it, it is shown as-is.
     subtitlePrefix?: string;
   }
 > = {
@@ -93,8 +95,11 @@ export default function SearchPanel({
   const query = useSearchStore((s) => s.query);
   const setQuery = useSearchStore((s) => s.setQuery);
   const [selectedIdx, setSelectedIdx] = useState(-1);
-  // debounce 300ms：输入框值（query 从 useSearchStore 读）变化后延迟驱动 useQuery。
-  // 保留旧实现 300ms 时延（规则 7 UI/UX 不变）。竞态保护由 useQuery 内置机制接管（替代 reqIdRef）。
+  // 300ms debounce: after the input value (query, read from useSearchStore)
+  // changes, drive useQuery with a delay.
+  // Keeps the old implementation's 300ms delay (rule 7: UI/UX unchanged).
+  // Race protection is taken over by useQuery's built-in mechanism
+  // (replaces reqIdRef).
   const [debouncedQuery, setDebouncedQuery] = useState(query);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -106,12 +111,14 @@ export default function SearchPanel({
 
   const searchQuery = useSearch({ novelId, query: debouncedQuery });
 
-  // debounce 期间当空结果：匹配旧实现输入瞬间 onResultsChange(v, []) 清空 results 的行为
-  // （输入瞬间显示「无搜索结果」，300ms 后才 spinner，规则 7 UI/UX 不变）。
+  // Treat as empty results during debounce: matches the old implementation's
+  // behavior of onResultsChange(v, []) clearing results the moment input
+  // changes (shows "no search results" instantly, the spinner only appears
+  // after 300ms — rule 7: UI/UX unchanged).
   const isDebouncing = query !== debouncedQuery;
   const data = isDebouncing ? [] : (searchQuery.data ?? []);
 
-  // 按分组整理结果
+  // Organize results by group
   const grouped = (() => {
     const map = new Map<string, SearchResult[]>();
     for (const r of data) {
@@ -139,7 +146,7 @@ export default function SearchPanel({
     return ordered;
   })();
 
-  // 扁平列表用于键盘导航
+  // Flat list for keyboard navigation
   const flatList = grouped.flatMap((g) => g.items);
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -174,8 +181,10 @@ export default function SearchPanel({
         r.match_len ?? 0,
       );
     } else {
-      // 4b: 全局搜索 storyarc 区分 arc/node——后端 Type "storyarc" → "arc"，"arc_node" → "node"，
-      // 其他领域 undefined。focusStore 写入 type，ArcListView 的 useEffect 按 type 走对应分支。
+      // 4b: global search distinguishes arc/node for storyarc — the backend
+      // Type "storyarc" → "arc", "arc_node" → "node"; other domains use
+      // undefined. focusStore writes the type; ArcListView's useEffect takes
+      // the corresponding branch based on the type.
       let focusType: "arc" | "node" | undefined;
       if (r.type === "storyarc") focusType = "arc";
       else if (r.type === "arc_node") focusType = "node";
@@ -190,7 +199,7 @@ export default function SearchPanel({
 
   return (
     <div className="flex flex-col h-full">
-      {/* 搜索输入区 */}
+      {/* Search input area */}
       <div className="flex items-center gap-1.5 px-2 py-2 border-b">
         <SearchInput
           ref={inputRef}
@@ -203,7 +212,7 @@ export default function SearchPanel({
         />
       </div>
 
-      {/* 结果区 */}
+      {/* Results area */}
       <div ref={listRef} className="flex-1 overflow-y-auto overscroll-contain">
         {!query.trim() ? (
           <div className="flex items-center justify-center h-full">

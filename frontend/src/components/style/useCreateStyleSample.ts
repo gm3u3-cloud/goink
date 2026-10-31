@@ -3,12 +3,16 @@ import { CreateStyleSample } from "@/lib/wailsjs/go/app/App";
 import type { app } from "@/lib/wailsjs/go/models";
 import { styleSampleKeys } from "@/lib/queryKeys";
 
-// useCreateStyleSample: 创建风格样本 mutation。
-// mutationFn 直接 import wailsjs CreateStyleSample（不用 useApp）。
-// 入参 app.CreateStyleSampleInput：novel_id/is_global/name/content/tags。
-// handler 负责 setNewName/reset form/setPage(1) + 错误 throw（副作用各异，不放进 mutation）。
-// onSuccess 失效 styleSampleKeys.all：新样本入列表，StyleView/StyleSampleList 缓存同步。
-// mutation 不挂 onError；调用方 try/catch + setError（对齐 character 模式）。
+// useCreateStyleSample: create style sample mutation.
+// mutationFn imports wailsjs CreateStyleSample directly (not useApp).
+// Input app.CreateStyleSampleInput: novel_id/is_global/name/content/tags.
+// The handler is responsible for setNewName/reset form/setPage(1) +
+// throwing the error (the side effects differ, so they are not placed in
+// the mutation).
+// onSuccess invalidates styleSampleKeys.all: the new sample enters the
+// list, and the StyleView/StyleSampleList caches stay in sync.
+// The mutation has no onError; the caller does try/catch + setError
+// (aligned with the character pattern).
 export function useCreateStyleSample() {
   const qc = useQueryClient();
   return useMutation({

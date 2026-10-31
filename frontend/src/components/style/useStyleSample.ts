@@ -2,12 +2,18 @@ import { useQuery } from "@tanstack/react-query";
 import { GetStyleSample } from "@/lib/wailsjs/go/app/App";
 import { styleSampleKeys } from "@/lib/queryKeys";
 
-// useStyleSample: 风格样本详情 query（StyleView 编辑弹窗按需拉取单条完整 content）。
-// ListStyleSamples 返回的 items.content 是 preview 截断，编辑需完整 content，故 detail 独立 fetch。
-// enabled: id != null（detailId 为 null 时不 fetch）；queryKey 含 id。
-// 调用方（StyleView openDetail）改 setDetailId 触发 query，useEffect 监听 query.data ready 回填编辑字段。
-// update mutation onSuccess 失效 detail（commit 2）。
-// 5.3 commit 1：GET 错误由全局中间件接管，组件不挂 toastError。
+// useStyleSample: style sample detail query (StyleView's edit dialog
+// fetches a single sample's full content on demand).
+// The items.content returned by ListStyleSamples is a truncated preview;
+// editing needs the full content, so the detail is fetched independently.
+// enabled: id != null (no fetch when detailId is null); queryKey includes
+// the id.
+// The caller (StyleView openDetail) sets detailId to trigger the query; a
+// useEffect watches for the query.data to become ready and back-fills the
+// edit fields.
+// The update mutation's onSuccess invalidates the detail (commit 2).
+// 5.3 commit 1: GET errors are handled by the global middleware; the
+// component does not mount toastError.
 export function useStyleSample(id: number | null) {
   return useQuery({
     queryKey: styleSampleKeys.detail(id ?? 0),

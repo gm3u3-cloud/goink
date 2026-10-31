@@ -23,7 +23,9 @@ export default function TabBar({
     const el = scrollRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
-      // 仅在 tab 栏横向溢出时把纵向滚轮转为横向滚动，避免 tab 较少时拦截滚轮
+      // Only convert vertical wheel to horizontal scrolling when the tab
+      // bar overflows horizontally, to avoid intercepting the wheel when
+      // there are few tabs
       if (el.scrollWidth <= el.clientWidth) return;
       e.preventDefault();
       el.scrollLeft += e.deltaY;

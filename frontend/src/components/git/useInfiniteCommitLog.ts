@@ -2,19 +2,26 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { GetCommitLog } from "@/lib/wailsjs/go/app/App";
 import { gitCommitKeys } from "@/lib/queryKeys";
 
-// useInfiniteCommitLog: git 提交历史无限滚动 query（GitHistoryList size=50）。
+// useInfiniteCommitLog: infinite-scroll query for the git commit history
+// (GitHistoryList size=50).
 //
-// 与 useInfiniteSessions/useInfiniteStyleSamples 不同，git 走**游标分页**（afterHash）
-// 而非 page 分页——git log 没有页码/total_pages 概念，提交历史是链表结构，
-// 只能以 hash 为游标拉下一页（git log --after=<hash> 的天然分页方式）。
+// Unlike useInfiniteSessions/useInfiniteStyleSamples, git uses **cursor
+// pagination** (afterHash) rather than page pagination — git log has no
+// page number / total_pages concept; the commit history is a linked-list
+// structure, so the next page can only be fetched using a hash as the
+// cursor (the natural pagination of git log --after=<hash>).
 //
-// - initialPageParam="" 表示从 HEAD 开始拉
-// - pageParam 是 afterHash 字符串（不进 queryKey，由 useInfiniteQuery 管理）
-// - getNextPageParam: 上一页满 size 时返回该页最后一条 commit 的 hash 作为下一页 cursor，
-//   否则 undefined（无更多页）
-// - data.pages 是已加载各页的 CommitInfo[] 数组，消费者 flatMap(p => p) 得到累积列表
+// - initialPageParam="" means start fetching from HEAD
+// - pageParam is the afterHash string (not in the queryKey; managed by
+//   useInfiniteQuery)
+// - getNextPageParam: when the previous page is full (== size), return the
+//   hash of that page's last commit as the next-page cursor; otherwise
+//   undefined (no more pages)
+// - data.pages is an array of CommitInfo[] for each loaded page; consumers
+//   flatMap(p => p) to get the accumulated list
 //
-// 5.4 commit 5：GET 错误由全局中间件接管（queryErrorToast.ts），组件不挂 toastError。
+// 5.4 commit 5: GET errors are handled by the global middleware
+// (queryErrorToast.ts); the component does not attach toastError.
 export function useInfiniteCommitLog(input: {
   novelId: number;
   size: number;

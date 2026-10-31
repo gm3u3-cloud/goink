@@ -23,8 +23,9 @@ interface Props {
     { ok: boolean; msg?: string; warning?: string } | undefined
   >;
   testing: Record<string, boolean>;
-  // 父组件外部指令：focusNonce 自增时 setSelectedKey(focusKey)，
-  // 用于保存测试失败时把视图切到失败 provider 方便用户定位
+  // Parent external directive: when focusNonce increments, setSelectedKey
+  // (focusKey) is called; used to switch the view to the failed provider
+  // when a save test fails, so the user can locate it
   focusKey?: string;
   focusNonce?: number;
 }
@@ -47,26 +48,32 @@ export default function CustomProviderPane({
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
 
-  // providers 异步加载后同步 selectedKey：父组件 providers 初值为 []，
-  // 首次挂载 selectedKey 被锁成 ""，providers 就绪后需自愈到首项 key
+  // Sync selectedKey after providers load asynchronously: the parent's
+  // providers initial value is [], so on first mount selectedKey is locked
+  // to ""; once providers are ready it must self-heal to the first item's
+  // key
   useEffect(() => {
     if (providers.length > 0 && !providers.find((p) => p.key === selectedKey)) {
       setSelectedKey(providers[0].key);
     }
   }, [providers, selectedKey]);
 
-  // 父组件外部指令：focusNonce 自增时强制选中 focusKey
-  // （focusNonce 自增保证即便 focusKey 未变也能触发，比如连续失败同一 provider）
+  // Parent external directive: when focusNonce increments, force-select
+  // focusKey (the focusNonce increment guarantees the trigger even when
+  // focusKey is unchanged, e.g. consecutive failures of the same provider)
   useEffect(() => {
     if (focusKey && providers.find((p) => p.key === focusKey)) {
       setSelectedKey(focusKey);
     }
-    // 故意只依赖 focusNonce，不依赖 focusKey/providers
-    // （providers 变化时上面那个 effect 已处理，这里只响应外部指令）
+    // Deliberately depends only on focusNonce, not focusKey/providers
+    // (when providers change, the effect above handles it; here we only
+    // respond to external directives)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusNonce]);
 
-  // 删除自定义 provider：点按钮只记录目标弹确认框，确认后在 confirmDeleteProvider 里执行
+  // Delete a custom provider: clicking the button only records the target
+  // and shows the confirm dialog; the actual removal runs in
+  // confirmDeleteProvider after confirmation
   const confirmDeleteProvider = () => {
     if (!deleteTarget) return;
     onRemove(deleteTarget);
@@ -96,11 +103,11 @@ export default function CustomProviderPane({
     setNewChatURL("");
     setNewApiKey("");
     setShowNewForm(false);
-    // 选中新加的 provider
+    // Select the newly added provider
     setSelectedKey(newName.trim().toLowerCase().replace(/\s+/g, "-"));
   };
 
-  // 无自定义服务商且未展开新建表单
+  // No custom providers and the new-provider form is not expanded
   if (providers.length === 0 && !showNewForm) {
     return (
       <div className="flex flex-col items-center gap-3 py-8">
@@ -119,7 +126,7 @@ export default function CustomProviderPane({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* 服务商选择 + 状态 + 添加 */}
+      {/* Provider selection + status + add */}
       <div className="flex items-center gap-3">
         <label className="text-xs text-muted-foreground w-14 shrink-0">
           {t("settings.provider")}
@@ -130,8 +137,9 @@ export default function CustomProviderPane({
           onSelect={setSelectedKey}
           testResults={testResults}
           renderIcon={(_key, name) => {
-            // Custom 没有内置图标，用首字母圆形 fallback
-            // 取 name 首字母（不足用 ?），大写后放在 bg-primary/15 圆形里
+            // Custom has no built-in icon; use a circular initial fallback
+            // Take the first character of name (or "?" if empty),
+            // uppercase it, and place it in a bg-primary/15 circle
             const initial = (name || "?").charAt(0).toUpperCase();
             return (
               <div className="w-4 h-4 rounded-full bg-primary/15 text-primary text-[10px] flex items-center justify-center font-medium shrink-0">
@@ -152,7 +160,7 @@ export default function CustomProviderPane({
         </button>
       </div>
 
-      {/* 新建表单 */}
+      {/* New provider form */}
       {showNewForm && (
         <div className="border rounded-md p-3 space-y-3">
           <div className="text-xs font-medium">
@@ -214,7 +222,7 @@ export default function CustomProviderPane({
         </div>
       )}
 
-      {/* 选中已有服务商时的编辑区 */}
+      {/* Edit area for a selected existing provider */}
       {provider && !showNewForm && (
         <>
           <div className="flex items-center gap-3">
@@ -228,7 +236,8 @@ export default function CustomProviderPane({
             />
           </div>
 
-          {/* 共享表单字段：ChatURL → APIKey → TestResult → Temperature → CustomModelList */}
+          {/* Shared form fields: ChatURL → APIKey → TestResult →
+           * Temperature → CustomModelList */}
           <ProviderFormFields
             provider={provider}
             selectedKey={selectedKey}
@@ -251,7 +260,7 @@ export default function CustomProviderPane({
             onAddModel={(m) => onAddCustomModel(selectedKey, m)}
           />
 
-          {/* 删除 */}
+          {/* Delete */}
           <div className="flex pt-1">
             <button
               onClick={() => setDeleteTarget(selectedKey)}
@@ -267,7 +276,7 @@ export default function CustomProviderPane({
         title={t("settings.confirmDeleteProvider")}
         message={
           deleteTarget
-            ? `"${providers.find((p) => p.key === deleteTarget)?.name || deleteTarget}"？${t("common.irreversible")}`
+            ? `"${providers.find((p) => p.key === deleteTarget)?.name || deleteTarget}"? ${t("common.irreversible")}`
             : ""
         }
         danger

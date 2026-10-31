@@ -32,7 +32,8 @@ export function useLayoutState() {
     loadNumber(CHATPANEL_KEY, CHATPANEL_DEFAULT, 280, 800),
   );
 
-  // 防抖写入 localStorage，避免拖拽时频繁同步 I/O
+  // Debounced write to localStorage to avoid frequent synchronous I/O while
+  // dragging.
   const sideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chatTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

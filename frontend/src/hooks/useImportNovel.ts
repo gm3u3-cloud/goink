@@ -57,16 +57,19 @@ export function useImportNovel({ onImported }: UseImportNovelOptions) {
     { title: string; reason: string }[]
   >([]);
 
-  // LLM 兜底相关状态
+  // LLM fallback related state
   const [filePath, setFilePath] = useState("");
-  // selectedModel 存结构化 AvailableModel 对象（含 ProviderName/ModelID），
-  // 替代原 modelKey 字符串 + splitModelKey 拆串。models 列表只读走 query data。
+  // selectedModel stores a structured AvailableModel object (with
+  // ProviderName/ModelID), replacing the old modelKey string + splitModelKey
+  // split. The models list is read-only via query data.
   const [selectedModel, setSelectedModel] = useState<llm.AvailableModel | null>(
     null,
   );
 
-  // 5.9: 模型列表 + 当前选中模型走 query hook（useModels 5.1 / useSettings 5.8），
-  // 替代原 useEffect 命令式 app.GetModels + app.GetSettings。删 app 参数后不再依赖 useApp。
+  // 5.9: model list + currently selected model go through the query hooks
+  // (useModels 5.1 / useSettings 5.8), replacing the old imperative
+  // useEffect app.GetModels + app.GetSettings. After removing the app param
+  // we no longer depend on useApp.
   const { data: modelsData = [] } = useModels();
   const { data: settingsData } = useSettings();
 
@@ -90,9 +93,10 @@ export function useImportNovel({ onImported }: UseImportNovelOptions) {
     return unsubscribe;
   }, []);
 
-  // selectedModel 选中态：query data ready 后从 settings 回填。
-  // 原命令式 app.GetModels().then + app.GetSettings().then 改用 query 缓存，
-  // 30s staleTime 内命中缓存不重复 fetch。
+  // selectedModel selection state: backfilled from settings once query data
+  // is ready. The old imperative app.GetModels().then + app.GetSettings().then
+  // now uses the query cache; within the 30s staleTime a cache hit avoids a
+  // redundant fetch.
   useEffect(() => {
     if (!modelsData?.length) return;
     const key = settingsData?.selected_model_key || "";
@@ -144,8 +148,9 @@ export function useImportNovel({ onImported }: UseImportNovelOptions) {
         return;
       }
 
-      // 正则分割失败，提示用户使用 AI 分析
-      // 优先使用后端回传的 file_path（PickAndImportNovel 路径下 fp 为 undefined）
+      // Regex splitting failed; prompt the user to use AI analysis.
+      // Prefer the file_path returned by the backend (under the
+      // PickAndImportNovel path fp is undefined).
       if (result.needs_llm) {
         setFilePath(result.file_path || fp || "");
         setProgress((prev) => ({
@@ -171,8 +176,9 @@ export function useImportNovel({ onImported }: UseImportNovelOptions) {
     [onImported, reset, t],
   );
 
-  // 用户点"AI 分析"→ 调 ImportWithLLM，LLM 分析后直接导入
-  // 结构化入参：直接取 selectedModel.ProviderName/ModelID，不再 splitModelKey 拆串。
+  // The user clicks "AI analyze" -> call ImportWithLLM; after the LLM
+  // analysis we import directly. Structured args: take
+  // selectedModel.ProviderName/ModelID directly, no more splitModelKey split.
   const startLLMImport = useCallback(async () => {
     if (!filePath || !selectedModel) return;
     const { ProviderName: providerName, ModelID: modelID } = selectedModel;
@@ -210,8 +216,9 @@ export function useImportNovel({ onImported }: UseImportNovelOptions) {
     }
   }, [filePath, selectedModel, onImported, t]);
 
-  // 对外暴露结构化 selectedModel + models 列表 + onModelChange，
-  // ImportProgressDialog 用 models 构建下拉、onChange 内部 find 转 onModelChange。
+  // Expose the structured selectedModel + models list + onModelChange.
+  // ImportProgressDialog builds the dropdown from models, and onChange
+  // internally finds the model and calls onModelChange.
   return {
     startImport,
     startLLMImport,

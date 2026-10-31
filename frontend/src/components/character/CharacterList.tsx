@@ -24,8 +24,11 @@ interface Props {
 
 export default function CharacterList({ novelId }: Props) {
   const { t } = useTranslation();
-  // 4.1.1: characters 数据走 useCharacters query，跨组件共享缓存（CharacterListView / CharacterGraph 同源）。
-  // 删除原 useState<characters> + useEffect + useRefresh 链路；CRUD 后由 invalidateQueries 触发自动 refetch。
+  // 4.1.1: characters data goes through the useCharacters query, sharing
+  // the cache across components (same source as CharacterListView /
+  // CharacterGraph).
+  // Removes the old useState<characters> + useEffect + useRefresh chain;
+  // after CRUD, invalidateQueries triggers an automatic refetch.
   const charsQuery = useCharacters(novelId);
   const characters = useMemo(() => charsQuery.data ?? [], [charsQuery.data]);
   const groupsQuery = useCharacterGroups(novelId);
@@ -43,13 +46,17 @@ export default function CharacterList({ novelId }: Props) {
   const deleteGroup = useCharacterGroupStore((s) => s.deleteGroup);
   const setActivePanel = usePanelStore((s) => s.setActivePanel);
   const focusedId = useFocusStore((s) => s.focusMap.characters?.id);
-  // 4.1.2: 删除合并 —— 点删除只 dispatch setDeletingCharacterId，
-  // ConfirmDialog + 执行集中在 CharacterListView（唯一确认入口，两处共用）。
+  // 4.1.2: consolidated deletion — clicking delete only dispatches
+  // setDeletingCharacterId; the ConfirmDialog + execution are centralized in
+  // CharacterListView (the single confirmation entry point, shared by both
+  // places).
   const setDeletingCharacterId = useCharacterStore(
     (s) => s.setDeletingCharacterId,
   );
-  // 4b: 点击列表项触发 focusEntity，不区分搜索/非搜索，
-  // CharacterListView 的 useEffect 收到后 scrollIntoView + 高亮（与全局搜索点击效果一致）。
+  // 4b: clicking a list item triggers focusEntity, regardless of whether
+  // it is a search result; CharacterListView's useEffect receives it and
+  // does scrollIntoView + highlight (consistent with the global search
+  // click effect).
   const focusEntity = useFocusStore((s) => s.focusEntity);
   const [search, setSearch] = useState("");
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(

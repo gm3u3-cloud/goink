@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { WritingActivity } from "./useWritingActivity";
 
 interface Props {
-  data: Record<string, WritingActivity>; // "YYYY-MM-DD" -> 字数
+  data: Record<string, WritingActivity>; // "YYYY-MM-DD" -> word count
   months?: number;
 }
 
@@ -48,7 +48,7 @@ export default function ContributionGrid({ data, months = 12 }: Props) {
     const end = today;
     const start = new Date(end);
     start.setMonth(end.getMonth() - months);
-    // 对齐到周日
+    // Align to Sunday
     start.setDate(start.getDate() - start.getDay());
 
     const result: WritingActivity[][] = [];
@@ -75,7 +75,7 @@ export default function ContributionGrid({ data, months = 12 }: Props) {
   const monthLabels = useMemo(() => {
     const labels: { label: string; span: number }[] = [];
     weeks.forEach((week, i) => {
-      const midDay = week[3]?.date; // 用周三判断月份
+      const midDay = week[3]?.date; // Use Wednesday to determine the month
       if (!midDay) return;
       const month = midDay.slice(0, 7);
       const last = labels[labels.length - 1];
@@ -111,7 +111,7 @@ export default function ContributionGrid({ data, months = 12 }: Props) {
 
   return (
     <div className="relative select-none">
-      {/* 月份标签 */}
+      {/* Month labels */}
       <div
         className="flex text-[10px] text-muted-foreground mb-1"
         style={{ paddingLeft: 28 }}
@@ -124,7 +124,7 @@ export default function ContributionGrid({ data, months = 12 }: Props) {
       </div>
 
       <div className="flex gap-[3px]">
-        {/* 星期标签 */}
+        {/* Weekday labels */}
         <div
           className="flex flex-col gap-[3px] text-[10px] text-muted-foreground pr-2"
           style={{ width: 22 }}
@@ -138,7 +138,7 @@ export default function ContributionGrid({ data, months = 12 }: Props) {
           <span className="h-[13px] leading-[13px]" />
         </div>
 
-        {/* 格子矩阵 */}
+        {/* Cell matrix */}
         <div className="flex gap-[3px]">
           {weeks.map((week, wi) => (
             <div key={wi} className="flex flex-col gap-[3px]">
@@ -156,7 +156,7 @@ export default function ContributionGrid({ data, months = 12 }: Props) {
         </div>
       </div>
 
-      {/* 图例 */}
+      {/* Legend */}
       <div className="flex items-center gap-1 mt-2 justify-end text-[10px] text-muted-foreground">
         <span className="mr-2">{t("profile.editVolume")}</span>
         <span>{t("profile.less")}</span>

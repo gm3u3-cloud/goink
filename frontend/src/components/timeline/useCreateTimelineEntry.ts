@@ -3,11 +3,15 @@ import { CreateTimelineEntry } from "@/lib/wailsjs/go/app/App";
 import type { app } from "@/lib/wailsjs/go/models";
 import { timelineKeys } from "@/lib/queryKeys";
 
-// useCreateTimelineEntry: 创建时间线条目 mutation。
-// mutationFn 直接 import wailsjs CreateTimelineEntry（不用 useApp），返回 timeline.TimelineEntry。
-// handler 负责 setEditMode(null) + 错误 throw（副作用各异，不放进 mutation）。
-// onSuccess 失效 timeline：新 entry 入列表，TimelineView / TimelineList 同步。
-// 不失效 chapter-plans/max-chapter：新建 entry 不影响 plan 和小说最大章节号。
+// useCreateTimelineEntry: create timeline entry mutation.
+// mutationFn imports wailsjs CreateTimelineEntry directly (not useApp) and
+// returns timeline.TimelineEntry.
+// The handler is responsible for setEditMode(null) + throwing the error
+// (the side effects differ, so they are not placed in the mutation).
+// onSuccess invalidates timeline: the new entry enters the list, and
+// TimelineView / TimelineList stay in sync.
+// chapter-plans/max-chapter are not invalidated: a newly created entry does
+// not affect the plans or the novel's max chapter number.
 export function useCreateTimelineEntry(novelId: number) {
   const qc = useQueryClient();
   return useMutation({

@@ -8,7 +8,8 @@ import MCPServerConfigTab from "./mcp_server/MCPServerConfigTab";
 
 type Tab = "general" | "model" | "mcp" | "about";
 
-// 内容区按 activeTab 映射渲染，避免嵌套三元。
+// The content area is rendered via a map keyed by activeTab, avoiding nested
+// ternaries.
 const TAB_CONTENT: Record<Tab, React.ReactNode> = {
   general: <GeneralConfigTab />,
   model: <ModelConfigTab />,
@@ -57,12 +58,12 @@ export default function SettingsDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* 遮罩 */}
+      {/* Overlay */}
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
-      {/* 弹窗 */}
+      {/* Dialog */}
       <div className="relative bg-background rounded-xl shadow-2xl border flex w-[min(1056px,95vw,calc(90vh*44/35))] aspect-[44/35] min-h-0 overflow-hidden">
-        {/* 左侧导航 */}
+        {/* Left navigation */}
         <nav className="w-[160px] border-r py-4 px-2 flex flex-col gap-1 shrink-0 overflow-y-auto">
           <div className="text-sm font-medium px-3 pb-3 text-foreground">
             {t("settings.title")}
@@ -83,9 +84,9 @@ export default function SettingsDialog({
           ))}
         </nav>
 
-        {/* 右侧内容区 */}
+        {/* Right content area */}
         <div className="flex-1 p-5 flex flex-col min-w-0 min-h-0">
-          {/* 关闭按钮 */}
+          {/* Close button */}
           <button
             onClick={onClose}
             className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"

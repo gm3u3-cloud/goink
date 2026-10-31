@@ -9,14 +9,19 @@ import NovelEditDialog from "./NovelEditDialog";
 import NovelDeleteDialog from "./NovelDeleteDialog";
 import ExportDialog from "@/components/export/ExportDialog";
 
-// 3.6: 把 4 个小说对话框（创建/编辑/删除/导出）从 WorkspaceView 抽到独立组件。
-// 内部订阅 useNovelStore 取对话框开关 + 4 个 setter；用 3.3-3.5 mutation 提交。
-// 3.8 后续：删 switchToNovel prop，直接调 useNovelStore.switchNovel + usePanelStore.setActivePanel。
-// reset 由 WorkspaceView effect 监听 activeNovelId 变化自动调。
+// 3.6: Extract the 4 novel dialogs (create/edit/delete/export) from
+// WorkspaceView into a standalone component.
+// Internally subscribes to useNovelStore for the dialog toggles + the 4
+// setters; submits via the 3.3-3.5 mutations.
+// 3.8 follow-up: remove the switchToNovel prop; directly call
+// useNovelStore.switchNovel + usePanelStore.setActivePanel.
+// The reset is called automatically by the WorkspaceView effect watching
+// activeNovelId changes.
 export default function NovelDialogs() {
   const switchNovel = useNovelStore((s) => s.switchNovel);
   const setActivePanel = usePanelStore((s) => s.setActivePanel);
-  // ExportDialog 显示标题用 novels 列表查找；与 WorkspaceView 共享 useNovels 缓存。
+  // ExportDialog's displayed title is looked up from the novels list;
+  // shares the useNovels cache with WorkspaceView.
   const { data: novels = [] } = useNovels();
   const editingNovel = useNovelStore((s) => s.editingNovel);
   const deletingNovel = useNovelStore((s) => s.deletingNovel);
@@ -37,10 +42,12 @@ export default function NovelDialogs() {
     genre: string;
   }) {
     try {
-      // mutation 的 onSuccess 已失效 novelKeys.all；handler 只管关 dialog + 切到新小说。
+      // The mutation's onSuccess has already invalidated novelKeys.all;
+      // the handler only closes the dialog + switches to the new novel.
       const n = await createNovel.mutateAsync(input);
       setShowCreateDialog(false);
-      // 3.8 后续：删 switchToNovel wrapper，直接调 switchNovel + setActivePanel。
+      // 3.8 follow-up: remove the switchToNovel wrapper; directly call
+      // switchNovel + setActivePanel.
       await switchNovel(n.id);
       setActivePanel("chapters");
     } catch (err) {
@@ -67,7 +74,8 @@ export default function NovelDialogs() {
   async function handleDeleteNovel() {
     if (!deletingNovel) return;
     try {
-      // 删除当前 activeNovelId 时，refetch 后 WorkspaceView 的自动选小说 effect 接管。
+      // When deleting the current activeNovelId, WorkspaceView's
+      // auto-select-novel effect takes over after the refetch.
       await deleteNovel.mutateAsync(deletingNovel.id);
       setDeletingNovel(null);
     } catch (err) {

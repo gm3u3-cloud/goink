@@ -18,9 +18,11 @@ export default function RecentSessions({
   onViewAll,
 }: Props) {
   const { t } = useTranslation();
-  // 相对时间：组件挂载即可见，每分钟自动刷新
+  // Relative time: visible as soon as the component mounts; auto-refreshes
+  // every minute
   const timeAgo = useTimeAgo();
-  // 点删除只 dispatch store，ConfirmDialog + 执行由 DeleteSessionDialog 集中处理
+  // Clicking delete only dispatches to the store; the ConfirmDialog +
+  // execution are handled centrally by DeleteSessionDialog
   const setDeletingSession = useChatStore((s) => s.setDeletingSession);
 
   return (

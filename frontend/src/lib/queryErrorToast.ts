@@ -3,15 +3,17 @@ import { toastError } from "@/utils/toast";
 import { toErrorMessage } from "@/utils/error";
 import i18n from "@/i18n";
 
-// queryKey 前缀 → i18n key 映射表。
-// 后续领域 query 化时在此补：style-samples / skills / chapters 等。
-// 漏配时 fallback 用 `${prefix}.loadFailed`，i18n 不存在时再 fallback 到
-// `${prefix} load failed`，保证不静默。
+// queryKey prefix → i18n key mapping table.
+// Add entries here as more domains are query-ified: style-samples / skills /
+// chapters, etc.
+// When a mapping is missing, fall back to `${prefix}.loadFailed`, and if that
+// i18n key does not exist, fall back to `${prefix} load failed`, so errors
+// are never silent.
 const QUERY_ERROR_I18N: Record<string, string> = {
   characters: "character.charsLoadFailed",
   "character-relations": "character.relationsLoadFailed",
   novels: "novel.loadFailed",
-  // 后续领域 query 化时补：
+  // Add entries here as more domains are query-ified:
   locations: "location.locationsLoadFailed",
   "location-relations": "location.relationsLoadFailed",
   storyarcs: "storyarc.arcsLoadFailed",
@@ -22,54 +24,67 @@ const QUERY_ERROR_I18N: Record<string, string> = {
   reader: "reader.loadFailed",
   preferences: "preference.loadFailed",
   "novel-settings": "novelSetting.loadFailed",
-  // chat 领域 GET 端点（5.1 commit 1）：
+  // chat domain GET endpoints (5.1 commit 1):
   models: "chat.modelsLoadFailed",
   settings: "chat.settingsLoadFailed",
   sessions: "chat.sessionsLoadFailed",
   session: "chat.sessionLoadFailed",
   "session-messages": "chat.messagesLoadFailed",
   "slash-commands": "chat.slashCommandsLoadFailed",
-  // 5.2 commit 1：content 领域 GET 端点
+  // 5.2 commit 1: content domain GET endpoints
   chapters: "chapter.loadFailed",
   content: "content.loadFailed",
-  // 5.3 commit 1：style 领域 GET 端点（list + infiniteList 共用 style-samples 前缀，detail 用 style-sample）
+  // 5.3 commit 1: style domain GET endpoints (list + infiniteList share the
+  // style-samples prefix; detail uses style-sample)
   "style-samples": "styleSample.loadFailed",
   "style-sample": "styleSample.loadFailed",
-  // 5.4 commit 1：skill 领域 GET 端点（ListSkills）
+  // 5.4 commit 1: skill domain GET endpoints (ListSkills)
   skills: "skill.loadFailed",
-  // 5.4 commit 3：SkillMarketplace 远程技能（apperr 新 API，unwrapResult throw 触发中间件）
+  // 5.4 commit 3: SkillMarketplace remote skills (new apperr API;
+  // unwrapResult throw triggers the middleware)
   "remote-skills": "skill.marketplace.loadFailed",
   "remote-skill-content": "skill.marketplace.contentLoadFailed",
-  // 5.4 commit 5：git 领域 GET 端点（GetCommitLog/GetCommitFileList/GetFileDiff）
+  // 5.4 commit 5: git domain GET endpoints
+  // (GetCommitLog/GetCommitFileList/GetFileDiff)
   "git-commits": "git.commitsLoadFailed",
   "commit-files": "git.commitFilesLoadFailed",
   "file-diff": "git.fileDiffLoadFailed",
-  // 5.5 commit 1：search 领域 GET 端点（SearchAll 全局跨实体搜索）
+  // 5.5 commit 1: search domain GET endpoints (SearchAll global
+  // cross-entity search)
   search: "search.loadFailed",
-  // 5.7 commit 1：profile 领域 GET 端点（GetWritingActivity/GetWritingStats）
-  // settings 复用 chat.settingsLoadFailed（GetSettings 共享缓存，文案通用）
+  // 5.7 commit 1: profile domain GET endpoints
+  // (GetWritingActivity/GetWritingStats)
+  // settings reuses chat.settingsLoadFailed (GetSettings shared cache,
+  // generic wording)
   "writing-activity": "profile.activityLoadFailed",
   "writing-stats": "profile.statsLoadFailed",
-  // 5.8 commit 1：LLM 配置 query（GetLLMConfig）
+  // 5.8 commit 1: LLM config query (GetLLMConfig)
   "llm-config": "settings.llmConfigLoadFailed",
   "mcp-server": "settings.mcpServer.loadFailed",
 };
 
-// 4a 全局 query 错误 toast 中间件。
-// 设计依据见 docs/feat/v1.4.0/refactor-plan/04a-query-error-toast.md。
+// 4a global query error toast middleware.
+// Design rationale: docs/feat/v1.4.0/refactor-plan/04a-query-error-toast.md.
 //
-// 触发时机：query state 变 error（含 retry 全部失败后、refetch 失败、invalidateQueries 后 refetch 失败）。
-// 不触发：retry 期间（state.status='pending'）、refetch 成功（action.type='success'）。
-// 不接入：mutation 错误（mutationCache 不被本中间件订阅）；mutation 由各自 onError 处理。
+// Triggers: query state becomes error (including after all retries fail,
+// refetch failure, refetch failure after invalidateQueries).
+// Does not trigger: during retry (state.status='pending'), successful
+// refetch (action.type='success').
+// Not wired in: mutation errors (mutationCache is not subscribed by this
+// middleware); mutations are handled by their own onError.
 //
-// 无需去重：subscribe 是 query 级别 callback，多组件订阅同 queryKey 也只 fire 1 次；
-// retry 期间不 fire error action；refetch 失败时 TanStack Query 新建 error 对象引用必变。
+// No dedup needed: subscribe is a query-level callback; multiple components
+// subscribing to the same queryKey still fire only once; no error action
+// fires during retry; TanStack Query creates a new error object reference on
+// refetch failure, so the reference always changes.
 //
-// 组件卸载静默：observers.length === 0 时 query 无组件订阅（用户已离开该页面），
-// 后台 refetch 失败不 toast，避免用户在别的页面突然看到已离开页面的报错。
+// Silent on component unmount: when observers.length === 0 the query has no
+// component subscribers (the user has left the page); a background refetch
+// failure does not toast, so the user does not suddenly see an error from a
+// page they have already left.
 export function installQueryErrorToast(queryClient: QueryClient): () => void {
   return queryClient.getQueryCache().subscribe((event) => {
-    // 只关心 query 状态变 error 的事件
+    // Only care about events where the query state became error
     if (event.type !== "updated") return;
     if (event.action.type !== "error") return;
 
@@ -77,10 +92,12 @@ export function installQueryErrorToast(queryClient: QueryClient): () => void {
     const error = query.state.error;
     if (!error) return;
 
-    // 组件卸载静默：无 observer 订阅时，后台 refetch 失败不 toast
+    // Silent on component unmount: no observer subscriptions = no toast for
+    // background refetch failures
     if (query.observers.length === 0) return;
 
-    // 查 i18n key：先按 queryKey 前缀查映射表，没匹配时 fallback 用 `${prefix}.loadFailed`
+    // Look up the i18n key: check the mapping table by queryKey prefix first;
+    // fall back to `${prefix}.loadFailed` when no match
     const prefix = String(query.queryKey[0] ?? "");
     const i18nKey = QUERY_ERROR_I18N[prefix] ?? `${prefix}.loadFailed`;
     const label = i18n.exists(i18nKey)

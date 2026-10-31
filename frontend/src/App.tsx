@@ -14,9 +14,12 @@ import { useQuitConfirm } from "@/components/startup/useQuitConfirm";
 
 export default function App() {
   const { t } = useTranslation();
-  // 顺序不能反：useQuitConfirm 必须先注册好 app:quit-confirm 监听，useStartupState 才会在
-  // effect 里调用 FrontendReady() 完成握手——后端一旦标记前端就绪，关窗请求就会被拦截并
-  // 发出该事件。hook 的 effect 按声明顺序执行，所以这两行谁在前是有意义的。
+  // The order cannot be reversed: useQuitConfirm must register the
+  // app:quit-confirm listener first, and only then will useStartupState call
+  // FrontendReady() in its effect to complete the handshake — once the
+  // backend marks the frontend as ready, close requests are intercepted and
+  // that event is emitted. Hook effects run in declaration order, so which
+  // of these two lines comes first is meaningful.
   const quitConfirm = useQuitConfirm();
   const startup = useStartupState();
   const boot = useWorkspaceBoot(startup.phase, startup.version);
@@ -73,8 +76,11 @@ export default function App() {
             }}
           />
           {renderStartupContent()}
-          {/* 关窗确认由后端在迁移期间发起，弹窗挂在根部以免随启动界面切换被卸载；
-              「继续等待」是安全选项，因此 X / 遮罩 / Esc 都映射到它，只有红色「退出」才真的退出。 */}
+          {/* The close-window confirmation is initiated by the backend during
+              migration; the dialog is mounted at the root so it is not
+              unmounted when the startup screen switches.
+              "Keep waiting" is the safe option, so X / overlay / Esc all map
+              to it; only the red "Exit" actually exits. */}
           <ConfirmDialog
             open={quitConfirm.open}
             title={t("startup.quitConfirmTitle")}
