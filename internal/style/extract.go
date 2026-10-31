@@ -85,13 +85,13 @@ func buildStyleSkillMarkdown(name, description, content string) string {
 func buildExtractMessages(sample string) []map[string]any {
 	return []map[string]any{
 		{"role": "system", "content": extractSystemPrompt},
-		{"role": "user", "content": fmt.Sprintf("The text begins with a 【Text statistics】block (deterministic measurements), followed by the original sample. Analyze the style based on the statistics and submit the result by calling the output_style_skill tool:\n\n%s", sample)},
+		{"role": "user", "content": fmt.Sprintf("The text begins with a [Text statistics] block (deterministic measurements), followed by the original sample. Analyze the style based on the statistics and submit the result by calling the output_style_skill tool:\n\n%s", sample)},
 	}
 }
 
 // formatStatsForLLM 将 Stats 格式化为中文统计文本供 LLM 参考。
 func formatStatsForLLM(stats Stats) string {
-	return fmt.Sprintf(`【Text statistics】
+	return fmt.Sprintf(`[Text statistics]
 Total words: %d  Total characters: %d
 Sentences: %d  Average sentence length: %.1f chars  Sentence length std dev: %.1f
 Sentence length distribution: short (<15 chars) %.1f%%  medium (15-30 chars) %.1f%%  long (>30 chars) %.1f%%
@@ -105,7 +105,7 @@ Paragraphs: %d  Average paragraph length: %.1f chars
 		stats.ParagraphCount, stats.AvgParaLen)
 }
 
-const extractSystemPrompt = `You are a professional writing style analyst. The text begins with a 【Text statistics】block — sentence length distribution, standard deviation, and punctuation density are all computed deterministically in code; cite these numbers directly as the basis of your analysis.
+const extractSystemPrompt = `You are a professional writing style analyst. The text begins with a [Text statistics] block — sentence length distribution, standard deviation, and punctuation density are all computed deterministically in code; cite these numbers directly as the basis of your analysis.
 
 Deconstruct the writing style along the following six dimensions:
 
@@ -117,7 +117,7 @@ Deconstruct the writing style along the following six dimensions:
 6. **Atmosphere and tone**: emotional base tone, warmth of the language
 
 Submit your analysis by calling the output_style_skill tool. Requirements for each field:
-- name: Give this style a fitting name in Chinese
+- name: Give this style a fitting name in Russian
 - description: A one-sentence description of which writing scenarios it suits and when to invoke it
 - content: The body markdown of the style-imitation skill (no frontmatter), containing the following sections:
 # {style name}

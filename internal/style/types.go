@@ -85,7 +85,7 @@ type ExtractResult struct {
 
 // StyleSkillOutput 是风格提取 toolcall 的结构化输出，由 LLM 调用 output_style_skill 工具填充。
 type StyleSkillOutput struct {
-	Name        string `json:"name" jsonschema:"required,description=Style name (in Chinese)"`
+	Name        string `json:"name" jsonschema:"required,description=Style name (in Russian)"`
 	Description string `json:"description" jsonschema:"required,description=One-sentence description of which writing scenarios it suits and when to invoke it"`
 	Content     string `json:"content" jsonschema:"required,description=Style-imitation skill body in markdown, with sections such as ## Style Overview / Sentence Patterns / Word Choice / Rhetorical Devices / Rhythm Control / Narrative Perspective and Distance / Atmosphere and Tone / Imitation Key Points / Original Anchors; no frontmatter"`
 }

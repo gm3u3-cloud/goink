@@ -94,7 +94,23 @@ function goNonCommentCJK(file) {
   return cjkCount(out);
 }
 
-const inScope = { go: [], frontend: [], skills: [] };
+// CJK in these files is functional data, not translatable prose:
+// regex patterns for Chinese chapter-heading detection, punctuation
+// counting/normalization maps, provider-error keywords, and native
+// language names. Per plan rule §1 (signatures vs data values) these
+// must NOT be translated; they form the expected final residual and are
+// reported separately from translatable residual.
+const FUNCTIONAL_FILES = new Set([
+  "internal/import/txt.go",
+  "internal/import/llm.go",
+  "internal/style/utils.go",
+  "internal/mcp_tools/rw_tools.go",
+  "internal/rag/splitter.go",
+  "frontend/src/utils/errorExplain.ts",
+  "frontend/src/views/InitView.tsx",
+]);
+
+const inScope = { go: [], frontend: [], skills: [], functional: [] };
 const outScope = { goTest: [], frontendTest: [], locales: [], docs: [], other: [] };
 
 for (const file of walk(root)) {
@@ -125,6 +141,12 @@ for (const file of walk(root)) {
   }
   if (rel.includes("frontend/src/i18n/locales/")) {
     outScope.locales.push([rel, n]);
+    continue;
+  }
+
+  // Functional data values (not translatable) — separate expected bucket.
+  if (FUNCTIONAL_FILES.has(rel)) {
+    inScope.functional.push([rel, n]);
     continue;
   }
 
@@ -164,10 +186,12 @@ const goTotal = inScope.go.reduce((s, [, , nc]) => s + nc, 0);
 console.log(`CJK scan of ${root}`);
 console.log(
   `IN SCOPE total: ${total(inScope.go) + total(inScope.frontend) + total(inScope.skills)} CJK`
+  + ` (functional data: ${total(inScope.functional)} CJK, not translatable)`
 );
 console.log(
   `  Go: ${total(inScope.go)} total (of which ${goTotal} in strings/code, rest // comments)`
 );
+printList("Functional data (expected residual)", inScope.functional, inScope.functional.length);
 printList(
   "Go (non-test): non-comment CJK / total",
   inScope.go,
@@ -193,12 +217,17 @@ printList("Docs / repo md", outScope.docs, 5);
 printList("Other (wailsjs etc.)", outScope.other, 5);
 
 // Full residual list for the final gate (stage 5). For Go, residual =
-// non-comment CJK (comments are out of scope).
-console.log(`\n== IN-SCOPE RESIDUAL (all files with remaining CJK) ==`);
+// non-comment CJK (comments are out of scope). Functional data files are
+// excluded (tracked in their own bucket above).
+console.log(`\n== TRANSLATABLE IN-SCOPE RESIDUAL (must reach 0) ==`);
 const residual = [
-  ...inScope.go.map(([f, t, nc]) => [f, nc]),
+  ...inScope.go.map(([f, , nc]) => [f, nc]),
   ...inScope.frontend.map(([f, n]) => [f, n]),
   ...inScope.skills.map(([f, n]) => [f, n]),
-].sort((a, b) => b[1] - a[1]);
+]
+  .filter(([, n]) => n > 0)
+  .sort((a, b) => b[1] - a[1]);
 for (const [f, n] of residual) console.log(`  ${String(n).padStart(6)}  ${f}`);
-console.log(`  ${residual.length} files with residual CJK`);
+const residualTotal = residual.reduce((s, [, n]) => s + n, 0);
+console.log(`  ${residual.length} files / ${residualTotal} CJK with translatable residual`);
+console.log(residualTotal === 0 ? "  GATE: PASS" : "  GATE: FAIL");

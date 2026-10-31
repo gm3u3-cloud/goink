@@ -118,7 +118,7 @@ type ChunksOutput struct {
 }
 
 type SkillOutput struct {
-	Name        string `json:"name" jsonschema:"required,description=The skill name (Chinese pattern name)"`
+	Name        string `json:"name" jsonschema:"required,description=The skill name (Russian pattern name)"`
 	Description string `json:"description" jsonschema:"required,description=A one-sentence description of when to use this narrative pattern"`
 	Content     string `json:"content" jsonschema:"required,description=The skill body markdown, containing sections such as ## Pattern Overview / Stage Breakdown / Payoff Rhythm / Character Function Templates / Reusable Narrative Rules / Usage Notes, without frontmatter"`
 }
